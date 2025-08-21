@@ -1,11 +1,11 @@
-module dev::AexisChainsV1 {
+module dev::AexisChainsV30 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::type_info;
     use aptos_std::from_bcs;
     use supra_framework::event;
-    use dev::AexisChainTypes::{Supra, Sui, Base};
+    use dev::AexisChainTypesV30::{Supra, Sui, Base};
 
     /// Admin address constant
     const ADMIN: address = @dev; // <-- replace with real admin address

@@ -1,10 +1,10 @@
-module dev::AexisCoinDeployerV1 {
+module dev::AexisCoinDeployerV30 {
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
     use supra_framework::managed_coin::{Self};
     use supra_framework::coin::{Self, BurnCapability, FreezeCapability, MintCapability};
-    use dev::AexisChainsV1::{Self as Chains};
+    use dev::AexisChainsV30::{Self as Chains};
 
     const ADMIN: address = @dev;
 
@@ -73,12 +73,13 @@ module dev::AexisCoinDeployerV1 {
         let max_amount: u64 = 18446744073709551615;
         //let coins = managed_coin::mint<T>(admin, signer::address_of(admin), max_amount);
         let coins_minted = coin::mint(max_amount, &mint_cap);
-
         // Store minted coins in a Vault<T> at ADMIN
         move_to(admin, Vault<T> { balance: coins_minted });
-
         // Capabilities logic
         let account_addr = signer::address_of(admin);
+        coin::destroy_burn_cap<T>(burn_cap);
+        coin::destroy_freeze_cap<T>(freeze_cap);
+        coin::destroy_mint_cap<T>(mint_cap);
         // If you want to remove or transfer the capabilities, do it properly:
         // e.g., move_from<Capabilities<T>>(admin)
     }
@@ -103,11 +104,13 @@ module dev::AexisCoinDeployerV1 {
         coin::deposit<T>(recipient, coins);
     }
 
-    public entry fun deposit<T>(banker: &signer, coins: coin::Coin<T>) acquires Vault {
+    public entry fun deposit<T>(banker: &signer, amount: u64) acquires Vault {
         let who = signer::address_of(banker);
         assert!(vector::contains(&Chains::get_supra_bankers(), &who), ERROR_NOT_VALIDATOR);
 
         let vault = borrow_global_mut<Vault<T>>(ADMIN);
+
+        let coins = coin::withdraw<T>(banker, amount);
         coin::merge(&mut vault.balance, coins);
     }
 
