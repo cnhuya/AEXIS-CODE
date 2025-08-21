@@ -1,0 +1,36 @@
+    [package]
+    name = "AexisBridgeV1"
+    version = "2.1.1"
+    authors = []
+
+    [addresses]
+    dev = "0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd"
+    supra_framework = "0x1"
+    std = "0x1"
+    aptos_std = "0x1"
+    Extensions = "0x1"
+    [dev-addresses]
+
+    [dependencies.SupraFramework]
+    git = "https://github.com/Entropy-Foundation/aptos-core.git"
+    rev = "dev"
+    subdir = "aptos-move/framework/supra-framework"
+
+    [dependencies.core]
+    git = "https://github.com/Entropy-Foundation/dora-interface.git"
+    rev = "master"
+    subdir = "supra/testnet/core"
+
+    [dependencies.AptosStdlib]
+    git = "https://github.com/Entropy-Foundation/aptos-core.git"
+    rev = "dev"
+    subdir = "aptos-move/framework/aptos-stdlib"
+
+
+    [dependencies.AexisCoinDeployerPkgV2]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Move/Coins'
+
+
+    [dev-dependencies]
