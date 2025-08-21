@@ -1,11 +1,11 @@
-module dev::AexisChainsV30 {
+module dev::AexisChainsV31 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::type_info;
     use aptos_std::from_bcs;
     use supra_framework::event;
-    use dev::AexisChainTypesV30::{Supra, Sui, Base};
+    use dev::AexisChainTypesV31::{Supra, Sui, Base};
 
     /// Admin address constant
     const ADMIN: address = @dev; // <-- replace with real admin address
@@ -43,7 +43,7 @@ module dev::AexisChainsV30 {
     }
 
     // in the future allow anyone to add validator if they stake enough coins
-    public fun allow_validator<T: store>(admin: &signer, validator: vector<u8>) acquires ConfiguratorCap, Chain {
+    public entry fun allow_validator<T: store>(admin: &signer, validator: vector<u8>) acquires ConfiguratorCap, Chain {
         assert!(exists<ConfiguratorCap>(signer::address_of(admin)), ERROR_NOT_ADMIN);
 
         let _cap = borrow_global<ConfiguratorCap>(signer::address_of(admin));

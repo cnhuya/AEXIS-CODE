@@ -11,7 +11,7 @@ module dev::AexisVaultsV1 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
     use dev::AexisVaultFactoryV1::{Self as Factory, Tier, CoinData};
-    use dev::AexisCoinDeployerV1::{SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC };
+    use dev::AexisCoinDeployerV31::{SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC };
 
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_VAULT_NOT_INITIALIZED: u64 = 2;

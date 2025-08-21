@@ -1,10 +1,10 @@
-module dev::AexisCoinDeployerV30 {
+module dev::AexisCoinDeployerV31 {
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
     use supra_framework::managed_coin::{Self};
     use supra_framework::coin::{Self, BurnCapability, FreezeCapability, MintCapability};
-    use dev::AexisChainsV30::{Self as Chains};
+    use dev::AexisChainsV31::{Self as Chains};
 
     const ADMIN: address = @dev;
 
@@ -30,7 +30,7 @@ module dev::AexisCoinDeployerV30 {
     // ----------------------------------------------------------------
     // Module init: set up all coins and their vaults under ADMIN
     // ----------------------------------------------------------------
-    public entry fun init(admin: &signer) {
+    fun init_module(admin: &signer) {
         assert!(signer::address_of(admin) == ADMIN, 1);
 
         init_with_vault<SuiBitcoin>(admin, utf8(b"Sui Bitcoin"),   utf8(b"SUIBTC"), 8);
@@ -122,13 +122,16 @@ module dev::AexisCoinDeployerV30 {
     // ----------------------------------------------------------------
     // Views
     // ----------------------------------------------------------------
+    #[view]
     public fun balance_of<T>(addr: address): u64 {
         coin::balance<T>(addr)
     }
 
     /// "Circulating" supply if you treat the ADMIN vault as non-circulating.
+    #[view]
     public fun supply<T>(): u64 acquires Vault {
         let vault = borrow_global<Vault<T>>(ADMIN);
         18446744073709551615 - (coin::value(&vault.balance))
     }
+
 }
