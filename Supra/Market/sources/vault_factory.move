@@ -1,4 +1,4 @@
-module dev::AexisVaultFactoryV4 {
+module dev::AexisVaultFactoryV5 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
