@@ -85,7 +85,7 @@ module dev::AexisVaultsV5 {
         Access {}
     }
 
-    public fun give_usercap(s: &signer, access: Access): UserCap {
+    public fun give_usercap(s: &signer, access: &Access): UserCap {
         // access is consumed automatically
         UserCap {}
     }
