@@ -1,5 +1,5 @@
     [package]
-    name = "AexisMarketV1"
+    name = "AexisMarketV2"
     version = "2.1.1"
     authors = []
 
@@ -27,9 +27,9 @@
     subdir = "aptos-move/framework/aptos-stdlib"
 
 
-    [dependencies.AexisBridgeV31]
+    [dependencies.AexisTypes]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
-    subdir = 'Supra/Bridge'
+    subdir = 'Supra/Types'
 
     [dev-dependencies]

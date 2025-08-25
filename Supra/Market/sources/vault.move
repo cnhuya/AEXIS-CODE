@@ -1,4 +1,4 @@
-module dev::AexisVaultsV1 {
+module dev::AexisVaultsV3 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -7,11 +7,12 @@ module dev::AexisVaultsV1 {
     use std::type_info::{Self, TypeInfo};
     use std::table;
     use supra_oracle::supra_oracle_storage;
-    use supra_framework::coin;
+    use supra_framework::coin::{Self, Coin};
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
-    use dev::AexisVaultFactoryV1::{Self as Factory, Tier, CoinData};
-    use dev::AexisCoinDeployerV31::{SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC };
+    use dev::AexisVaultFactoryV3::{Self as Factory, Tier, CoinData};
+
+    use dev::AexisCoinTypes::{Self as coins, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC };
 
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_VAULT_NOT_INITIALIZED: u64 = 2;
@@ -77,8 +78,30 @@ module dev::AexisVaultsV1 {
 
     struct Access has store, key, drop {}
 
+    struct UserCap has store, key, drop {}
+
+    public fun give_access(s: &signer): Access {
+        Access {}
+    }
+
+    public fun give_usercap(s: &signer, access: Access): UserCap {
+        // access is consumed automatically
+        UserCap {}
+    }
+
+
     #[event]
     struct DepositEvent has copy, drop, store {
+        amount: u64,
+        from: address,
+        token: String,
+    }
+
+
+
+    #[event]
+    struct BridgedDepositEvent has copy, drop, store {
+        validator: address,
         amount: u64,
         from: address,
         token: String,
@@ -120,8 +143,8 @@ module dev::AexisVaultsV1 {
         ADMIN
     }
 
-    fun init_module(address: &signer){
-        init_vault<BaseEthereum>(address, 1, 1);
+    public entry fun init_all_vaults(address: &signer){
+        init_vault<coins::BaseEthereum>(address, 1, 1);
         init_vault<BaseUSDC>(address, 0, 47);
 
         init_vault<SuiEthereum>(address, 1, 1);
@@ -131,6 +154,19 @@ module dev::AexisVaultsV1 {
         init_vault<SuiBitcoin>(address, 1, 0);
 
         init_vault<SupraCoin>(address, 3, 500);
+    }
+
+    fun init_module(address: &signer){
+     //   init_vault<coins::BaseEthereum>(address, 1, 1);
+     //   init_vault<BaseUSDC>(address, 0, 47);
+
+     //   init_vault<SuiEthereum>(address, 1, 1);
+     //   init_vault<SuiUSDC>(address, 0, 47);
+     ///   init_vault<SuiUSDT>(address, 0, 47);
+      //  init_vault<SuiSui>(address, 2, 90);
+      //  init_vault<SuiBitcoin>(address, 1, 0);
+
+      //  init_vault<SupraCoin>(address, 3, 500);
     }
 
     public entry fun init_vault<T>(admin: &signer, tier: u8, oracleID: u32){
@@ -158,9 +194,36 @@ module dev::AexisVaultsV1 {
     }
 
 
+    public fun bridge_deposit<T>(user: &signer, access: Access, user_cap: UserCap, recipient: address, amount: u64, coins: Coin<T>) acquires GlobalVault, UserVaultList {
+        assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
+        assert!(exists<UserVaultList>(recipient), ERROR_USER_VAULT_NOT_INITIALIZED);
+        //assert!(exists<UserCap>(signer::address_of(user)), 1);
+        let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
+
+        let user_vault_list = borrow_global_mut<UserVaultList>(recipient);
+
+        let type_str = type_info::type_name<T>();
+        let user_vault = find_or_insert(&mut user_vault_list.list, type_str);
+
+        //let coins = BridgedCoins::extract_to<T>(user, recipient, amount);
+        coin::merge(&mut vault.balance, coins);
+
+        vault.total_deposited = vault.total_deposited + amount;
+        user_vault.deposited = user_vault.deposited + amount;
+
+        accrue<T>(user_vault);
+
+        event::emit(BridgedDepositEvent {
+            validator:  signer::address_of(user), 
+            amount, 
+            from: recipient,
+            token: type_info::type_name<T>() 
+        });
+    }
+
     public entry fun deposit<T>(user: &signer, amount: u64) acquires GlobalVault, UserVaultList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
-        assert!(exists<UserVaultList>(ADMIN), ERROR_USER_VAULT_NOT_INITIALIZED);
+        assert!(exists<UserVaultList>(signer::address_of(user)), ERROR_USER_VAULT_NOT_INITIALIZED);
         let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
 
         let user_vault_list = borrow_global_mut<UserVaultList>(signer::address_of(user));
