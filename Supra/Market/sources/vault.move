@@ -1,4 +1,4 @@
-module dev::AexisVaultsV8 {
+module dev::AexisVaultsV9 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -10,9 +10,12 @@ module dev::AexisVaultsV8 {
     use supra_framework::coin::{Self, Coin};
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
-    use dev::AexisVaultFactoryV8::{Self as Factory, Tier, CoinData};
+    use dev::AexisVaultFactoryV9::{Self as Factory, Tier, CoinData};
+
+    use dev::AexisCoinTypesV1::{Self as CoinDeployer};
 
     use dev::AexisCoinTypesV1::{SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use dev::AexisChainTypesV1::{Self as ChainTypes};
 
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_VAULT_NOT_INITIALIZED: u64 = 2;
@@ -106,35 +109,49 @@ module dev::AexisVaultsV8 {
 
 
     #[event]
+    struct BridgeEvent has copy, drop, store {
+        validator: address,
+        amount: u64,
+        to: vector<u8>,
+        token: String,
+        chain: String,
+    }
+
+    #[event]
     struct BridgedDepositEvent has copy, drop, store {
         validator: address,
         amount: u64,
         from: address,
         token: String,
+        chain: String,
     }
 
     #[event]
     struct WithdrawEvent has copy, drop, store {
         amount: u64,
         to: address,
+        token: String,
     }
 
     #[event]
     struct BorrowEvent has copy, drop, store {
         amount: u64,
         to: address,
+        token: String,
     }
 
     #[event]
     struct ClaimRewardsEvent has copy, drop, store {
         amount: u64,
         to: address,
+        token: String,
     }
 
     #[event]
     struct PayInterestEvent has copy, drop, store {
         amount: u64,
         from: address,
+        token: String,
     }
 
     #[event]
@@ -143,6 +160,7 @@ module dev::AexisVaultsV8 {
         liquidator: address,
         repaid: u64,
         collateral_seized: u64,
+        token: String,
     }
 
     fun get_admin(): address {
@@ -206,9 +224,26 @@ module dev::AexisVaultsV8 {
     }
 
 
+    public entry fun claim_bridged_deposits<T>(user: &signer) acquires UserVaultList, TableUnclaimedUserVaultList  {
+        let tbl = borrow_global_mut<TableUnclaimedUserVaultList>(ADMIN);
+
+        assert!(exists<UserVaultList>(signer::address_of(user)), ERROR_USER_VAULT_NOT_INITIALIZED);
+        let type_str = type_info::type_name<T>();
+
+        let user_vault_list = borrow_global_mut<UserVaultList>(signer::address_of(user));
+        let user_vault = find_or_insert(&mut user_vault_list.list, type_str);
+
+        let pending_list = table::borrow_mut(&mut tbl.list, signer::address_of(user));
+        let pending_user_vault = find_or_insert(pending_list, type_str);
+
+        let total_amount = pending_user_vault.deposited;
+        pending_user_vault.deposited = 0;
+        user_vault.deposited = user_vault.deposited + total_amount;
+    }
+
     /// Deposit on behalf of `recipient`
     /// No need for recipient to have signed anything.
-    public fun bridge_deposit<T>(user: &signer,_access: &Access,_user_cap: UserCap,recipient: address,amount: u64,coins: Coin<T>) acquires GlobalVault, UserVaultList, TableUnclaimedUserVaultList {
+    public fun bridge_deposit<T, E>(user: &signer,_access: &Access,_user_cap: UserCap,recipient: address,amount: u64,coins: Coin<T>) acquires GlobalVault, UserVaultList, TableUnclaimedUserVaultList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
 
         // Deposit coins into the global vault balance
@@ -235,7 +270,8 @@ module dev::AexisVaultsV8 {
             let pending_list = table::borrow_mut(&mut tbl.list, recipient);
             let user_vault = find_or_insert(pending_list, type_str);
             user_vault.deposited = user_vault.deposited + amount;
-            accrue<T>(user_vault);
+            // no rewards for unclaimed bridge deposits
+            //accrue<T>(user_vault);
         };
 
         // Emit deposit event
@@ -244,6 +280,7 @@ module dev::AexisVaultsV8 {
             amount,
             from: recipient,
             token: type_str,
+            chain: ChainTypes::convert_chainType_to_string<E>(),
         });}
 
 
@@ -272,6 +309,36 @@ module dev::AexisVaultsV8 {
         });
     }
 
+    /// Implement bridge function, which wil eventually act same/similar way as withdraw
+    /// but will actually lock the coins in the native coin vault in CoinTypes module,
+    /// and emit an event for the bridge to pick up, which will then unlock the coins on the other chain
+
+
+    public entry fun bridge<T, E>(user: &signer, destination_address: vector<u8>, amount: u64) acquires GlobalVault, UserVaultList {
+        assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
+       // let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
+
+       // let user_vault_list = borrow_global_mut<UserVaultList>(signer::address_of(user));
+
+        //let type_str = type_info::type_name<T>();
+        //let user_vault = find_or_insert(&mut user_vault_list.list, type_str);
+
+
+        withdraw<T>(user, amount);
+        CoinDeployer::deposit<T>(user, amount);
+        
+       // assert!(user_vault.deposited >= amount, ERROR_INSUFFICIENT_BALANCE);
+       // assert!(coin::value(&vault.balance) >= amount, ERROR_NOT_ENOUGH_LIQUIDITY);
+
+       // let coins = coin::extract(&mut vault.balance, amount);
+       // coin::deposit(signer::address_of(user), coins);
+
+       // vault.total_deposited = vault.total_deposited - amount;
+       // user_vault.deposited = user_vault.deposited - amount;
+
+       // accrue<T>(user_vault);
+        event::emit(BridgeEvent { amount, validator: signer::address_of(user), token: type_info::type_name<T>(), to: destination_address, chain: ChainTypes::convert_chainType_to_string<E>() });
+    }
 
     public entry fun withdraw<T>(user: &signer, amount: u64) acquires GlobalVault, UserVaultList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
@@ -292,7 +359,7 @@ module dev::AexisVaultsV8 {
         user_vault.deposited = user_vault.deposited - amount;
 
         accrue<T>(user_vault);
-        event::emit(WithdrawEvent { amount, to: signer::address_of(user) });
+        event::emit(WithdrawEvent { amount, to: signer::address_of(user), token: type_info::type_name<T>() });
     }
 
     public entry fun borrow<T>(user: &signer, amount: u64) acquires GlobalVault, UserVaultList {
@@ -316,10 +383,10 @@ module dev::AexisVaultsV8 {
 
         user_vault.borrowed = user_vault.borrowed + amount;
         accrue<T>(user_vault);
-        event::emit(BorrowEvent { amount, to: signer::address_of(user) });
+        event::emit(BorrowEvent { amount, to: signer::address_of(user), token: type_info::type_name<T>() });
     }
 
-    public entry fun claim_rewards<T>(user: &signer,) acquires GlobalVault, UserVaultList {
+    public entry fun claim_rewards<T>(user: &signer) acquires GlobalVault, UserVaultList {
         let addr = signer::address_of(user);
         let user_vault_list = borrow_global_mut<UserVaultList>(signer::address_of(user));
 
@@ -341,14 +408,14 @@ module dev::AexisVaultsV8 {
             let coins = coin::extract(&mut global_vault.balance, reward);
             coin::deposit(addr, coins);
 
-            event::emit(ClaimRewardsEvent { amount: reward, to: signer::address_of(user) });
+            event::emit(ClaimRewardsEvent { amount: reward, to: signer::address_of(user), token: type_info::type_name<T>() });
         } else{
             let interest = (interest_amount - reward_amount);
             // mby pridat like accumulated_interest do vaultu, pro "pricitavani" interstu, ale teoreticky se to
             // uz ted pricita akorat "neviditelne jelikoz uzivatel bude moct withdraw mene tokenu...
             user_vault.deposited = user_vault.deposited - interest;
 
-            event::emit(PayInterestEvent { amount: interest, from: signer::address_of(user) }); 
+            event::emit(PayInterestEvent { amount: interest, from: signer::address_of(user), token: type_info::type_name<T>() }); 
         }
 
     }
@@ -394,6 +461,7 @@ module dev::AexisVaultsV8 {
             liquidator: signer::address_of(liquidator),
             repaid: (repayCoin as u64),
             collateral_seized: (bonus as u64),
+            token: type_info::type_name<T>()
         });
     }
 
@@ -419,6 +487,14 @@ module dev::AexisVaultsV8 {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global<GlobalVault<T>>(ADMIN);
         coin::value(&vault.balance)
+    }
+
+
+    #[view]
+    public fun get_unclaimed_bridged_deposits(address: address): vector<UserVault> acquires TableUnclaimedUserVaultList {
+       // assert!(exists<TableUnclaimedUserVaultList>(address), ERRORTAB);
+        let table = borrow_global<TableUnclaimedUserVaultList>(ADMIN);
+        *table::borrow(&table.list, address)
     }
 
     #[view]
