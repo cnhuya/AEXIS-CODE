@@ -1,4 +1,4 @@
-module dev::AexisVaultsV7 {
+module dev::AexisVaultsV8 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -10,7 +10,7 @@ module dev::AexisVaultsV7 {
     use supra_framework::coin::{Self, Coin};
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
-    use dev::AexisVaultFactoryV7::{Self as Factory, Tier, CoinData};
+    use dev::AexisVaultFactoryV8::{Self as Factory, Tier, CoinData};
 
     use dev::AexisCoinTypesV1::{SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 
@@ -34,6 +34,11 @@ module dev::AexisVaultsV7 {
 
     struct UserVaultList has key, store, copy {
         list: vector<UserVault>
+    }
+
+
+    struct TableUnclaimedUserVaultList has key {
+        list: table::Table<address, vector<UserVault>>,
     }
 
     struct UserVault has store, key, copy, drop {
@@ -168,6 +173,12 @@ module dev::AexisVaultsV7 {
       //  init_vault<SuiBitcoin>(address, 1, 0);
 
       //  init_vault<SupraCoin>(address, 3, 500);
+
+        // pending storage (temporary validation counters)
+        move_to(address, TableUnclaimedUserVaultList {
+            list: table::new<address, vector<UserVault>>(),
+        });
+
     }
 
     public entry fun init_vault<T>(admin: &signer, tier: u8, oracleID: u32){
@@ -195,32 +206,46 @@ module dev::AexisVaultsV7 {
     }
 
 
-    public fun bridge_deposit<T>(user: &signer, access: Access, user_cap: UserCap, recipient: address, amount: u64, coins: Coin<T>) acquires GlobalVault, UserVaultList {
+    /// Deposit on behalf of `recipient`
+    /// No need for recipient to have signed anything.
+    public fun bridge_deposit<T>(user: &signer,_access: &Access,_user_cap: UserCap,recipient: address,amount: u64,coins: Coin<T>) acquires GlobalVault, UserVaultList, TableUnclaimedUserVaultList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
-        assert!(exists<UserVaultList>(recipient), ERROR_USER_VAULT_NOT_INITIALIZED);
-        //assert!(exists<UserCap>(signer::address_of(user)), 1);
-        let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
 
-        let user_vault_list = borrow_global_mut<UserVaultList>(recipient);
+        // Deposit coins into the global vault balance
+        let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
+        coin::merge(&mut vault.balance, coins);
+        vault.total_deposited = vault.total_deposited + amount;
 
         let type_str = type_info::type_name<T>();
-        let user_vault = find_or_insert(&mut user_vault_list.list, type_str);
 
-        //let coins = BridgedCoins::extract_to<T>(user, recipient, amount);
-        coin::merge(&mut vault.balance, coins);
+        if (exists<UserVaultList>(recipient)) {
+            //  Recipient already has a vault list
+            let user_vault_list = borrow_global_mut<UserVaultList>(recipient);
+            let user_vault = find_or_insert(&mut user_vault_list.list, type_str);
+            user_vault.deposited = user_vault.deposited + amount;
+            accrue<T>(user_vault);
+        } else {
+            //  Recipient has no vault list yet  store in unclaimed table
+            let tbl = borrow_global_mut<TableUnclaimedUserVaultList>(ADMIN);
 
-        vault.total_deposited = vault.total_deposited + amount;
-        user_vault.deposited = user_vault.deposited + amount;
+            if (!table::contains(&tbl.list, recipient)) {
+                table::add(&mut tbl.list, recipient, vector::empty<UserVault>());
+            };
 
-        accrue<T>(user_vault);
+            let pending_list = table::borrow_mut(&mut tbl.list, recipient);
+            let user_vault = find_or_insert(pending_list, type_str);
+            user_vault.deposited = user_vault.deposited + amount;
+            accrue<T>(user_vault);
+        };
 
+        // Emit deposit event
         event::emit(BridgedDepositEvent {
-            validator:  signer::address_of(user), 
-            amount, 
+            validator: signer::address_of(user),
+            amount,
             from: recipient,
-            token: type_info::type_name<T>() 
-        });
-    }
+            token: type_str,
+        });}
+
 
     public entry fun deposit<T>(user: &signer, amount: u64) acquires GlobalVault, UserVaultList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
