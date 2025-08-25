@@ -1,0 +1,11 @@
+    [package]
+    name = "AexisTypes"
+    version = "2.1.1"
+    authors = []
+
+    [addresses]
+    dev = "0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd"
+
+    [dev-addresses]
+
+    [dev-dependencies]
