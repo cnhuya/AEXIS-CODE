@@ -1,4 +1,4 @@
-module dev::AexisVaultsV6 {
+module dev::AexisVaultsV7 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -10,9 +10,9 @@ module dev::AexisVaultsV6 {
     use supra_framework::coin::{Self, Coin};
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
-    use dev::AexisVaultFactoryV6::{Self as Factory, Tier, CoinData};
+    use dev::AexisVaultFactoryV7::{Self as Factory, Tier, CoinData};
 
-    use dev::AexisCoinTypes::{Self as coins, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC };
+    use dev::AexisCoinTypesV1::{SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_VAULT_NOT_INITIALIZED: u64 = 2;
@@ -145,7 +145,7 @@ module dev::AexisVaultsV6 {
     }
 
     public entry fun init_all_vaults(address: &signer){
-        init_vault<coins::BaseEthereum>(address, 1, 1);
+        init_vault<BaseEthereum>(address, 1, 1);
         init_vault<BaseUSDC>(address, 0, 47);
 
         init_vault<SuiEthereum>(address, 1, 1);
