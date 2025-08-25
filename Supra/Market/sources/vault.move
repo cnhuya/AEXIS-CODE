@@ -1,4 +1,4 @@
-module dev::AexisVaultsV5 {
+module dev::AexisVaultsV6 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -10,7 +10,7 @@ module dev::AexisVaultsV5 {
     use supra_framework::coin::{Self, Coin};
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
-    use dev::AexisVaultFactoryV5::{Self as Factory, Tier, CoinData};
+    use dev::AexisVaultFactoryV6::{Self as Factory, Tier, CoinData};
 
     use dev::AexisCoinTypes::{Self as coins, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC };
 
