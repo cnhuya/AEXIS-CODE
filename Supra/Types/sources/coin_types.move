@@ -1,4 +1,4 @@
-module dev::AexisCoinTypes{
+module dev::AexisCoinTypesV1{
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};

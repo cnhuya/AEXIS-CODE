@@ -1,4 +1,4 @@
-module dev::AexisChainTypes {
+module dev::AexisChainTypesV1 {
 
     struct Supra has store, key { }
 
