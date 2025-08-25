@@ -1,4 +1,4 @@
-module dev::AexisVaultsV3 {
+module dev::AexisVaultsV4 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -10,7 +10,7 @@ module dev::AexisVaultsV3 {
     use supra_framework::coin::{Self, Coin};
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
-    use dev::AexisVaultFactoryV3::{Self as Factory, Tier, CoinData};
+    use dev::AexisVaultFactoryV4::{Self as Factory, Tier, CoinData};
 
     use dev::AexisCoinTypes::{Self as coins, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC };
 
@@ -78,7 +78,7 @@ module dev::AexisVaultsV3 {
 
     struct Access has store, key, drop {}
 
-    struct UserCap has store, key, drop {}
+    struct UserCap has store, key, drop, copy {}
 
     public fun give_access(s: &signer): Access {
         Access {}
