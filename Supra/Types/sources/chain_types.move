@@ -9,7 +9,7 @@ module dev::AexisChainTypesV1 {
     struct Base has store, key { }
 
 
-    fun convert_chainType_to_string<T>(): String{
+    public fun convert_chainType_to_string<T>(): String{
         let type = type_info::type_name<T>();
         if(type == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisChainTypesV1::Sui") ){
             return utf8(b"Sui")
