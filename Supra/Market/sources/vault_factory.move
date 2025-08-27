@@ -1,4 +1,4 @@
-module dev::AexisVaultFactoryV9{
+module dev::AexisVaultFactoryV10{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -35,12 +35,11 @@ module dev::AexisVaultFactoryV9{
         symbol: String,
         decimals: u8,
         supply: Option<u128>, 
-        chain: String
     }
 
 
     struct VaultList has key, store, copy{
-        list: vector<Metadata>
+        list: vector<Metadata>,
     }
 
     struct Metadata has key, store, copy,drop{
@@ -48,6 +47,7 @@ module dev::AexisVaultFactoryV9{
         resource: String,
         oracleID: u32,
         decimals: u8,
+        chain: String
     }
 
     struct Access has store, key, drop {}
@@ -82,14 +82,14 @@ module dev::AexisVaultFactoryV9{
 
 
 /// ========== ALLOW NEW COIN SOURCE ==========
-    public entry fun allow_coin<T>(admin: &signer, tier_id: u8, oracleID: u32) acquires VaultList{
+    public entry fun allow_coin<T>(admin: &signer, tier_id: u8, oracleID: u32, chain: String) acquires VaultList{
         let admin_addr = signer::address_of(admin);
         assert_admin(admin_addr);
 
         let vault_list = borrow_global_mut<VaultList>(ADMIN);
         let type = type_info::type_name<T>();
             
-        vector::push_back(&mut vault_list.list, Metadata { tier: tier_id, resource: type, oracleID: oracleID, decimals: get_coin_decimals<T>() });
+        vector::push_back(&mut vault_list.list, Metadata { tier: tier_id, resource: type, oracleID: oracleID, decimals: get_coin_decimals<T>(), chain: chain });
     }
 
     public entry fun change_coin_oracle<T>(admin: &signer, oracleID: u32) acquires VaultList {
@@ -202,7 +202,7 @@ module dev::AexisVaultFactoryV9{
     #[view]
     public fun get_coin_data<T>(): CoinData {
         let type = type_info::type_name<T>();
-        CoinData { resource: type, name: coin::name<T>(), symbol: coin::symbol<T>(), decimals: coin::decimals<T>(), supply: coin::supply<T>(), chain: get_coin_chain<T>() }
+        CoinData { resource: type, name: coin::name<T>(), symbol: coin::symbol<T>(), decimals: coin::decimals<T>(), supply: coin::supply<T>() }
     }
 
     public fun get_coin_type<T>(): String {
@@ -230,21 +230,6 @@ module dev::AexisVaultFactoryV9{
         coin_data.supply
     }
 
-    public fun get_coin_chain<T>(): String {
-        let type = type_info::type_of<T>();
-        let name_bytes = type_info::struct_name(&type); // vector<u8>
-        let name = String::utf8(name_bytes);
-
-        if (String::index_of(&name, &utf8(b"Base")) != 18_446_744_073_709_551_615u64) {
-            String::utf8(b"Base")
-        } else if (String::index_of(&name, &utf8(b"Sui")) != 18_446_744_073_709_551_615u64) {
-            String::utf8(b"Sui")
-        } else if (String::index_of(&name, &utf8(b"Supra")) != 18_446_744_073_709_551_615u64){
-            String::utf8(b"Supra")
-        } else{
-            abort(1)
-        }
-    }
 
 
 

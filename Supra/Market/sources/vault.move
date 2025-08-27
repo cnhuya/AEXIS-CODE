@@ -1,4 +1,4 @@
-module dev::AexisVaultsV9 {
+module dev::AexisVaultsV10 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -168,16 +168,16 @@ module dev::AexisVaultsV9 {
     }
 
     public entry fun init_all_vaults(address: &signer){
-        init_vault<BaseEthereum>(address, 1, 1);
-        init_vault<BaseUSDC>(address, 0, 47);
+        init_vault<BaseEthereum>(address, 1, 1, utf8(b"Base"));
+        init_vault<BaseUSDC>(address, 0, 47,  utf8(b"Base"));
 
-        init_vault<SuiEthereum>(address, 1, 1);
-        init_vault<SuiUSDC>(address, 0, 47);
-        init_vault<SuiUSDT>(address, 0, 47);
-        init_vault<SuiSui>(address, 2, 90);
-        init_vault<SuiBitcoin>(address, 1, 0);
+        init_vault<SuiEthereum>(address, 1, 1,  utf8(b"Sui"));
+        init_vault<SuiUSDC>(address, 0, 47, utf8(b"Sui"));
+        init_vault<SuiUSDT>(address, 0, 47, utf8(b"Sui"));
+        init_vault<SuiSui>(address, 2, 90, utf8(b"Sui"));
+        init_vault<SuiBitcoin>(address, 1, 0, utf8(b"Sui"));
 
-        init_vault<SupraCoin>(address, 3, 500);
+        init_vault<SupraCoin>(address, 3, 500, utf8(b"Supra"));
     }
 
     fun init_module(address: &signer){
@@ -309,11 +309,11 @@ module dev::AexisVaultsV9 {
         });
     }
 
-    /// Implement bridge function, which wil eventually act same/similar way as withdraw
-    /// but will actually lock the coins in the native coin vault in CoinTypes module,
-    /// and emit an event for the bridge to pick up, which will then unlock the coins on the other chain
 
 
+    /// log event emmited in this function in backend and add it to registered events in chains.move
+    /// this is needed in case validators could overfetch multiple times this event and that way unlock multiple times on other chains
+    /// from locked vaults
     public entry fun bridge<T, E>(user: &signer, destination_address: vector<u8>, amount: u64) acquires GlobalVault, UserVaultList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
        // let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
