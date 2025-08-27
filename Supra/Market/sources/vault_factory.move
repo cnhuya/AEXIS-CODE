@@ -3,7 +3,7 @@ module dev::AexisVaultFactoryV9{
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
     use std::vector;
-    use std::option::{Option};
+    use std::option::{Self as option, Option};
     use std::type_info::{Self, TypeInfo};
     use std::table;
     use supra_oracle::supra_oracle_storage;
@@ -232,14 +232,15 @@ module dev::AexisVaultFactoryV9{
 
     public fun get_coin_chain<T>(): String {
         let type = type_info::type_of<T>();
-        let _name = type_info::module_name(&type);
-        let name = String::utf8(_name);
-        if(name == utf8(b"AexisBaseCoinsDeployerV2")){
-            return utf8(b"Base")
-        } else if(name == utf8(b"AexisSuiCoinsDeployerV2")){
-            return utf8(b"Sui")
-        } else{
-            return utf8(b"Supra")
+        let name_bytes = type_info::struct_name(&type); // vector<u8>
+        let name = String::utf8(name_bytes);
+
+        if (String::index_of(&name, &utf8(b"Base")) != 0) {
+            String::utf8(b"Base")
+        } else if (String::index_of(&name, &utf8(b"Sui")) !=0) {
+            String::utf8(b"Sui")
+        } else {
+            String::utf8(b"Supra")
         }
     }
 
