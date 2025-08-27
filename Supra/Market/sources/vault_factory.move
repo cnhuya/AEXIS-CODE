@@ -235,11 +235,11 @@ module dev::AexisVaultFactoryV9{
         let name_bytes = type_info::struct_name(&type); // vector<u8>
         let name = String::utf8(name_bytes);
 
-        if (String::index_of(&name, &utf8(b"Base")) != 0) {
+        if (String::index_of(&name, &utf8(b"Base")) != 18_446_744_073_709_551_615u64) {
             String::utf8(b"Base")
-        } else if (String::index_of(&name, &utf8(b"Sui")) !=0) {
+        } else if (String::index_of(&name, &utf8(b"Sui")) != 18_446_744_073_709_551_615u64) {
             String::utf8(b"Sui")
-        } else if (String::index_of(&name, &utf8(b"Supra")) !=999999){
+        } else if (String::index_of(&name, &utf8(b"Supra")) != 18_446_744_073_709_551_615u64){
             String::utf8(b"Supra")
         } else{
             abort(1)
