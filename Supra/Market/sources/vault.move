@@ -1,4 +1,4 @@
-module dev::AexisVaultsV11 {
+module dev::AexisVaultsV12 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -10,7 +10,7 @@ module dev::AexisVaultsV11 {
     use supra_framework::coin::{Self, Coin};
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
-    use dev::AexisVaultFactoryV11::{Self as Factory, Tier, CoinData, Metadata};
+    use dev::AexisVaultFactoryV12::{Self as Factory, Tier, CoinData, Metadata};
 
     use dev::AexisCoinTypesV1::{Self as CoinDeployer};
 
@@ -100,13 +100,6 @@ module dev::AexisVaultsV11 {
     }
 
 
-    #[event]
-    struct DepositEvent has copy, drop, store {
-        amount: u64,
-        from: address,
-        token: String,
-    }
-
 
 
     #[event]
@@ -116,6 +109,7 @@ module dev::AexisVaultsV11 {
         to: vector<u8>,
         token: String,
         chain: String,
+        time: u64
     }
 
     #[event]
@@ -125,34 +119,16 @@ module dev::AexisVaultsV11 {
         from: address,
         token: String,
         chain: String,
+        time: u64
     }
 
     #[event]
-    struct WithdrawEvent has copy, drop, store {
+    struct VaultEvent has copy, drop, store {
+        type: String,
         amount: u64,
-        to: address,
+        address: address,
         token: String,
-    }
-
-    #[event]
-    struct BorrowEvent has copy, drop, store {
-        amount: u64,
-        to: address,
-        token: String,
-    }
-
-    #[event]
-    struct ClaimRewardsEvent has copy, drop, store {
-        amount: u64,
-        to: address,
-        token: String,
-    }
-
-    #[event]
-    struct PayInterestEvent has copy, drop, store {
-        amount: u64,
-        from: address,
-        token: String,
+        time: u64
     }
 
     #[event]
@@ -162,6 +138,7 @@ module dev::AexisVaultsV11 {
         repaid: u64,
         collateral_seized: u64,
         token: String,
+        time: u64
     }
 
     fun get_admin(): address {
@@ -282,6 +259,7 @@ module dev::AexisVaultsV11 {
             from: recipient,
             token: type_str,
             chain: ChainTypes::convert_chainType_to_string<E>(),
+            time: timestamp::now_seconds(),
         });}
 
 
@@ -303,10 +281,12 @@ module dev::AexisVaultsV11 {
 
         accrue<T>(user_vault);
 
-        event::emit(DepositEvent { 
+        event::emit(VaultEvent { 
+            type: utf8(b"Deposit"),
             amount, 
-            from: signer::address_of(user), 
-            token: type_info::type_name<T>() 
+            address: signer::address_of(user), 
+            token: type_info::type_name<T>(),
+            time: timestamp::now_seconds(),
         });
     }
 
@@ -338,7 +318,7 @@ module dev::AexisVaultsV11 {
        // user_vault.deposited = user_vault.deposited - amount;
 
        // accrue<T>(user_vault);
-        event::emit(BridgeEvent { amount, validator: signer::address_of(user), token: type_info::type_name<T>(), to: destination_address, chain: ChainTypes::convert_chainType_to_string<E>() });
+        event::emit(BridgeEvent { amount, validator: signer::address_of(user), token: type_info::type_name<T>(), to: destination_address, chain: ChainTypes::convert_chainType_to_string<E>(), time: timestamp::now_seconds() });
     }
 
     public entry fun withdraw<T>(user: &signer, amount: u64) acquires GlobalVault, UserVaultList {
@@ -360,7 +340,7 @@ module dev::AexisVaultsV11 {
         user_vault.deposited = user_vault.deposited - amount;
 
         accrue<T>(user_vault);
-        event::emit(WithdrawEvent { amount, to: signer::address_of(user), token: type_info::type_name<T>() });
+        event::emit(VaultEvent { type: utf8(b"Withdraw"), amount, address: signer::address_of(user), token: type_info::type_name<T>(), time: timestamp::now_seconds() });
     }
 
     public entry fun borrow<T>(user: &signer, amount: u64) acquires GlobalVault, UserVaultList {
@@ -384,7 +364,7 @@ module dev::AexisVaultsV11 {
 
         user_vault.borrowed = user_vault.borrowed + amount;
         accrue<T>(user_vault);
-        event::emit(BorrowEvent { amount, to: signer::address_of(user), token: type_info::type_name<T>() });
+        event::emit(VaultEvent { type: utf8(b"Borrow"), amount, address: signer::address_of(user), token: type_info::type_name<T>(), time: timestamp::now_seconds() });
     }
 
     public entry fun claim_rewards<T>(user: &signer) acquires GlobalVault, UserVaultList {
@@ -408,15 +388,14 @@ module dev::AexisVaultsV11 {
             assert!(coin::value(&global_vault.balance) >= reward, ERROR_NOT_ENOUGH_LIQUIDITY);
             let coins = coin::extract(&mut global_vault.balance, reward);
             coin::deposit(addr, coins);
-
-            event::emit(ClaimRewardsEvent { amount: reward, to: signer::address_of(user), token: type_info::type_name<T>() });
+            event::emit(VaultEvent { type: utf8(b"Claim Rewards"), amount: reward, address: signer::address_of(user), token: type_info::type_name<T>(), time: timestamp::now_seconds() });
         } else{
             let interest = (interest_amount - reward_amount);
             // mby pridat like accumulated_interest do vaultu, pro "pricitavani" interstu, ale teoreticky se to
             // uz ted pricita akorat "neviditelne jelikoz uzivatel bude moct withdraw mene tokenu...
             user_vault.deposited = user_vault.deposited - interest;
 
-            event::emit(PayInterestEvent { amount: interest, from: signer::address_of(user), token: type_info::type_name<T>() }); 
+            event::emit(VaultEvent {  type: utf8(b"Pay Rewards"), amount: interest, address: signer::address_of(user), token: type_info::type_name<T>(), time: timestamp::now_seconds() }); 
         }
 
     }
@@ -462,7 +441,8 @@ module dev::AexisVaultsV11 {
             liquidator: signer::address_of(liquidator),
             repaid: (repayCoin as u64),
             collateral_seized: (bonus as u64),
-            token: type_info::type_name<T>()
+            token: type_info::type_name<T>(),
+            time: timestamp::now_seconds(),
         });
     }
 
