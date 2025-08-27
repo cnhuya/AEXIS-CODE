@@ -10,7 +10,7 @@ module dev::AexisVaultsV10 {
     use supra_framework::coin::{Self, Coin};
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
-    use dev::AexisVaultFactoryV9::{Self as Factory, Tier, CoinData};
+    use dev::AexisVaultFactoryV10::{Self as Factory, Tier, CoinData};
 
     use dev::AexisCoinTypesV1::{Self as CoinDeployer};
 
@@ -199,7 +199,7 @@ module dev::AexisVaultsV10 {
 
     }
 
-    public entry fun init_vault<T>(admin: &signer, tier: u8, oracleID: u32){
+    public entry fun init_vault<T>(admin: &signer, tier: u8, oracleID: u32, chain: String){
         assert!(signer::address_of(admin) == ADMIN, ERROR_NOT_ADMIN);
         if (!exists<GlobalVault<T>>(ADMIN)) {
 
@@ -211,7 +211,7 @@ module dev::AexisVaultsV10 {
                 external_rewards: 0,
                 external_interest: 0,
             });
-            Factory::allow_coin<T>(admin, tier, oracleID);
+            Factory::allow_coin<T>(admin, tier, oracleID, chain);
         }
     }
 
