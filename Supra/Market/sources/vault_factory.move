@@ -1,4 +1,4 @@
-module dev::AexisVaultFactoryV10{
+module dev::AexisVaultFactoryV11{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -226,6 +226,11 @@ module dev::AexisVaultFactoryV10{
     }
 
     public fun get_coin_supply<T>(): Option<u128> {
+        let coin_data = get_coin_data<T>();
+        coin_data.supply
+    }
+
+    public fun get_coin_chain<T>(): Option<u128> {
         let coin_data = get_coin_data<T>();
         coin_data.supply
     }

@@ -1,4 +1,4 @@
-module dev::AexisVaultsV10 {
+module dev::AexisVaultsV11 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -10,7 +10,7 @@ module dev::AexisVaultsV10 {
     use supra_framework::coin::{Self, Coin};
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
-    use dev::AexisVaultFactoryV10::{Self as Factory, Tier, CoinData};
+    use dev::AexisVaultFactoryV11::{Self as Factory, Tier, CoinData, Metadata};
 
     use dev::AexisCoinTypesV1::{Self as CoinDeployer};
 
@@ -82,6 +82,7 @@ module dev::AexisVaultsV10 {
         vault: VaultUSD,
         coin: CoinData,
         tier: Tier,
+        Metadata: Metadata,
     }
 
     struct Access has store, key, drop {}
@@ -468,7 +469,7 @@ module dev::AexisVaultsV10 {
     #[view]
     public fun get_complete_vault<T>(): CompleteVault acquires GlobalVault {
         let vault = get_vault<T>();
-        CompleteVault { vault: vault, coin: Factory::get_coin_data<T>(), tier: Factory::get_tier(vault.tier)  }
+        CompleteVault { vault: vault, coin: Factory::get_coin_data<T>(), tier: Factory::get_tier(vault.tier), Metadata: Factory::get_coin_metadata<T>()  }
     }
 
     #[view]
