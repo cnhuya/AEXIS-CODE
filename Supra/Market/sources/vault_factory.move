@@ -239,7 +239,7 @@ module dev::AexisVaultFactoryV9{
             String::utf8(b"Base")
         } else if (String::index_of(&name, &utf8(b"Sui")) !=0) {
             String::utf8(b"Sui")
-        } else if (String::index_of(&name, &utf8(b"Supra")) !=0){
+        } else if (String::index_of(&name, &utf8(b"Supra")) !=999999){
             String::utf8(b"Supra")
         } else{
             abort(1)
