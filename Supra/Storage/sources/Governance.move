@@ -1,4 +1,4 @@
-module dev::QiaraGovernanceV3 {
+module dev::QiaraGovernanceV6 {
     use std::signer;
     use std::string::{Self, String, utf8};
     use std::vector;
@@ -10,7 +10,7 @@ module dev::QiaraGovernanceV3 {
     use supra_framework::object::{Self, Object};
     use supra_framework::primary_fungible_store;
 
-    use dev::QiaraStorageV3::{Self as storage, Access};
+    use dev::QiaraStorageV6::{Self as storage, Access};
 
     const OWNER: address = @dev;
     const QIARA_TOKEN: address = @0xf285a591bf76703f42e6e4aa7ed4d5b81a95bedeb0397afaca87084f52831bf8;

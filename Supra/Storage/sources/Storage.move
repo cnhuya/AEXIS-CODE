@@ -1,11 +1,12 @@
-module dev::QiaraStorageV3 {
+module dev::QiaraStorageV6 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
     use supra_framework::event;
     use std::table::{Self, Table};
     use aptos_std::type_info;
-    use aptos_std::from_bcs::{Self as bcs};
+    use aptos_std::from_bcs;
+    use std::bcs::{Self as bc};
 
 
     struct KeyRegistry has key {
@@ -80,9 +81,9 @@ module dev::QiaraStorageV3 {
             );
         };
 
-        registerConstant<u64>(admin, utf8(b"QiaraToken"), utf8(b"INFLATION"), b"1750", true); // 17,50%
-        registerConstant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOKENS_TO_PROPOSE"), b"100000000", true); // 1_000,000_000
-        registerConstant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_QUARUM_FOR_PROPOSAL_TO_PASS"), b"500", true); // 50.0%
+        registerConstant<u64>(admin, utf8(b"QiaraToken"), utf8(b"INFLATION"), 1750, true);
+        registerConstant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOKENS_TO_PROPOSE"), 100000000, true);
+        registerConstant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_QUARUM_FOR_PROPOSAL_TO_PASS"), 500, true);
     }
 
     public fun give_access(admin: &signer): Access{
@@ -94,11 +95,11 @@ module dev::QiaraStorageV3 {
         StorageChangePermission {}
     }
 
-    public fun registerConstant<T>(address: &signer,header: String,constant_name: String,value: vector<u8>,editable: bool) acquires ConstantDatabase, KeyRegistry {
+    public fun registerConstant<T: drop>(address: &signer, header: String, constant_name: String, value: T, editable: bool) acquires ConstantDatabase, KeyRegistry {
         assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
         let db = borrow_global_mut<ConstantDatabase>(OWNER);
         let key_registry = borrow_global_mut<KeyRegistry>(OWNER);
-        let any = make_any<T>(value);
+        let any = make_any<T>(bc::to_bytes(&value));
         let new_constant = make_constant(constant_name, any, editable);
         if(!vector::contains(&key_registry.keys, &header)){
             vector::push_back(&mut key_registry.keys, header);
@@ -246,45 +247,46 @@ module dev::QiaraStorageV3 {
         // If not found
         abort ERROR_CONSTANT_DOES_NOT_EXIST
     }
-
+     #[view]
     public fun expect_u8(data: vector<u8>): u8 {
-        bcs::to_u8(data)
+        from_bcs::to_u8(data)
     }
-
+     #[view]
     public fun expect_u16(data: vector<u8>): u16 {
-        bcs::to_u16(data)
+        from_bcs::to_u16(data)
     }
-
+     #[view]
     public fun expect_u32(data: vector<u8>): u32 {
-        bcs::to_u32(data)
+        from_bcs::to_u32(data)
     }
-
+     #[view]
     public fun expect_u64(data: vector<u8>): u64 {
-        bcs::to_u64(data)
+        from_bcs::to_u64(data)
     }
-
+     #[view]
     public fun expect_u128(data: vector<u8>): u128 {
-        bcs::to_u128(data)
+        from_bcs::to_u128(data)
     }
-
+     #[view]
     public fun expect_u256(data: vector<u8>): u256 {
-        bcs::to_u256(data)
+        from_bcs::to_u256(data)
     }
-
+     #[view]
     public fun expect_bool(data: vector<u8>): bool {
-        bcs::to_bool(data)
+        from_bcs::to_bool(data)
     }
-
+    
+     #[view]
     public fun expect_address(data: vector<u8>): address {
-        bcs::to_address(data)
+        from_bcs::to_address(data)
     }
-
+ #[view]
     public fun expect_bytes(data: vector<u8>): vector<u8> {
-        bcs::to_bytes(data)
+        from_bcs::to_bytes(data)
     }
-
+ #[view]
     public fun expect_string(data: vector<u8>): string::String {
-        bcs::to_string(data)
+        from_bcs::to_string(data)
     }
 
 
