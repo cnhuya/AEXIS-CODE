@@ -1,4 +1,4 @@
-module dev::QiaraStorageV6 {
+module dev::QiaraStorageV9 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -81,7 +81,11 @@ module dev::QiaraStorageV6 {
             );
         };
 
-        registerConstant<u64>(admin, utf8(b"QiaraToken"), utf8(b"INFLATION"), 1750, true);
+        registerConstant<u64>(admin, utf8(b"QiaraToken"), utf8(b"INFLATION"), 1750, true); // 17,50%
+        registerConstant<u64>(admin, utf8(b"QiaraToken"), utf8(b"INFLATION_DEBT"), 1000, false); // 0.1% a month
+        registerConstant<u64>(admin, utf8(b"QiaraToken"), utf8(b"BURN_FEE"), 5, false); // 0,0005%
+        registerConstant<u64>(admin, utf8(b"QiaraToken"), utf8(b"BURN_INCREASE"), 1, false); // 0,0001% a month
+        registerConstant<address>(admin, utf8(b"QiaraToken"), utf8(b"TREASURY_RECEIPENT"), @0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd, true);
         registerConstant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOKENS_TO_PROPOSE"), 100000000, true);
         registerConstant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_QUARUM_FOR_PROPOSAL_TO_PASS"), 500, true);
     }
