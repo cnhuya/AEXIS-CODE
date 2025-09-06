@@ -1,4 +1,4 @@
-module dev::QiaraGovernanceV15 {
+module dev::QiaraGovernanceV16 {
     use std::signer;
     use std::string::{Self, String, utf8};
     use std::vector;
@@ -11,8 +11,8 @@ module dev::QiaraGovernanceV15 {
     use supra_framework::primary_fungible_store;
     use aptos_std::from_bcs;
 
-    use dev::QiaraStorageV15::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV15::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraStorageV16::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV16::{Self as capabilities, Access as CapabilitiesAccess};
 
     const OWNER: address = @dev;
     const QIARA_TOKEN: address = @0x2f285ada4c56f2fbe1c3e7defb8fbca2b1cc508229e0549cf46d14ab56280f7c;
@@ -55,7 +55,8 @@ module dev::QiaraGovernanceV15 {
         id: u64,
         type: String,
         proposer: address,
-        duration: u64,
+        start: u64,
+        end: u64,
         header: String,
         constant: String,
         isChange: bool,
@@ -69,7 +70,8 @@ module dev::QiaraGovernanceV15 {
         id: u64,
         type: String,
         proposer: address,
-        duration: u64,
+        start: u64,
+        end: u64,
         header: String,
         constant: String,
         new_value: vector<u8>,
@@ -141,7 +143,8 @@ module dev::QiaraGovernanceV15 {
             id: proposal_id,
             type: type,
             proposer: addr,
-            duration,
+            start: timestamp::now_seconds(),
+            end: timestamp::now_seconds() + duration,
             header,
             constant: constant_name,
             isChange,
@@ -255,7 +258,8 @@ public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires Pen
                 id,
                 type,
                 proposer,
-                duration,
+                start: timestamp::now_seconds(),
+                end: timestamp::now_seconds() + duration,
                 header,
                 constant,
                 new_value,
