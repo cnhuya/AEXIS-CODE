@@ -1,4 +1,4 @@
-module dev::QiaraGovernanceV14 {
+module dev::QiaraGovernanceV15 {
     use std::signer;
     use std::string::{Self, String, utf8};
     use std::vector;
@@ -11,8 +11,8 @@ module dev::QiaraGovernanceV14 {
     use supra_framework::primary_fungible_store;
     use aptos_std::from_bcs;
 
-    use dev::QiaraStorageV14::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV14::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraStorageV15::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV15::{Self as capabilities, Access as CapabilitiesAccess};
 
     const OWNER: address = @dev;
     const QIARA_TOKEN: address = @0xfd326d665032f82f12bebd05fa68eb6ed2a6d541d540cd28e248dc4f0e9c1d5a;
@@ -40,6 +40,7 @@ module dev::QiaraGovernanceV14 {
         header: String,
         constant: String,
         new_value: vector<u8>,
+        value_type: String,
         isChange: bool,
         editable: bool,
         yes: u64,
@@ -60,6 +61,7 @@ module dev::QiaraGovernanceV14 {
         isChange: bool,
         editable: bool,
         new_value: vector<u8>,
+        value_type: String,
     }
 
     #[event]
@@ -71,6 +73,7 @@ module dev::QiaraGovernanceV14 {
         header: String,
         constant: String,
         new_value: vector<u8>,
+        value_type: String,
         isChange: bool,
         editable: bool,
         yes: u64,
@@ -90,8 +93,8 @@ module dev::QiaraGovernanceV14 {
         proposals: vector<Proposal>
     }
 
-    fun make_proposal(id: u64, type: String, proposer: address, duration: u64, header: String, constant: String, isChange: bool, editable: bool, new_value: vector<u8>): Proposal {
-        Proposal {id, type, proposer, duration, header, constant, new_value, isChange, editable, yes: 0, no: 0, voters: vector::empty<address>(), result: 0}
+    fun make_proposal(id: u64, type: String, proposer: address, duration: u64, header: String, constant: String, isChange: bool, editable: bool, new_value: vector<u8>, value_type:String): Proposal {
+        Proposal {id, type, proposer, duration, header, constant, new_value, value_type, isChange, editable, yes: 0, no: 0, voters: vector::empty<address>(), result: 0}
     }
 
     fun get_qiara_balance(addr: address): u64 {
@@ -121,7 +124,7 @@ module dev::QiaraGovernanceV14 {
         };
     }
 
-    public entry fun propose(proposer: &signer, type: String, isChange: bool, header: String, constant_name: String, new_value: vector<u8>, duration: u64, editable: bool) acquires PendingProposals, ProposalCount {
+    public entry fun propose(proposer: &signer, type: String, isChange: bool, header: String, constant_name: String, new_value: vector<u8>, value_type: String, duration: u64, editable: bool) acquires PendingProposals, ProposalCount {
         let addr = signer::address_of(proposer);
         assert_allowed_type(type);
         assert!(addr == OWNER, ERROR_NOT_ADMIN);
@@ -131,7 +134,7 @@ module dev::QiaraGovernanceV14 {
         let count_ref = borrow_global_mut<ProposalCount>(OWNER);
         let proposal_id = count_ref.count;
 
-        let proposal = make_proposal(proposal_id, type, addr, duration, header, constant_name, isChange, editable, new_value);
+        let proposal = make_proposal(proposal_id, type, addr, duration, header, constant_name, isChange, editable, new_value, value_type);
         vector::push_back(&mut registry.proposals, proposal);
 
         event::emit(ProposeEvent {
@@ -144,6 +147,7 @@ module dev::QiaraGovernanceV14 {
             isChange,
             editable,
             new_value,
+            value_type,
         });
 
         count_ref.count = count_ref.count + 1;
@@ -174,6 +178,7 @@ public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires Pen
                 header,
                 constant,
                 new_value,
+                value_type,
                 isChange,
                 editable,
                 yes,
@@ -212,11 +217,12 @@ public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires Pen
                                 &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
                             );
                         } else {
-                            storage::register_constant(
+                            storage::handle_registration(
                                 user,
                                 header,
                                 constant,
                                 new_value,
+                                value_type,
                                 editable,
                                 &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
                             );
@@ -253,6 +259,7 @@ public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires Pen
                 header,
                 constant,
                 new_value,
+                value_type,
                 isChange,
                 editable,
                 yes,

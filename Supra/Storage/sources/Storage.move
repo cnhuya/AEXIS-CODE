@@ -1,4 +1,4 @@
-module dev::QiaraStorageV14 {
+module dev::QiaraStorageV15 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -51,6 +51,7 @@ module dev::QiaraStorageV14 {
     const ERROR_CONSTANT_CANT_BE_EDITED: u64 = 4;
     const ERROR_HEADER_DOESNT_EXISTS: u64 = 5;
     const ERROR_CONSTANT_ALREADY_EXISTS: u64 = 6;
+    const ERROR_INVALID_VALUE_TYPE: u64 = 7;
 
     fun make_constant(name: String, value: Any, editable: bool): Constant {
         Constant { name, value, editable }
@@ -104,7 +105,7 @@ module dev::QiaraStorageV14 {
         StorageChangePermission {}
     }
 
-    public fun register_constant<T: drop>(address: &signer, header: String, constant_name: String, value: T, editable: bool, permission: &StorageChangePermission) acquires ConstantDatabase, KeyRegistry {
+    fun register_constant<T: drop>(address: &signer, header: String, constant_name: String, value: T, editable: bool, permission: &StorageChangePermission) acquires ConstantDatabase, KeyRegistry {
         assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
         let db = borrow_global_mut<ConstantDatabase>(OWNER);
         let key_registry = borrow_global_mut<KeyRegistry>(OWNER);
@@ -132,6 +133,28 @@ module dev::QiaraStorageV14 {
             let vec = vector::empty<Constant>();
             vector::push_back(&mut vec, new_constant);
             table::add(&mut db.database, header, vec);
+        }
+    }
+
+    public fun handle_registration(address: &signer, header: String, constant_name: String, value: vector<u8>, value_type: String, editable: bool, permission: &StorageChangePermission) acquires KeyRegistry, ConstantDatabase{
+        if(value_type == utf8(b"u8")){
+             register_constant<u8>(address, header, constant_name, from_bcs::to_u8(value), editable, permission);
+        } else if  (value_type == utf8(b"u16")){
+             register_constant<u16>(address, header, constant_name, from_bcs::to_u16(value), editable, permission);
+        } else if  (value_type == utf8(b"u32")){
+             register_constant<u32>(address, header, constant_name, from_bcs::to_u32(value), editable, permission);
+        } else if  (value_type == utf8(b"u64")){
+             register_constant<u64>(address, header, constant_name, from_bcs::to_u64(value), editable, permission);
+        } else if  (value_type == utf8(b"u128")){
+             register_constant<u128>(address, header, constant_name, from_bcs::to_u128(value), editable, permission);
+        } else if  (value_type == utf8(b"u256")){
+             register_constant<u256>(address, header, constant_name, from_bcs::to_u256(value), editable, permission);
+        } else if  (value_type == utf8(b"bool")){
+             register_constant<bool>(address, header, constant_name, from_bcs::to_bool(value), editable, permission);
+        } else if  (value_type == utf8(b"address")){
+             register_constant<address>(address, header, constant_name, from_bcs::to_address(value), editable, permission);
+        } else{
+            abort ERROR_INVALID_VALUE_TYPE
         }
     }
 
@@ -189,6 +212,7 @@ module dev::QiaraStorageV14 {
             new_constant
         });
     }
+
 
     #[view]
     public fun viewHeaders(): vector<String> acquires KeyRegistry {
