@@ -45,7 +45,7 @@ module dev::QiaraCapabilitiesV13 {
     // ----------------------------------------------------------------
     // Module init
     // ----------------------------------------------------------------
-    fun init_module(admin: &signer){
+    fun init_module(admin: &signer) acquires Capabilities, KeyRegistry{
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
 
         if (!exists<KeyRegistry>(OWNER)) {
@@ -55,7 +55,7 @@ module dev::QiaraCapabilitiesV13 {
             move_to(admin, Capabilities { table: table::new<String, vector<Capability>>()});
         };
         
-        create_capability<u64>(admin, signer::address_of(admin), utf8(b"QiaraToken"), utf8(b"TOKEN_CLAIM_CAPABILITY"), 500, true, &give_change_permission(&give_access(admin))); // 50.0%
+        create_capability(admin, signer::address_of(admin), utf8(b"QiaraToken"), utf8(b"TOKEN_CLAIM_CAPABILITY"), true, give_change_permission(&give_access(admin))); // 50.0%
 
     }
 
