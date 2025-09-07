@@ -1,4 +1,4 @@
-module dev::QiaraCapabilitiesV16 {
+module dev::QiaraCapabilitiesV17 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -55,7 +55,8 @@ module dev::QiaraCapabilitiesV16 {
             move_to(admin, Capabilities { table: table::new<String, vector<Capability>>()});
         };
         
-        create_capability(admin, signer::address_of(admin), utf8(b"QiaraToken"), utf8(b"TOKEN_CLAIM_CAPABILITY"), true, give_change_permission(&give_access(admin))); // 50.0%
+        create_capability(admin, signer::address_of(admin), utf8(b"QiaraToken"), utf8(b"TOKEN_CLAIM_CAPABILITY"), true, give_change_permission(&give_access(admin)));
+        create_capability(admin, @0x281d0fce12a353b1f6e8bb6d1ae040a6deba248484cf8e9173a5b428a6fb74e7, utf8(b"QiaraGovernance"), utf8(b"BLACKLIST"), true, give_change_permission(&give_access(admin)));
 
     }
 
@@ -161,5 +162,29 @@ module dev::QiaraCapabilitiesV16 {
 
         // If not found
         abort ERROR_CAPABILITY_DOESNT_EXISTS
+    }
+
+    #[view]
+    public fun assert_wallet_capability(address: address, header: String, constant_name: String): bool acquires Capabilities {
+        let db = borrow_global<Capabilities>(OWNER);
+
+        if (!table::contains(&db.table, header)) {
+            abort ERROR_HEADER_DOESNT_EXISTS;
+        };
+
+        let constants_ref: &vector<Capability> = table::borrow(&db.table, header);
+        let len = vector::length(constants_ref);
+
+        let i = 0;
+        while (i < len) {
+            let c_ref = vector::borrow(constants_ref, i);
+            if (c_ref.name == constant_name) {
+                return true
+            };
+            i = i + 1;
+        };
+
+        // If not found
+        return false
     }
 }

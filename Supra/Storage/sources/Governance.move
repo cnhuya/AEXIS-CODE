@@ -1,4 +1,4 @@
-module dev::QiaraGovernanceV16 {
+module dev::QiaraGovernanceV17 {
     use std::signer;
     use std::string::{Self, String, utf8};
     use std::vector;
@@ -11,11 +11,11 @@ module dev::QiaraGovernanceV16 {
     use supra_framework::primary_fungible_store;
     use aptos_std::from_bcs;
 
-    use dev::QiaraStorageV16::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV16::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraStorageV17::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV17::{Self as capabilities, Access as CapabilitiesAccess};
 
     const OWNER: address = @dev;
-    const QIARA_TOKEN: address = @0x2f285ada4c56f2fbe1c3e7defb8fbca2b1cc508229e0549cf46d14ab56280f7c;
+    const QIARA_TOKEN: address = @0x6202b22cee84800d13fe77b1ace842b574865a7a1b5545fd7ba43609f6e6ddf5;
 
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_CONSTANT_ALREADY_EXISTS: u64 = 2;
@@ -24,6 +24,7 @@ module dev::QiaraGovernanceV16 {
     const ERROR_INVALIED_PROPOSAL_TYPE: u64 = 5;
     const ERROR_NOT_ENOUGH_VOTES: u64 = 6;
     const ERROR_ALREADY_VOTED: u64 = 7;
+    const ERROR_BLACKLISTED: u64 = 8;
 
     struct ProposalCount has store, key, copy { count: u64 }
 
@@ -129,7 +130,7 @@ module dev::QiaraGovernanceV16 {
     public entry fun propose(proposer: &signer, type: String, isChange: bool, header: String, constant_name: String, new_value: vector<u8>, value_type: String, duration: u64, editable: bool) acquires PendingProposals, ProposalCount {
         let addr = signer::address_of(proposer);
         assert_allowed_type(type);
-        assert!(addr == OWNER, ERROR_NOT_ADMIN);
+        assert!(!capabilities::assert_wallet_capability(signer::address_of(proposer), utf8(b"QiaraGovernance"), utf8(b"BLACKLIST")), ERROR_BLACKLISTED);
         assert!(get_qiara_balance(addr) >= storage::expect_u64(storage::viewConstant(utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOKENS_TO_PROPOSE"))), ERROR_NOT_ENOUGH_TOKENS_TO_PROPOSE);
 
         let registry = borrow_global_mut<PendingProposals>(OWNER);
