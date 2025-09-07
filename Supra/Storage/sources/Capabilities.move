@@ -1,4 +1,4 @@
-module dev::QiaraCapabilitiesV17 {
+module dev::QiaraCapabilitiesV18 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -71,7 +71,7 @@ module dev::QiaraCapabilitiesV17 {
 
     public fun create_capability(address: &signer, addr: address, header: String, name: String, removable: bool, cap: CapabilitiesChangePermission) acquires Capabilities, KeyRegistry {
         assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
-        let db = borrow_global_mut<Capabilities>(addr);
+        let db = borrow_global_mut<Capabilities>(OWNER);
         let key_registry = borrow_global_mut<KeyRegistry>(OWNER);
         let new_cap = make_capability(name, removable);
         if(!vector::contains(&key_registry.keys, &header)){
@@ -99,7 +99,7 @@ module dev::QiaraCapabilitiesV17 {
 
     public fun remove_capability(address: &signer, addr: address, header: String, name: String, cap: CapabilitiesChangePermission) acquires Capabilities, KeyRegistry {
         assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
-        let db = borrow_global_mut<Capabilities>(addr);
+        let db = borrow_global_mut<Capabilities>(OWNER);
         let key_registry = borrow_global_mut<KeyRegistry>(OWNER);
         if(!vector::contains(&key_registry.keys, &header)){
             abort ERROR_HEADER_DOESNT_EXISTS
@@ -129,7 +129,7 @@ module dev::QiaraCapabilitiesV17 {
 
     #[view]
     public fun viewCapabilities(address: address, header: String): vector<Capability> acquires Capabilities {
-        let db = borrow_global<Capabilities>(address);
+        let db = borrow_global<Capabilities>(OWNER);
 
         if (!table::contains(&db.table, header)) {
             abort ERROR_CAPABILITY_DOESNT_EXISTS;
@@ -141,7 +141,7 @@ module dev::QiaraCapabilitiesV17 {
 
     #[view]
     public fun viewCapability(address: address, header: String, constant_name: String): Capability acquires Capabilities {
-        let db = borrow_global<Capabilities>(address);
+        let db = borrow_global<Capabilities>(OWNER);
 
         if (!table::contains(&db.table, header)) {
             abort ERROR_HEADER_DOESNT_EXISTS;
