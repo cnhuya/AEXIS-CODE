@@ -15,7 +15,7 @@ module dev::QiaraGovernanceV18 {
     use dev::QiaraCapabilitiesV18::{Self as capabilities, Access as CapabilitiesAccess};
 
     const OWNER: address = @dev;
-    const QIARA_TOKEN: address = @0x6202b22cee84800d13fe77b1ace842b574865a7a1b5545fd7ba43609f6e6ddf5;
+    const QIARA_TOKEN: address = @0xd97194ce7eac70a94c847b47534da43b6a9d23adbc2e82953d664aa4ae7b814d;
 
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_CONSTANT_ALREADY_EXISTS: u64 = 2;
