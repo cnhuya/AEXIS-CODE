@@ -1,4 +1,4 @@
-module dev::QiaraGovernanceV18 {
+module dev::QiaraGovernanceV19 {
     use std::signer;
     use std::string::{Self, String, utf8};
     use std::vector;
@@ -11,8 +11,8 @@ module dev::QiaraGovernanceV18 {
     use supra_framework::primary_fungible_store;
     use aptos_std::from_bcs;
 
-    use dev::QiaraStorageV18::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV18::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraStorageV19::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV19::{Self as capabilities, Access as CapabilitiesAccess};
 
     const OWNER: address = @dev;
     const QIARA_TOKEN: address = @0xd97194ce7eac70a94c847b47534da43b6a9d23adbc2e82953d664aa4ae7b814d;
