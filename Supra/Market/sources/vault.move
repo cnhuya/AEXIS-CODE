@@ -39,7 +39,6 @@ module dev::AexisVaultsV12 {
         list: vector<UserVault>
     }
 
-
     struct TableUnclaimedUserVaultList has key {
         list: table::Table<address, vector<UserVault>>,
     }
