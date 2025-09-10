@@ -1,4 +1,4 @@
-module dev::AexisCoinTypesV1{
+module dev::AexisCoinTypesV2{
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
@@ -22,7 +22,6 @@ module dev::AexisCoinTypesV1{
 
     struct BaseEthereum has drop, store, key {}
     struct BaseUSDC has drop, store, key {}
-
 
 
     struct AccessCoins has store, key, drop {}
