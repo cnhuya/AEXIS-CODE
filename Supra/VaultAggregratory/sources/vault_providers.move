@@ -1,4 +1,4 @@
-module dev::AexisVaultAggregratoryV2 {
+module dev::AexisVaultAggregratoryV3 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::vector;
@@ -23,36 +23,36 @@ module dev::AexisVaultAggregratoryV2 {
 
     // create list of ratetables (vector)
 
-    public entry fun init_rates(account: &signer) {
-        let alpha_rates = RateList<AlphaLend> {
-            rates: vector[
-                RateEntry { type_info: type_info::type_of<SuiBitcoin>(), lend_rate: 500, borrow_rate: 700 },
-                RateEntry { type_info: type_info::type_of<SuiEthereum>(), lend_rate: 500, borrow_rate: 700 },
-                RateEntry { type_info: type_info::type_of<SuiSui>(), lend_rate: 500, borrow_rate: 700 },
-                RateEntry { type_info: type_info::type_of<SuiUSDC>(), lend_rate: 500, borrow_rate: 700 },
-                RateEntry { type_info: type_info::type_of<SuiUSDT>(), lend_rate: 500, borrow_rate: 700 }
-            ]
-        };
-        move_to(account, alpha_rates);
+    fun init_module(admin: &signer) {
+             let alpha_rates = RateList<AlphaLend> {
+                rates: vector[
+                    RateEntry { type_info: type_info::type_of<SuiBitcoin>(), lend_rate: 500, borrow_rate: 700 },
+                    RateEntry { type_info: type_info::type_of<SuiEthereum>(), lend_rate: 500, borrow_rate: 700 },
+                    RateEntry { type_info: type_info::type_of<SuiSui>(), lend_rate: 500, borrow_rate: 700 },
+                    RateEntry { type_info: type_info::type_of<SuiUSDC>(), lend_rate: 500, borrow_rate: 700 },
+                    RateEntry { type_info: type_info::type_of<SuiUSDT>(), lend_rate: 500, borrow_rate: 700 }
+                ]
+            };
+            move_to(admin, alpha_rates);
 
-        let sui_rates = RateList<SuiLend> {
-            rates: vector[
-                RateEntry { type_info: type_info::type_of<SuiBitcoin>(), lend_rate: 500, borrow_rate: 700 },
-                RateEntry { type_info: type_info::type_of<SuiEthereum>(), lend_rate: 500, borrow_rate: 700 },
-                RateEntry { type_info: type_info::type_of<SuiSui>(), lend_rate: 500, borrow_rate: 700 },
-                RateEntry { type_info: type_info::type_of<SuiUSDC>(), lend_rate: 500, borrow_rate: 700 },
-                RateEntry { type_info: type_info::type_of<SuiUSDT>(), lend_rate: 500, borrow_rate: 700 }
-            ]
-        };
-        move_to(account, sui_rates);
+            let sui_rates = RateList<SuiLend> {
+                rates: vector[
+                    RateEntry { type_info: type_info::type_of<SuiBitcoin>(), lend_rate: 500, borrow_rate: 700 },
+                    RateEntry { type_info: type_info::type_of<SuiEthereum>(), lend_rate: 500, borrow_rate: 700 },
+                    RateEntry { type_info: type_info::type_of<SuiSui>(), lend_rate: 500, borrow_rate: 700 },
+                    RateEntry { type_info: type_info::type_of<SuiUSDC>(), lend_rate: 500, borrow_rate: 700 },
+                    RateEntry { type_info: type_info::type_of<SuiUSDT>(), lend_rate: 500, borrow_rate: 700 }
+                ]
+            };
+            move_to(admin, sui_rates);
 
-        let moonwell_rates = RateList<Moonwell> {
-            rates: vector[
-                RateEntry { type_info: type_info::type_of<BaseEthereum>(), lend_rate: 500, borrow_rate: 700 },
-                RateEntry { type_info: type_info::type_of<BaseUSDC>(), lend_rate: 500, borrow_rate: 700 }
-            ]
-        };
-        move_to(account, moonwell_rates);
+            let moonwell_rates = RateList<Moonwell> {
+                rates: vector[
+                    RateEntry { type_info: type_info::type_of<BaseEthereum>(), lend_rate: 500, borrow_rate: 700 },
+                    RateEntry { type_info: type_info::type_of<BaseUSDC>(), lend_rate: 500, borrow_rate: 700 }
+                ]
+            };
+            move_to(admin, moonwell_rates);
     }
 
     // T is provider type
