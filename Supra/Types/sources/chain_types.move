@@ -9,6 +9,11 @@ module dev::AexisChainTypesV2 {
     struct Base has store, key { }
 
 
+    public fun return_all_chain_types(): vector<String>{
+        return vector<String>[type_info::type_name<Supra>(),type_info::type_name<Sui>(),type_info::type_name<Base>()]
+    }
+
+
     public fun convert_chainType_to_string<T>(): String{
         let type = type_info::type_name<T>();
         if(type == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisChainTypesV1::Sui") ){

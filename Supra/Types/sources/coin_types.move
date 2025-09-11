@@ -4,6 +4,7 @@ module dev::AexisCoinTypesV2{
     use std::string::{Self as string, String, utf8};
     use supra_framework::managed_coin::{Self};
     use supra_framework::coin::{Self, Coin, BurnCapability, FreezeCapability, MintCapability};
+    use std::type_info::{Self, TypeInfo};
     //use dev::AexisChainsV40::{Self as Chains};
 
     const ADMIN: address = @dev;
@@ -27,6 +28,12 @@ module dev::AexisCoinTypesV2{
     struct AccessCoins has store, key, drop {}
 
     struct UserCoinsCap has store, key, drop, copy {}
+
+
+    public fun return_all_coin_types(): vector<String>{
+        return vector<String>[type_info::type_name<SuiBitcoin>(),type_info::type_name<SuiEthereum>(),type_info::type_name<SuiSui>(),
+        type_info::type_name<SuiUSDC>(),type_info::type_name<SuiUSDT>(),type_info::type_name<BaseEthereum>(),type_info::type_name<BaseUSDC>()]
+    }
 
     public fun give_access(s: &signer): AccessCoins {
         assert!(signer::address_of(s) == ADMIN, ERROR_NOT_ADMIN);

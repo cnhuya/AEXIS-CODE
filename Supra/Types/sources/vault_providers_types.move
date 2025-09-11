@@ -9,6 +9,10 @@ module dev::AexisVaultProviderTypesV2 {
     struct Moonwell has store, key { }
 
 
+    public fun return_all_vault_provider_types(): vector<String>{
+        return vector<String>[type_info::type_name<AlphaLend>(),type_info::type_name<SuiLend>(),type_info::type_name<Moonwell>()]
+    }
+
     // JUST A HELP FUNCTION
     public fun convert_vaultProvider_to_string<T>(): String{
         let type = type_info::type_name<T>();
