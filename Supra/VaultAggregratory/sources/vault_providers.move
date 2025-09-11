@@ -4,7 +4,7 @@ module dev::AexisVaultAggregratoryV1 {
     use std::vector;
 
     use dev::AexisCoinTypesV2::{SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
-    use dev::AexisVaultProviderTypesV2::{AlphaLend, SuiLend, Moonwell};
+    use dev::AexisVaultProviderTypesV2::{None, AlphaLend, SuiLend, Moonwell};
     use dev::QiaraCapabilitiesV19::{Self as capabilities, Access as CapabilitiesAccess};
 
     const ERROR_INVALID_COIN_TYPE: u64 = 1;
@@ -96,28 +96,21 @@ module dev::AexisVaultAggregratoryV1 {
     // JUST A HELP FUNCTION
     #[view]
     public fun get_lend_rate<T: store, E>(): u64 acquires RateList{
-        let x = get_vault_provider<T,E>();
-        return x.lend_rate
+        if(type_info::type_name<E>() == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisVaultProviderTypesV2::None")){
+            return 0
+        } else{
+            let x = get_vault_provider<T,E>();
+            return x.lend_rate
+        }
     }
 
     #[view]
     public fun get_borrow_rate<T: store, E>(): u64 acquires RateList{
-        let x = get_vault_provider<T,E>();
-        return x.borrow_rate
-    }
-
-
-    // JUST A HELP FUNCTION
-    public fun convert_vaultProvider_to_string<T>(): String{
-        let type = type_info::type_name<T>();
-        if(type == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisVaultProvidersV1::AlphaLend") ){
-            return utf8(b"AlphaLend")
-        } else if(type == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisVaultProvidersV1::SuiLend") ){
-            return utf8(b"SuiLend")
-        } else if(type == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisVaultProvidersV1::Moonwell") ){
-            return utf8(b"Moonwell")
+        if(type_info::type_name<E>() == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisVaultProviderTypesV2::None")){
+            return 0
         } else{
-            return utf8(b"Unknown")
+            let x = get_vault_provider<T,E>();
+            return x.borrow_rate
         }
     }
 
