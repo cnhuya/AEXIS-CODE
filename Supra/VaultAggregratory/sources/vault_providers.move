@@ -77,7 +77,7 @@ module dev::AexisVaultAggregratoryV2 {
 
     // JUST A HELP FUNCTION
     #[view]
-    public fun get_vault_provider<T: store, E>(): RateEntry acquires RateList{
+    public fun get_vault_provider<E: store, T: store>(): RateEntry acquires RateList{
         let x = borrow_global<RateList<T>>(@dev);
         let len = vector::length(&x.rates);
         while(len>0){
@@ -93,21 +93,21 @@ module dev::AexisVaultAggregratoryV2 {
 
     // JUST A HELP FUNCTION
     #[view]
-    public fun get_lend_rate<T: store, E>(): u64 acquires RateList{
+    public fun get_lend_rate<E: store, T: store>(): u64 acquires RateList{
         if(type_info::type_name<E>() == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisVaultProviderTypesV2::None")){
             return 0
         } else{
-            let x = get_vault_provider<T,E>();
+            let x = get_vault_provider<E,T>();
             return x.lend_rate
         }
     }
 
     #[view]
-    public fun get_borrow_rate<T: store, E>(): u64 acquires RateList{
+    public fun get_borrow_rate<E: store, T: store>(): u64 acquires RateList{
         if(type_info::type_name<E>() == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisVaultProviderTypesV2::None")){
             return 0
         } else{
-            let x = get_vault_provider<T,E>();
+            let x = get_vault_provider<E,T>();
             return x.borrow_rate
         }
     }
