@@ -1,4 +1,4 @@
-module dev::QiaraCapabilitiesV19 {
+module dev::QiaraCapabilitiesV20 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -60,8 +60,8 @@ module dev::QiaraCapabilitiesV19 {
         };
 
         
-        create_capability(admin, signer::address_of(admin), utf8(b"QiaraToken"), utf8(b"TOKEN_CLAIM_CAPABILITY"), true, give_change_permission(&give_access(admin)));
-        create_capability(admin, @0x281d0fce12a353b1f6e8bb6d1ae040a6deba248484cf8e9173a5b428a6fb74e7, utf8(b"QiaraGovernance"), utf8(b"BLACKLIST"), true, give_change_permission(&give_access(admin)));
+        create_capability(admin, signer::address_of(admin), utf8(b"QiaraToken"), utf8(b"TOKEN_CLAIM_CAPABILITY"), true, &give_change_permission(&give_access(admin)));
+        create_capability(admin, @0x281d0fce12a353b1f6e8bb6d1ae040a6deba248484cf8e9173a5b428a6fb74e7, utf8(b"QiaraGovernance"), utf8(b"BLACKLIST"), true, &give_change_permission(&give_access(admin)));
 
     }
 
@@ -75,13 +75,21 @@ module dev::QiaraCapabilitiesV19 {
         CapabilitiesChangePermission {}
     }
 
+    public fun create_capability_multi(addr: &signer,  address: vector<address>, header: vector<String>, constant_name: vector<String>, removable: vector<bool>, permission: &CapabilitiesChangePermission) acquires Capabilities, KeyRegistry{
+        let len = vector::length(&header);
+        while(len>0){
+            create_capability(addr, *vector::borrow(&address, len-1), *vector::borrow(&header, len-1), *vector::borrow(&constant_name, len-1), *vector::borrow(&removable, len-1), permission);
+            len=len-1;
+        };
+    }
+
 public fun create_capability(
     address: &signer,
     addr: address,
     header: String,
     name: String,
     removable: bool,
-    cap: CapabilitiesChangePermission
+    cap: &CapabilitiesChangePermission
 ) acquires Capabilities, KeyRegistry {
     assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
 
@@ -124,12 +132,20 @@ public fun create_capability(
 }
 
 
+    public fun remove_capability_multi(addr: &signer,  address: vector<address>, header: vector<String>, constant_name: vector<String>, permission: &CapabilitiesChangePermission) acquires Capabilities, KeyRegistry{
+        let len = vector::length(&header);
+        while(len>0){
+            remove_capability(addr, *vector::borrow(&address, len-1), *vector::borrow(&header, len-1), *vector::borrow(&constant_name, len-1), permission);
+            len=len-1;
+        };
+    }
+
 public fun remove_capability(
     address: &signer,
     addr: address,
     header: String,
     name: String,
-    cap: CapabilitiesChangePermission
+    cap: &CapabilitiesChangePermission
 ) acquires Capabilities, KeyRegistry {
     assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
 
@@ -172,95 +188,95 @@ public fun remove_capability(
         key_registry.keys
     }
 
-#[view]
-public fun viewCapabilities(
-    addr: address,
-    header: String
-): vector<Capability> acquires Capabilities {
-    let db = borrow_global<Capabilities>(OWNER);
+    #[view]
+    public fun viewCapabilities(
+        addr: address,
+        header: String
+    ): vector<Capability> acquires Capabilities {
+        let db = borrow_global<Capabilities>(OWNER);
 
-    if (!table::contains(&db.table, addr)) {
-        abort ERROR_CAPABILITY_DOESNT_EXISTS;
-    };
-
-    let inner_table = table::borrow(&db.table, addr);
-
-    if (!table::contains(inner_table, header)) {
-        abort ERROR_CAPABILITY_DOESNT_EXISTS;
-    };
-
-    let constants_ref = table::borrow(inner_table, header);
-    *constants_ref // return a copy of the vector
-}
-
-
-#[view]
-public fun viewCapability(
-    addr: address,
-    header: String,
-    constant_name: String
-): Capability acquires Capabilities {
-    let db = borrow_global<Capabilities>(OWNER);
-
-    if (!table::contains(&db.table, addr)) {
-        abort ERROR_HEADER_DOESNT_EXISTS;
-    };
-
-    let inner_table = table::borrow(&db.table, addr);
-
-    if (!table::contains(inner_table, header)) {
-        abort ERROR_HEADER_DOESNT_EXISTS;
-    };
-
-    let constants_ref: &vector<Capability> = table::borrow(inner_table, header);
-    let len = vector::length(constants_ref);
-
-    let i = 0;
-    while (i < len) {
-        let c_ref = vector::borrow(constants_ref, i);
-        if (c_ref.name == constant_name) {
-            // clone capability to return
-            return make_capability(c_ref.name, c_ref.removable);
+        if (!table::contains(&db.table, addr)) {
+            abort ERROR_CAPABILITY_DOESNT_EXISTS;
         };
-        i = i + 1;
-    };
 
-    // If not found
-    abort ERROR_CAPABILITY_DOESNT_EXISTS
-}
+        let inner_table = table::borrow(&db.table, addr);
 
-#[view]
-public fun assert_wallet_capability(
-    addr: address,
-    header: String,
-    constant_name: String
-): bool acquires Capabilities {
-    let db = borrow_global<Capabilities>(OWNER);
-
-    if (!table::contains(&db.table, addr)) {
-        return false; // address not found capability can't exist
-    };
-
-    let inner_table = table::borrow(&db.table, addr);
-
-    if (!table::contains(inner_table, header)) {
-        return false; // header not found  capability can't exist
-    };
-
-    let constants_ref: &vector<Capability> = table::borrow(inner_table, header);
-    let len = vector::length(constants_ref);
-
-    let i = 0;
-    while (i < len) {
-        let c_ref = vector::borrow(constants_ref, i);
-        if (c_ref.name == constant_name) {
-            return true;
+        if (!table::contains(inner_table, header)) {
+            abort ERROR_CAPABILITY_DOESNT_EXISTS;
         };
-        i = i + 1;
-    };
 
-    // If not found
-    false
-}
+        let constants_ref = table::borrow(inner_table, header);
+        *constants_ref // return a copy of the vector
+    }
+
+
+    #[view]
+    public fun viewCapability(
+        addr: address,
+        header: String,
+        constant_name: String
+    ): Capability acquires Capabilities {
+        let db = borrow_global<Capabilities>(OWNER);
+
+        if (!table::contains(&db.table, addr)) {
+            abort ERROR_HEADER_DOESNT_EXISTS;
+        };
+
+        let inner_table = table::borrow(&db.table, addr);
+
+        if (!table::contains(inner_table, header)) {
+            abort ERROR_HEADER_DOESNT_EXISTS;
+        };
+
+        let constants_ref: &vector<Capability> = table::borrow(inner_table, header);
+        let len = vector::length(constants_ref);
+
+        let i = 0;
+        while (i < len) {
+            let c_ref = vector::borrow(constants_ref, i);
+            if (c_ref.name == constant_name) {
+                // clone capability to return
+                return make_capability(c_ref.name, c_ref.removable);
+            };
+            i = i + 1;
+        };
+
+        // If not found
+        abort ERROR_CAPABILITY_DOESNT_EXISTS
+    }
+
+    #[view]
+    public fun assert_wallet_capability(
+        addr: address,
+        header: String,
+        constant_name: String
+    ): bool acquires Capabilities {
+        let db = borrow_global<Capabilities>(OWNER);
+
+        if (!table::contains(&db.table, addr)) {
+            return false; // address not found capability can't exist
+        };
+
+        let inner_table = table::borrow(&db.table, addr);
+
+        if (!table::contains(inner_table, header)) {
+            return false; // header not found  capability can't exist
+        };
+
+        let constants_ref: &vector<Capability> = table::borrow(inner_table, header);
+        let len = vector::length(constants_ref);
+
+        let i = 0;
+        while (i < len) {
+            let c_ref = vector::borrow(constants_ref, i);
+            if (c_ref.name == constant_name) {
+                return true;
+            };
+            i = i + 1;
+        };
+
+        // If not found
+        false
+    }
 
 }

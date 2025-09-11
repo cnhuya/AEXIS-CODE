@@ -1,4 +1,4 @@
-module dev::QiaraGovernanceV19 {
+module dev::QiaraGovernanceV20 {
     use std::signer;
     use std::string::{Self, String, utf8};
     use std::vector;
@@ -11,8 +11,8 @@ module dev::QiaraGovernanceV19 {
     use supra_framework::primary_fungible_store;
     use aptos_std::from_bcs;
 
-    use dev::QiaraStorageV19::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV19::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraStorageV20::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV20::{Self as capabilities, Access as CapabilitiesAccess};
 
     const OWNER: address = @dev;
     const QIARA_TOKEN: address = @0x5c40d567117372c61b156f88ef6353e211d0da1db92b0f5cafdd6e2a92d86312;
@@ -35,15 +35,15 @@ module dev::QiaraGovernanceV19 {
 
     struct Proposal has store, drop {
         id: u64,
-        type: String,
+        type: vector<String>,
         proposer: address,
         duration: u64,
-        header: String,
-        constant: String,
-        new_value: vector<u8>,
-        value_type: String,
+        header: vector<String>,
+        constant: vector<String>,
+        new_value: vector<vector<u8>>,
+        value_type: vector<String>,
         isChange: bool,
-        editable: bool,
+        editable: vector<bool>,
         yes: u64,
         no: u64,
         voters: vector<address>,
@@ -54,31 +54,31 @@ module dev::QiaraGovernanceV19 {
     #[event]
     struct ProposeEvent has store, drop {
         id: u64,
-        type: String,
+        type: vector<String>,
         proposer: address,
         start: u64,
         end: u64,
-        header: String,
-        constant: String,
+        header: vector<String>,
+        constant: vector<String>,
         isChange: bool,
-        editable: bool,
-        new_value: vector<u8>,
-        value_type: String,
+        editable: vector<bool>,
+        new_value: vector<vector<u8>>,
+        value_type: vector<String>,
     }
 
     #[event]
     struct ProposalResultEvent has store, drop {
         id: u64,
-        type: String,
+        type: vector<String>,
         proposer: address,
         start: u64,
         end: u64,
-        header: String,
-        constant: String,
-        new_value: vector<u8>,
-        value_type: String,
+        header: vector<String>,
+        constant: vector<String>,
+        new_value: vector<vector<u8>>,
+        value_type: vector<String>,
         isChange: bool,
-        editable: bool,
+        editable: vector<bool>,
         yes: u64,
         no: u64,
         result: u8,
@@ -96,7 +96,7 @@ module dev::QiaraGovernanceV19 {
         proposals: vector<Proposal>
     }
 
-    fun make_proposal(id: u64, type: String, proposer: address, duration: u64, header: String, constant: String, isChange: bool, editable: bool, new_value: vector<u8>, value_type:String): Proposal {
+    fun make_proposal(id: u64, type: vector<String>, proposer: address, duration: u64, header: vector<String>, constant: vector<String>, isChange: bool, editable: vector<bool>, new_value: vector<vector<u8>>, value_type:vector<String>): Proposal {
         Proposal {id, type, proposer, duration, header, constant, new_value, value_type, isChange, editable, yes: 0, no: 0, voters: vector::empty<address>(), result: 0}
     }
 
@@ -127,7 +127,7 @@ module dev::QiaraGovernanceV19 {
         };
     }
 
-    public entry fun propose(proposer: &signer, type: String, isChange: bool, header: String, constant_name: String, new_value: vector<u8>, value_type: String, duration: u64, editable: bool) acquires PendingProposals, ProposalCount {
+    public entry fun propose(proposer: &signer, type: vector<String>, isChange: bool, header: vector<String>, constant_name: vector<String>, new_value: vector<vector<u8>>, value_type: vector<String>, duration: u64, editable: vector<bool>) acquires PendingProposals, ProposalCount {
         let addr = signer::address_of(proposer);
         assert_allowed_type(type);
         assert!(!capabilities::assert_wallet_capability(signer::address_of(proposer), utf8(b"QiaraGovernance"), utf8(b"BLACKLIST")), ERROR_BLACKLISTED);
@@ -161,8 +161,6 @@ module dev::QiaraGovernanceV19 {
 // finalize_proposal: remove proposal, destructure into locals, then operate on locals
 public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires PendingProposals, Access {
     let addr = signer::address_of(user);
-    assert!(addr == OWNER, ERROR_NOT_ADMIN);
-    assert!(get_qiara_balance(addr) >= 100000, ERROR_NOT_ENOUGH_TOKENS_TO_PROPOSE);
 
     let registry = borrow_global_mut<PendingProposals>(OWNER);
     let len = vector::length(&registry.proposals);
@@ -210,47 +208,52 @@ public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires Pen
 
                 if (((yes * 100) / total_votes) >= quorum_required) {
                     result = 1;
+                    let x = vector::length(&type);
+                    while(x > 0){
+                        let _type = vector::borrow(&type, x-1);
+                        x=x-1;
 
-                    if (type == utf8(b"Storage")) {
-                        if (isChange) {
-                            storage::change_constant(
-                                user,
-                                header,
-                                constant,
-                                new_value,
-                                &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
-                            );
-                        } else {
-                            storage::handle_registration(
-                                user,
-                                header,
-                                constant,
-                                new_value,
-                                value_type,
-                                editable,
-                                &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
-                            );
+                         if (*_type == utf8(b"Storage")) {
+                            if (isChange) {
+                                storage::change_constant_multi(
+                                    user,
+                                    header,
+                                    constant,
+                                    new_value,
+                                    &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
+                                );
+                            } else {
+                                storage::handle_registration_multi(
+                                    user,
+                                    header,
+                                    constant,
+                                    new_value,
+                                    value_type,
+                                    editable,
+                                    &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
+                                );
+                            };
+                        } else if (*_type == utf8(b"Capabilities")) {
+                            if (isChange) {
+                                capabilities::remove_capability_multi(
+                                    user,
+                                    to_adress_multi(new_value),
+                                    header,
+                                    constant,
+                                    &capabilities::give_change_permission(&borrow_global<Access>(OWNER).capabilities_access)
+                                );
+                            } else {
+                                capabilities::create_capability_multi(
+                                    user,
+                                    to_adress_multi(new_value),
+                                    header,
+                                    constant,
+                                    editable,
+                                    &capabilities::give_change_permission(&borrow_global<Access>(OWNER).capabilities_access)
+                                );
+                            };
                         };
-                    } else if (type == utf8(b"Capabilities")) {
-                        if (isChange) {
-                            capabilities::remove_capability(
-                                user,
-                                from_bcs::to_address(new_value),
-                                header,
-                                constant,
-                                capabilities::give_change_permission(&borrow_global<Access>(OWNER).capabilities_access)
-                            );
-                        } else {
-                            capabilities::create_capability(
-                                user,
-                                from_bcs::to_address(new_value),
-                                header,
-                                constant,
-                                editable,
-                                capabilities::give_change_permission(&borrow_global<Access>(OWNER).capabilities_access)
-                            );
-                        };
-                    };
+                    }
                 };
             };
 
@@ -317,7 +320,24 @@ public entry fun vote(user: &signer, proposal_id: u64, isYes: bool) acquires Pen
 
 
 
-    fun assert_allowed_type(type: String){
-        assert!(type == utf8(b"Storage") || type == utf8(b"Capabilities"), ERROR_INVALIED_PROPOSAL_TYPE);
+
+    fun to_adress_multi(addresses: vector<vector<u8>>): vector<address>{
+        let len = vector::length(&addresses);
+        let vect = vector::empty<address>();
+        while (len > 0) {
+            let address = from_bcs::to_address(*vector::borrow(&addresses, len-1));
+            len = len - 1;
+            vector::push_back(&mut vect, address);
+        };
+        vect
+    }
+
+    fun assert_allowed_type(types: vector<String>){
+        let len = vector::length(&types);
+        while (len > 0) {
+            let type = vector::borrow(&types, len-1);
+            len = len - 1;
+            assert!(*type == utf8(b"Storage") || *type == utf8(b"Capabilities"), ERROR_INVALIED_PROPOSAL_TYPE);
+        }
     }
 }

@@ -1,4 +1,4 @@
-module dev::QiaraStorageV19 {
+module dev::QiaraStorageV20 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -136,6 +136,14 @@ module dev::QiaraStorageV19 {
         }
     }
 
+    public fun handle_registration_multi(address: &signer, header: vector<String>, constant_name: vector<String>, value: vector<vector<u8>>, value_type: vector<String>, editable: vector<bool>, permission: &StorageChangePermission) acquires KeyRegistry, ConstantDatabase{
+        let len = vector::length(&value_type);
+        while(len>0){
+            handle_registration(address, *vector::borrow(&header, len-1), *vector::borrow(&constant_name, len-1), *vector::borrow(&value, len-1), *vector::borrow(&value_type, len-1), *vector::borrow(&editable, len-1), permission);
+            len=len-1;
+        };
+    }
+
     public fun handle_registration(address: &signer, header: String, constant_name: String, value: vector<u8>, value_type: String, editable: bool, permission: &StorageChangePermission) acquires KeyRegistry, ConstantDatabase{
         if(value_type == utf8(b"u8")){
              register_constant<u8>(address, header, constant_name, from_bcs::to_u8(value), editable, permission);
@@ -175,6 +183,14 @@ module dev::QiaraStorageV19 {
             };
         };
         abort ERROR_HEADER_DOESNT_EXISTS
+    }
+
+    public fun change_constant_multi(address: &signer, header: vector<String>, constant_name: vector<String>, value: vector<vector<u8>>, permission: &StorageChangePermission) acquires ConstantDatabase{
+        let len = vector::length(&header);
+        while(len>0){
+            change_constant(address, *vector::borrow(&header, len-1), *vector::borrow(&constant_name, len-1), *vector::borrow(&value, len-1), permission);
+            len=len-1;
+        };
     }
 
     public fun change_constant(address: &signer,header: String,name: String,new_value: vector<u8>, permission: &StorageChangePermission) acquires ConstantDatabase {
