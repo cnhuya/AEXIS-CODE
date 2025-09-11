@@ -1,4 +1,4 @@
-module dev::AexisVaultAggregratoryV4 {
+module dev::AexisVaultAggregratoryV5 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::vector;
@@ -77,7 +77,7 @@ module dev::AexisVaultAggregratoryV4 {
     // E is a coin type
     //implement function to change the rate for <T, E>
 
-    public entry fun change_rates<T: store,E>(account: &signer, lend_rate: u64, borrow_rate: u64) acquires RateList{
+    public entry fun change_rates<E,T:store>(account: &signer, lend_rate: u64, borrow_rate: u64) acquires RateList{
         let x = borrow_global_mut<RateList<T>>(@dev);
         let len = vector::length(&x.rates);
         while(len>0){
@@ -95,7 +95,7 @@ module dev::AexisVaultAggregratoryV4 {
 
     // JUST A HELP FUNCTION
     #[view]
-    public fun get_vault_provider<E: store, T: store>(): RateEntry acquires RateList{
+    public fun get_vault_provider<E, T:store>(): RateEntry acquires RateList{
         let x = borrow_global<RateList<T>>(@dev);
         let len = vector::length(&x.rates);
         while(len>0){
@@ -111,13 +111,13 @@ module dev::AexisVaultAggregratoryV4 {
 
     // JUST A HELP FUNCTION
     #[view]
-    public fun get_lend_rate<E: store, T: store>(): u64 acquires RateList{
+    public fun get_lend_rate<E, T:store>(): u64 acquires RateList{
         let x = get_vault_provider<E,T>();
         return x.lend_rate
     }
 
     #[view]
-    public fun get_borrow_rate<E: store, T: store>(): u64 acquires RateList{
+    public fun get_borrow_rate<E, T:store>(): u64 acquires RateList{
         let x = get_vault_provider<E,T>();
         return x.borrow_rate
     }
