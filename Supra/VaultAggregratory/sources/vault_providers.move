@@ -2,6 +2,7 @@ module dev::AexisVaultAggregratoryV3 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::vector;
+    use supra_framework::supra_coin::{Self, SupraCoin};
 
     use dev::AexisCoinTypesV2::{SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use dev::AexisVaultProviderTypesV2::{None, AlphaLend, SuiLend, Moonwell};
@@ -94,7 +95,7 @@ module dev::AexisVaultAggregratoryV3 {
     // JUST A HELP FUNCTION
     #[view]
     public fun get_lend_rate<E: store, T: store>(): u64 acquires RateList{
-        if(type_info::type_name<E>() == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisVaultProviderTypesV2::None")){
+        if(type_info::type_name<T>() == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisVaultProviderTypesV2::None")){
             return 0
         } else{
             let x = get_vault_provider<E,T>();
@@ -104,7 +105,7 @@ module dev::AexisVaultAggregratoryV3 {
 
     #[view]
     public fun get_borrow_rate<E: store, T: store>(): u64 acquires RateList{
-        if(type_info::type_name<E>() == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisVaultProviderTypesV2::None")){
+        if(type_info::type_name<T>() == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisVaultProviderTypesV2::None")){
             return 0
         } else{
             let x = get_vault_provider<E,T>();
