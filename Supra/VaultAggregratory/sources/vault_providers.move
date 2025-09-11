@@ -1,4 +1,4 @@
-module dev::AexisVaultAggregratoryV1 {
+module dev::AexisVaultAggregratoryV2 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::vector;
@@ -20,8 +20,6 @@ module dev::AexisVaultAggregratoryV1 {
         lend_rate: u64,
         borrow_rate: u64,
     }
-
-
 
     // create list of ratetables (vector)
 
