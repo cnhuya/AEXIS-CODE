@@ -163,6 +163,31 @@ module dev::QiaraTestV27 {
     // --------------------------
     // Mint / burn / transfer
     // --------------------------
+    /// Deposit tokens into an arbitrary FungibleStore (ERC-20 transferToVault)
+    public entry fun deposit_to_store(sender: &signer,store: Object<FungibleStore>,amount: u64) acquires ManagedFungibleAsset, State, CreationTime {
+        let asset = get_metadata();
+        let managed = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
+        let transfer_ref = &managed.transfer_ref;
+
+        let from_wallet = primary_fungible_store::primary_store(signer::address_of(sender), asset);
+
+        let fa = withdraw(from_wallet, amount, transfer_ref);
+        deposit(store, fa, transfer_ref);
+    }
+
+
+    /// Withdraw tokens back from a FungibleStore into the callers account (ERC-20 withdraw)
+    public entry fun withdraw_from_store(caller: &signer,store: Object<FungibleStore>,amount: u64) acquires ManagedFungibleAsset, State, CreationTime {
+        let asset = get_metadata();
+        let managed = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
+        let transfer_ref = &managed.transfer_ref;
+
+        let fa = withdraw(store, amount, transfer_ref);
+
+        let caller_wallet = primary_fungible_store::ensure_primary_store_exists(signer::address_of(caller),asset);
+        deposit(caller_wallet, fa, transfer_ref);
+    }
+
 
     /// Deposit function override to ensure that the account is not denylisted and the FA coin is not paused.
     /// OPTIONAL
@@ -232,8 +257,6 @@ module dev::QiaraTestV27 {
         let fa = fungible_asset::withdraw_with_ref(&managed.transfer_ref, wallet, amount);
         fungible_asset::burn(&managed.burn_ref, fa);
     }
-
-
 
     /// Pause or unpause the transfer of FA coin. This checks that the caller is the pauser.
     public entry fun set_pause(pauser: &signer, paused: bool) acquires State {
