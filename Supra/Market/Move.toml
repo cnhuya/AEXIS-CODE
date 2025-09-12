@@ -1,5 +1,5 @@
     [package]
-    name = "AexisMarketV12"
+    name = "AexisMarketV17"
     version = "2.1.1"
     authors = []
 
@@ -26,10 +26,19 @@
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
 
-
-    [dependencies.AexisTypesV1]
+    [dependencies.AexisTypesV2]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
+
+    [dependencies.AexisVaultAgreggratoryV5]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/VaultAggregratory'
+
+    [dependencies.QiaraStorageV20]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Storage'
 
     [dev-dependencies]
