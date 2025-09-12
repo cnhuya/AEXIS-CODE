@@ -1,4 +1,4 @@
-module dev::AexisVaultsV17 {
+module dev::AexisVaultsV18 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -10,14 +10,12 @@ module dev::AexisVaultsV17 {
     use supra_framework::coin::{Self, Coin};
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
-    use dev::AexisVaultFactoryV16::{Self as Factory, Tier, CoinData, Metadata};
 
-    use dev::AexisCoinTypesV2::{Self as CoinDeployer};
+    use dev::AexisVaultFactoryV18::{Self as Factory, Tier, CoinData, Metadata};
 
-    use dev::AexisCoinTypesV2::{SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use dev::AexisCoinTypesV2::{Self as CoinDeployer, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use dev::AexisChainTypesV2::{Self as ChainTypes};
     use dev::AexisVaultProviderTypesV2::{Self as VaultProviders};
-    use dev::AexisVaultAggregratoryV5::{Self as VaultAggr};
 
     use dev::QiaraStorageV20::{Self as storage, Access as StorageAccess};
     use dev::QiaraCapabilitiesV20::{Self as capabilities, Access as CapabilitiesAccess};
@@ -42,6 +40,17 @@ module dev::AexisVaultsV17 {
     const LIQUIDATION_THRESHOLD: u64 = 85; // Liquidation trigger (%)
     const LIQUIDATION_BONUS_BPS: u64 = 500; // 5% bonus to liquidator
 
+
+
+    struct RateList has key {
+        rates: table::Table<String, Rates>, 
+    }
+
+    // Wrapper to store heterogeneous entries
+    struct Rates has copy, drop, store {
+        lend_rate: u64,
+        borrow_rate: u64,
+    }
 
     struct TableUnclaimedUserVaultList has key {
         list: table::Table<address, table::Table<String, vector<PendingDeposit>>>,
@@ -174,28 +183,15 @@ module dev::AexisVaultsV17 {
     }
 
     fun init_module(address: &signer){
-     //   init_vault<coins::BaseEthereum>(address, 1, 1);
-     //   init_vault<BaseUSDC>(address, 0, 47);
-
-     //   init_vault<SuiEthereum>(address, 1, 1);
-     //   init_vault<SuiUSDC>(address, 0, 47);
-     ///   init_vault<SuiUSDT>(address, 0, 47);
-      //  init_vault<SuiSui>(address, 2, 90);
-      //  init_vault<SuiBitcoin>(address, 1, 0);
-
-      //  init_vault<SupraCoin>(address, 3, 500);
-
-        // pending storage (temporary validation counters)
-        move_to(address, TableUnclaimedUserVaultList {
-            list: table::new<address, table::Table<String, vector<PendingDeposit>>>(),
-        });
-
+        move_to(address, TableUnclaimedUserVaultList {list: table::new<address, table::Table<String, vector<PendingDeposit>>>(),});
+        move_to(address, RateList {rates: table::new<String, Rates>()});
+        init_all_vaults(address)
     }
 
     public entry fun init_vault<T>(admin: &signer, tier: u8, oracleID: u32, chain: String){
         assert!(signer::address_of(admin) == ADMIN, ERROR_NOT_ADMIN);
         if (!exists<GlobalVault<T>>(ADMIN)) {
-            capabilities::assert_wallet_capability(utf8(b"QiaraVault"), utf8(b"PERMISSION_TO_INITIALIZE_VAULTS"))
+            //capabilities::assert_wallet_capability(utf8(b"QiaraVault"), utf8(b"PERMISSION_TO_INITIALIZE_VAULTS"));
             let type = type_info::type_name<T>();
             move_to(admin, GlobalVault {
                 tier: tier,
@@ -239,7 +235,7 @@ module dev::AexisVaultsV17 {
 
     /// Deposit on behalf of `recipient`
     /// No need for recipient to have signed anything.
-    public fun bridge_deposit<T, E, X:store>(user: &signer,_access: &Access,_user_cap: UserCap,recipient: address,amount: u64,coins: Coin<T>) acquires GlobalVault, UserVault, UserVaultRegistry, TableUnclaimedUserVaultList {
+    public fun bridge_deposit<T, E, X:store>(user: &signer,_access: &Access,_user_cap: UserCap,recipient: address,amount: u64,coins: Coin<T>, lend_rate: u64, borrow_rate: u64) acquires GlobalVault, UserVault, RateList, UserVaultRegistry, TableUnclaimedUserVaultList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
 
         // Deposit coins into the global vault balance
@@ -250,6 +246,7 @@ module dev::AexisVaultsV17 {
         let type_str = type_info::type_name<T>();
         insert_vault_registry(type_str, type_info::type_name<X>());
 
+        change_rates<X>(lend_rate, borrow_rate);
         if (exists<UserVault>(recipient)) {
             //  Recipient already has a vault list
             let user_vault = borrow_global_mut<UserVault>(signer::address_of(user));
@@ -284,7 +281,7 @@ module dev::AexisVaultsV17 {
         });}
 
 
-    public entry fun deposit<T, X:store>(user: &signer, amount: u64) acquires GlobalVault,  UserVault, UserVaultRegistry {
+    public entry fun deposit<T, X:store>(user: &signer, amount: u64) acquires GlobalVault,  UserVault, UserVaultRegistry, RateList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
 
@@ -316,7 +313,7 @@ module dev::AexisVaultsV17 {
     /// log event emmited in this function in backend and add it to registered events in chains.move
     /// this is needed in case validators could overfetch multiple times this event and that way unlock multiple times on other chains
     /// from locked vaults
-    public entry fun bridge<T, E, X:store>(user: &signer, destination_address: vector<u8>, amount: u64) acquires GlobalVault, UserVault {
+    public entry fun bridge<T, E, X:store>(user: &signer, destination_address: vector<u8>, amount: u64) acquires GlobalVault, UserVault, RateList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
        // let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
 
@@ -341,7 +338,7 @@ module dev::AexisVaultsV17 {
         event::emit(BridgeEvent { amount, validator: signer::address_of(user), token: type_info::type_name<T>(), to: destination_address, chain: ChainTypes::convert_chainType_to_string<E>(), time: timestamp::now_seconds() });
     }
 
-    public entry fun withdraw<T, X:store>(user: &signer, amount: u64) acquires GlobalVault, UserVault {
+    public entry fun withdraw<T, X:store>(user: &signer, amount: u64) acquires GlobalVault, UserVault, RateList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
 
@@ -361,7 +358,7 @@ module dev::AexisVaultsV17 {
         event::emit(VaultEvent { type: utf8(b"Withdraw"), amount, address: signer::address_of(user), token: type_info::type_name<T>(), time: timestamp::now_seconds() });
     }
 
-    public entry fun borrow<T, X:store>(user: &signer, amount: u64) acquires GlobalVault, UserVault, UserVaultRegistry {
+    public entry fun borrow<T, X:store>(user: &signer, amount: u64) acquires GlobalVault, UserVault, UserVaultRegistry, RateList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
 
         let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
@@ -383,7 +380,7 @@ module dev::AexisVaultsV17 {
         event::emit(VaultEvent { type: utf8(b"Borrow"), amount, address: signer::address_of(user), token: type_info::type_name<T>(), time: timestamp::now_seconds() });
     }
 
-    public entry fun claim_rewards<T, X:store>(user: &signer) acquires GlobalVault, UserVault {
+    public entry fun claim_rewards<T, X:store>(user: &signer) acquires GlobalVault, UserVault, RateList {
         let addr = signer::address_of(user);
 
         let type_str = type_info::type_name<T>();
@@ -416,7 +413,7 @@ module dev::AexisVaultsV17 {
 
     }
 
-    public entry fun liquidate<T, X: store>(liquidator: &signer, borrower_addr: address) acquires GlobalVault, UserVault, UserVaultRegistry {
+    public entry fun liquidate<T, X: store>(liquidator: &signer, borrower_addr: address) acquires GlobalVault, UserVault, UserVaultRegistry, RateList {
 
         let type_str = type_info::type_name<T>();
 
@@ -462,28 +459,89 @@ module dev::AexisVaultsV17 {
         });
     }
 
+    fun change_rates<X>(lend_rate: u64, borrow_rate: u64) acquires RateList {
+        let x = borrow_global_mut<RateList>(@dev);
+        let key = type_info::type_name<X>();
+
+        if (!table::contains(&x.rates, key)) {
+            table::add(&mut x.rates, key, Rates { lend_rate, borrow_rate });
+        } else {
+            let rate = table::borrow_mut(&mut x.rates, key);
+            rate.lend_rate = lend_rate;
+            rate.borrow_rate = borrow_rate;
+        }
+    }
+
+
+    fun get_apy<T, X:store>(vault: &GlobalVault<T>): u64 acquires RateList{
+        
+        let bonus_apy = get_lend_rate<X>();
+
+        let utilization = get_utilization_ratio<T>(vault); // in %
+        let tier = Factory::get_tier(vault.tier);
+        let minimum_apr = Factory::apr_increase(vault.tier);
+        let u_bps = utilization * 100; // convert % to basis points
+        let u_bps2 = u_bps;
+        if(utilization > 110){
+            u_bps2 = 10_999;
+        };
+        return ((((u_bps) * 2_000) / (11_000 - u_bps2) + (minimum_apr as u64))) + bonus_apy
+    }
+
+    fun get_interest<T, X: store>(vault: &GlobalVault<T>): u64 acquires RateList{
+
+        let bonus_interest = get_borrow_rate<X>();
+
+        let utilization = get_utilization_ratio<T>(vault); // in %
+        let tier = Factory::get_tier(vault.tier);
+        let minimum_apr = Factory::apr_increase(vault.tier);
+        let u_bps = utilization * 100; // convert % to basis points
+        let u_bps2 = u_bps;
+        if(utilization > 110){
+            u_bps2 = 7499;
+        };
+        return ((((u_bps) * 3_000) / (7500 - u_bps2) + (minimum_apr as u64)*2)) + bonus_interest
+    }
+
+    fun getValue(resource: String, amount: u256): u256{
+        let metadata = Factory::get_coin_metadata_by_res(&resource);
+        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(Factory::get_coin_metadata_oracle(&metadata));
+        let denom = pow10_u256(Factory::get_coin_metadata_decimals(&metadata) + (price_decimals as u8));
+        return ((amount as u256) * (price as u256)) / denom
+    }
+
+    fun getValueByCoin(resource: String, amount: u256): u256{
+        let metadata = Factory::get_coin_metadata_by_res(&resource);
+        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(Factory::get_coin_metadata_oracle(&metadata));
+        let denom = pow10_u256(Factory::get_coin_metadata_decimals(&metadata) + (price_decimals as u8));
+        return ((amount as u256) / (price as u256)) / denom
+    }
+
+    fun get_utilization_ratio<T>(vault: &GlobalVault<T>): u64 {
+        let borrowed = vault.total_deposited - coin::value(&vault.balance);
+        if (vault.total_deposited == 0) {
+            0
+        } else {
+            (borrowed * 100) / vault.total_deposited
+        }
+    }
+
+
     #[view]
-    public fun get_complete_vault<T, X:store>(): CompleteVault acquires GlobalVault {
+    public fun get_complete_vault<T, X:store>(): CompleteVault acquires GlobalVault, RateList {
         let vault = get_vault<T, X>();
         CompleteVault { vault: vault, coin: Factory::get_coin_data<T>(), tier: Factory::get_tier(vault.tier), Metadata: Factory::get_coin_metadata<T>()  }
     }
 
     #[view]
-    public fun get_vault<T, X: store>(): VaultUSD acquires GlobalVault {
+    public fun get_vault<T, X: store>(): VaultUSD acquires GlobalVault, RateList {
         assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global<GlobalVault<T>>(ADMIN);
         let balance = coin::value(&vault.balance);
         let metadata = Factory::get_coin_metadata_by_res(&type_info::type_name<T>());
         let (price, price_decimals, _, _) = supra_oracle_storage::get_price(Factory::get_coin_metadata_oracle(&metadata));
         let denom = pow10_u256((price_decimals as u8));
-        VaultUSD {tier: vault.tier, oracle_price: (price as u128), oracle_decimals: (price_decimals as u8), total_deposited: vault.total_deposited,balance,borrowed: vault.total_deposited - balance, utilization:  get_utilization_ratio<T>(vault), rewards: get_apy<T, X>(vault), interest: get_interest<T, X>(vault), external_interest: VaultAggr::get_borrow_rate<T,X>(),  external_rewards: VaultAggr::get_lend_rate<T,X>(), fee: get_withdraw_fee(get_utilization_ratio<T>(vault))}
-    }
-
-    #[view]
-    public fun get_vault_balance<T>(): u64 acquires GlobalVault {
-        assert!(exists<GlobalVault<T>>(ADMIN), ERROR_VAULT_NOT_INITIALIZED);
-        let vault = borrow_global<GlobalVault<T>>(ADMIN);
-        coin::value(&vault.balance)
+        VaultUSD {tier: vault.tier, oracle_price: (price as u128), oracle_decimals: (price_decimals as u8), total_deposited: vault.total_deposited,balance,borrowed: vault.total_deposited - balance, utilization:  get_utilization_ratio<T>(vault), rewards: get_apy<T, X>(vault), interest: get_interest<T, X>(vault), external_interest: get_borrow_rate<X>(),  external_rewards: get_lend_rate<X>(), fee: get_withdraw_fee(get_utilization_ratio<T>(vault))}
     }
 
     #[view]
@@ -519,37 +577,6 @@ module dev::AexisVaultsV17 {
         (vault.borrowed * 100) / vault.deposited
     }
 
-    fun get_apy<T, X:store>(vault: &GlobalVault<T>): u64{
-        
-        let bonus_apy = VaultAggr::get_lend_rate<T,X>();
-
-        let utilization = get_utilization_ratio<T>(vault); // in %
-        let tier = Factory::get_tier(vault.tier);
-        let minimum_apr = Factory::apr_increase(vault.tier);
-        let u_bps = utilization * 100; // convert % to basis points
-        let u_bps2 = u_bps;
-        if(utilization > 110){
-            u_bps2 = 10_999;
-        };
-        return ((((u_bps) * 2_000) / (11_000 - u_bps2) + (minimum_apr as u64))) + bonus_apy
-    }
-
-    fun get_interest<T, X: store>(vault: &GlobalVault<T>): u64{
-
-        let bonus_interest = VaultAggr::get_borrow_rate<T, X>();
-
-        let utilization = get_utilization_ratio<T>(vault); // in %
-        let tier = Factory::get_tier(vault.tier);
-        let minimum_apr = Factory::apr_increase(vault.tier);
-        let u_bps = utilization * 100; // convert % to basis points
-        let u_bps2 = u_bps;
-        if(utilization > 110){
-            u_bps2 = 7499;
-        };
-        return ((((u_bps) * 3_000) / (7500 - u_bps2) + (minimum_apr as u64)*2)) + bonus_interest
-    }
-
-
     #[view]
     public fun get_user_position_usd<T,X>(addr: address): (u256, u256, u256, u256) acquires UserVault {
         let uv = get_user_vault<T,X>(addr);
@@ -571,7 +598,6 @@ module dev::AexisVaultsV17 {
 
         (dep_usd, bor_usd, reward_usd ,interest_usd)
     }
-
 
     #[view]
     public fun get_user_total_usd(addr: address): (u256, u256, u256, u256) acquires UserVaultRegistry, UserVault{
@@ -620,45 +646,6 @@ module dev::AexisVaultsV17 {
         (total_dep, total_bor, total_rew, total_int)
     }
 
-  /*  #[view]
-    public fun get_total_vault(addr: address): (u256, u256, u16, u32)  {
-        let list = Factory::get_registered_vaults();
-
-        let total_dep = 0u256;
-        let total_bor = 0u256;
-        let utilization = 0u16;
-        let withdraw_fee = 0u32;
-
-        let n = vector::length(&list);
-        let i = 0;
-        while (i < n) {
-            let v = vector::borrow(&list, i);
-
-            // metadata for resource (contains oracleID, lend_rate, coin_decimals, etc.)
-            let metadata = Factory::get_coin_metadata_by_res(&v.resource);
-
-            // fetch oracle price
-            let (price, price_decimals, _, _) = supra_oracle_storage::get_price(Factory::get_coin_metadata_oracle(&metadata));
-            let x = get_vault<a>();
-
-            // denominator = 10^(coin_decimals + price_decimals)
-            let denom = pow10_u256((price_decimals as u8));
-            
-            // deposited/borrowed value in USD
-            let dep_usd = ((x.deposited as u256) * (price as u256)) / denom;
-            let bor_usd = ((x.borrowed  as u256) * (price as u256)) / denom;
-
-            // apply lend rate (assumed %)
-            total_dep = total_dep + (dep_usd * (Factory::lend_rate(Factory::get_coin_metadata_tier(&metadata)) as u256)) / 100;
-            total_bor = total_bor + bor_usd;
-
-            i = i + 1;
-        };
-        utilization = (((total_bor*100)/total_dep) as u16);
-        (total_dep, total_bor, utilization, get_withdraw_fee(utilization))
-    }
-*/
-
     #[view]
     public fun get_withdraw_fee(utilization: u64): u64 {
         let u_bps = utilization * 100; // convert % to basis points
@@ -670,31 +657,24 @@ module dev::AexisVaultsV17 {
         return (bonus)
     }
 
-    fun getValue(resource: String, amount: u256): u256{
-        let metadata = Factory::get_coin_metadata_by_res(&resource);
-        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(Factory::get_coin_metadata_oracle(&metadata));
-        let denom = pow10_u256(Factory::get_coin_metadata_decimals(&metadata) + (price_decimals as u8));
-        return ((amount as u256) * (price as u256)) / denom
-    }
-
-    fun getValueByCoin(resource: String, amount: u256): u256{
-        let metadata = Factory::get_coin_metadata_by_res(&resource);
-        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(Factory::get_coin_metadata_oracle(&metadata));
-        let denom = pow10_u256(Factory::get_coin_metadata_decimals(&metadata) + (price_decimals as u8));
-        return ((amount as u256) / (price as u256)) / denom
-    }
-
-    fun get_utilization_ratio<T>(vault: &GlobalVault<T>): u64 {
-        let borrowed = vault.total_deposited - coin::value(&vault.balance);
-        if (vault.total_deposited == 0) {
-            0
-        } else {
-            (borrowed * 100) / vault.total_deposited
-        }
+    // JUST A HELP FUNCTION
+    #[view]
+    public fun get_lend_rate<X>(): u64 acquires RateList{
+        let x = borrow_global<RateList>(@dev);
+        let rate = table::borrow(&x.rates, type_info::type_name<X>());
+        return rate.lend_rate
     }
 
     #[view]
-    public fun simulate_rewards<T:store, X:store>(address: address): (u64, u64) acquires UserVault, GlobalVault {
+    public fun get_borrow_rate<X>(): u64 acquires RateList{
+        let x = borrow_global<RateList>(@dev);
+        let rate = table::borrow(&x.rates, type_info::type_name<X>());
+        return rate.borrow_rate
+    }
+
+
+    #[view]
+    public fun simulate_rewards<T:store, X:store>(address: address): (u64, u64) acquires UserVault, GlobalVault, RateList {
         let user_vault = borrow_global_mut<UserVault>(address);
         let deposited = find_user_deposited(user_vault, type_info::type_name<T>(), type_info::type_name<X>());
 
@@ -712,7 +692,7 @@ module dev::AexisVaultsV17 {
     }
 
 
-    fun accrue<T, X: store>(user_vault: &mut Deposited) acquires GlobalVault{
+    fun accrue<T, X: store>(user_vault: &mut Deposited) acquires GlobalVault, RateList{
         let current_timestamp = timestamp::now_seconds();
         let vault = borrow_global<GlobalVault<T>>(ADMIN);
         let time_diff = current_timestamp - user_vault.last_update;
@@ -726,17 +706,6 @@ module dev::AexisVaultsV17 {
 
         user_vault.last_update = current_timestamp;
     }
-
-    fun pow10_u256(n: u8): u256 {
-        let i = 0u8;
-        let p = 1u256;
-        while (i < n) {
-            p = p * 10;
-            i = i + 1;
-        };
-        p
-    }
-
 
     fun find_user_deposited(list: &mut UserVault,coin: String,aggr: String): &mut Deposited {
         if (!table::contains(&list.deposited, coin)) {
@@ -770,16 +739,12 @@ module dev::AexisVaultsV17 {
         vector::borrow_mut(deposits, idx)
     }
 
-
-
-
     fun insert_vault_registry(res: String, vault: String) acquires UserVaultRegistry {
         let user_vault_registry = borrow_global_mut<UserVaultRegistry>(@dev);
         if (!vector::contains(&user_vault_registry.coins, &res)) {
             vector::push_back(&mut user_vault_registry.coins, res);
         };
     }
-
 
     fun find_pending_deposit(pending_deposits: &mut vector<PendingDeposit>, res: String): &mut PendingDeposit  {
         let len = vector::length(pending_deposits);
@@ -793,4 +758,13 @@ module dev::AexisVaultsV17 {
         abort ERROR_NO_PENDING_DEPOSITS_FOR_THIS_VAULT_PROVIDER
     }
 
+    fun pow10_u256(n: u8): u256 {
+        let i = 0u8;
+        let p = 1u256;
+        while (i < n) {
+            p = p * 10;
+            i = i + 1;
+        };
+        p
+    }
 }
