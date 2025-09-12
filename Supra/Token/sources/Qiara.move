@@ -1,4 +1,4 @@
-module dev::QiaraTestV26 {
+module dev::QiaraTestV27 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -10,7 +10,7 @@ module dev::QiaraTestV26 {
     use supra_framework::object::{Self, Object};
     use std::string::{Self as string, String, utf8};
     
-    use dev::QiaraStorageV19::{Self as storage};
+    use dev::QiaraStorageV20::{Self as storage};
 
     const ADMIN: address = @dev;
 
@@ -20,7 +20,7 @@ module dev::QiaraTestV26 {
     const SECONDS_IN_MONTH: u64 = 2_592_000;
     const U64_MAX: u64 = 18_446_744_073_709_551_615;
     const INIT_SUPPLY: u64 = 1_000_000_000_000;
-    const ASSET_SYMBOL: vector<u8> = b"QiaraT26";
+    const ASSET_SYMBOL: vector<u8> = b"QiaraT27";
     const DECIMALS_N: u64 = 1_000_000;
 
     const E1: u64 = 1;
@@ -139,12 +139,12 @@ module dev::QiaraTestV26 {
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTestV26"),
+            string::utf8(b"QiaraTestV27"),
             string::utf8(b"deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTestV26"),
+            string::utf8(b"QiaraTestV27"),
             string::utf8(b"withdraw"),
         );
         dispatchable_fungible_asset::register_dispatch_functions(
