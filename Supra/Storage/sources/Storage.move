@@ -1,4 +1,4 @@
-module dev::QiaraStorageV20 {
+module dev::QiaraStorageV21 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -89,11 +89,13 @@ module dev::QiaraStorageV20 {
         register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"BURN_INCREASE"), 100, false, &give_change_permission(&give_access(admin))); // 0,0001% a month
         register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"TREASURY_FEE"), 1_000, false, &give_change_permission(&give_access(admin))); // 0,001% a month
         register_constant<bool>(admin, utf8(b"QiaraToken"), utf8(b"TRANSFERABLE"), false, true, &give_change_permission(&give_access(admin)));
+        register_constant<bool>(admin, utf8(b"QiaraToken"), utf8(b"PAUSED"), false, true, &give_change_permission(&give_access(admin)));
         register_constant<address>(admin, utf8(b"QiaraToken"), utf8(b"TREASURY_RECEIPENT"), @0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd, true, &give_change_permission(&give_access(admin)));
         register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOKENS_TO_PROPOSE"), 100_000_000, true, &give_change_permission(&give_access(admin))); // 100
         register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"BURN_TAX"), 1_000_000, true, &give_change_permission(&give_access(admin))); // 1
         register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOTAL_VOTES_PERCENTAGE_SUPPLY"), 1_000_000, true, &give_change_permission(&give_access(admin))); // 1%
         register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_QUARUM_FOR_PROPOSAL_TO_PASS"), 500, true, &give_change_permission(&give_access(admin))); // 50.0%
+        
     }
 
     public fun give_access(admin: &signer): Access{
