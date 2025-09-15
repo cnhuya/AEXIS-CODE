@@ -1,9 +1,9 @@
-module dev::AexisWalletsV1 {
+module dev::AexisWalletsV50 {
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
     use std::table;
-    use dev::AexisChainTypesV1::{Supra, Sui, Base};
+    use dev::AexisChainTypesV2::{Supra, Sui, Base};
 
     const ADMIN: address = @dev;
 
