@@ -1,0 +1,21 @@
+[package]
+name = "QiaraMath"
+version = "1.0.0"
+authors = []
+
+[addresses]
+dev = "0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd"
+supra_framework = "0x1"
+[dev-addresses]
+
+[dependencies.SupraFramework]
+git = "https://github.com/Entropy-Foundation/aptos-core.git"
+rev = "dev"
+subdir = "aptos-move/framework/supra-framework"
+
+[dependencies.AptosStdlib]
+git = "https://github.com/Entropy-Foundation/aptos-core.git"
+rev = "dev"
+subdir = "aptos-move/framework/aptos-stdlib"
+
+[dev-dependencies]
