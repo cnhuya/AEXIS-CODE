@@ -179,4 +179,15 @@ module dev::QiaraMarginV1{
         let idx = vector::length(holdings) - 1;
         vector::borrow_mut(holdings, idx)
     }
+
+    public fun is_user_registered(address: address): bool {
+        if (!exists<TokenHoldings>(address)) {
+            return false
+        };
+
+        if (!exists<StorageRegistry>(address)) {
+            return false
+        };
+        return true
+    }
 }
