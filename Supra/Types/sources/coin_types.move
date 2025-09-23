@@ -1,16 +1,25 @@
-module dev::AexisCoinTypesV2{
+module dev::QiaraCoinTypesV1{
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
     use supra_framework::managed_coin::{Self};
     use supra_framework::coin::{Self, Coin, BurnCapability, FreezeCapability, MintCapability};
     use std::type_info::{Self, TypeInfo};
-    //use dev::AexisChainsV40::{Self as Chains};
-
-    const ADMIN: address = @dev;
 
     const ERROR_NOT_ADMIN: u64 = 0;
     const ERROR_NOT_VALIDATOR: u64 = 1;
+
+    struct Access has store, key, drop {}
+    struct Permission has key, drop {}
+
+    public fun give_access(s: &signer): Access {
+        assert!(signer::address_of(s) == @dev, ERROR_NOT_ADMIN);
+        Access {}
+    }
+
+    public fun give_permission(s: &signer, access: &Access): Permission {
+        Permission {}
+    }
 
     // ----------------------------------------------------------------
     // Coin type markers
@@ -25,25 +34,11 @@ module dev::AexisCoinTypesV2{
     struct BaseUSDC has drop, store, key {}
 
 
-    struct AccessCoins has store, key, drop {}
-
-    struct UserCoinsCap has store, key, drop, copy {}
-
-
     public fun return_all_coin_types(): vector<String>{
         return vector<String>[type_info::type_name<SuiBitcoin>(),type_info::type_name<SuiEthereum>(),type_info::type_name<SuiSui>(),
         type_info::type_name<SuiUSDC>(),type_info::type_name<SuiUSDT>(),type_info::type_name<BaseEthereum>(),type_info::type_name<BaseUSDC>()]
     }
 
-    public fun give_access(s: &signer): AccessCoins {
-        assert!(signer::address_of(s) == ADMIN, ERROR_NOT_ADMIN);
-        AccessCoins {}
-    }
-
-    public fun give_usercap(s: &signer, access: &AccessCoins): UserCoinsCap {
-        // access is consumed automatically
-        UserCoinsCap {}
-    }
     // Vault holds all initially minted coins for a given T
     struct Vault<phantom T> has key {
         balance: coin::Coin<T>,
@@ -53,7 +48,7 @@ module dev::AexisCoinTypesV2{
     // Module init: set up all coins and their vaults under ADMIN
     // ----------------------------------------------------------------
     fun init_module(admin: &signer) {
-        assert!(signer::address_of(admin) == ADMIN, 1);
+        assert!(signer::address_of(admin) == @dev, 1);
 
         init_with_vault<SuiBitcoin>(admin, utf8(b"Sui Bitcoin"),   utf8(b"SUIBTC"), 8);
         init_with_vault<SuiEthereum>(admin, utf8(b"Sui Ethereum"), utf8(b"SUIETH"), 18);
@@ -76,7 +71,7 @@ module dev::AexisCoinTypesV2{
         decimals: u8
     ) {
         // Ensure only ADMIN can call
-        assert!(signer::address_of(admin) == ADMIN, 1);
+        assert!(signer::address_of(admin) == @dev, 1);
 
 
 
@@ -118,20 +113,20 @@ module dev::AexisCoinTypesV2{
     // ----------------------------------------------------------------
     // Vault-controlled flows (only validators can use)
     // ----------------------------------------------------------------
-    public fun withdraw_to<T>(banker: &signer, cap: UserCoinsCap, recipient: address, amount: u64)acquires Vault {
+    public fun withdraw_to<T>(banker: &signer, cap: Permission, recipient: address, amount: u64)acquires Vault {
         let who = signer::address_of(banker);
         //assert!(vector::contains(&Chains::get_supra_bankers(), &who), ERROR_NOT_VALIDATOR);
 
-        let vault = borrow_global_mut<Vault<T>>(ADMIN);
+        let vault = borrow_global_mut<Vault<T>>(@dev);
         let coins = coin::extract(&mut vault.balance, amount);
         coin::deposit<T>(recipient, coins);
     }
 
-    public fun extract_to<T>(banker: &signer, cap: UserCoinsCap, recipient: address, amount: u64): Coin<T> acquires Vault {
+    public fun extract_to<T>(banker: &signer, cap: Permission, recipient: address, amount: u64): Coin<T> acquires Vault {
         let who = signer::address_of(banker);
         //assert!(vector::contains(&Chains::get_supra_bankers(), &who), ERROR_NOT_VALIDATOR);
 
-        let vault = borrow_global_mut<Vault<T>>(ADMIN);
+        let vault = borrow_global_mut<Vault<T>>(@dev);
         coin::extract(&mut vault.balance, amount)
     }
 
@@ -139,7 +134,7 @@ module dev::AexisCoinTypesV2{
     public entry fun deposit<T>(banker: &signer, amount: u64) acquires Vault {
         let who = signer::address_of(banker);
 
-        let vault = borrow_global_mut<Vault<T>>(ADMIN);
+        let vault = borrow_global_mut<Vault<T>>(@dev);
 
         let coins = coin::withdraw<T>(banker, amount);
         coin::merge(&mut vault.balance, coins);
@@ -161,7 +156,7 @@ module dev::AexisCoinTypesV2{
     /// "Circulating" supply if you treat the ADMIN vault as non-circulating.
     #[view]
     public fun supply<T>(): u64 acquires Vault {
-        let vault = borrow_global<Vault<T>>(ADMIN);
+        let vault = borrow_global<Vault<T>>(@dev);
         18446744073709551615 - (coin::value(&vault.balance))
     }
 

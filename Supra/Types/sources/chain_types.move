@@ -1,4 +1,4 @@
-module dev::AexisChainTypesV2 {
+module dev::QiaraChainTypesV1 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
 
