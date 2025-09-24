@@ -1,4 +1,4 @@
-module dev::QiaraVaultTypesV1 {
+module dev::QiaraVaultTypesV2 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::signer;
