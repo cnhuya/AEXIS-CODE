@@ -57,17 +57,16 @@ module dev::QiaraVaultTypesV1 {
         }
     }
 
-
     // JUST A HELP FUNCTION
     #[view]
-    public fun get_lend_rate<X>(): u64 acquires RateList{
+    public fun get_vault_lend_rate<X>(): u64 acquires RateList{
         let x = borrow_global<RateList>(@dev);
         let rate = table::borrow(&x.rates, type_info::type_name<X>());
         return rate.lend_rate
     }
 
     #[view]
-    public fun get_borrow_rate<X>(): u64 acquires RateList{
+    public fun get_vault_borrow_rate<X>(): u64 acquires RateList{
         let x = borrow_global<RateList>(@dev);
         let rate = table::borrow(&x.rates, type_info::type_name<X>());
         return rate.borrow_rate
