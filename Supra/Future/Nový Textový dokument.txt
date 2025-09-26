@@ -1,0 +1,6 @@
+crosschain messaging protocol
+
+-> celkove dost obtizny,
+- potřeba vyresit kompatabilitu Chain A <-> Chain B...
+- trackování nějaký "unikátní adressy/identifieru" recipienta? tak aby to šlo uělat
+že ty messages chodí z modulu/smart contractu pro developer účely

@@ -1,4 +1,4 @@
-module dev::QiaraTestV27 {
+module dev::QiaraTestV29 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -10,28 +10,24 @@ module dev::QiaraTestV27 {
     use supra_framework::object::{Self, Object};
     use std::string::{Self as string, String, utf8};
     
-    use dev::QiaraStorageV20::{Self as storage};
+    use dev::QiaraStorageV21::{Self as storage};
+    use dev::QiaraCapabilitiesV21::{Self as capabilities};
 
     const ADMIN: address = @dev;
 
-    const ENOT_OWNER: u64 = 1;
-    /// The FA coin is paused.
-    const EPAUSED: u64 = 2;
+    const ERROR_NOT_OWNER: u64 = 1;
+    const ERROR_NOT_AUTHORIZED_FOR_CLAIMING: u64 = 2;
+    const ERROR_BLACKLISTED: u64 = 3;
+    const ERROR_PAUSED: u64 = 4;
+
     const SECONDS_IN_MONTH: u64 = 2_592_000;
     const U64_MAX: u64 = 18_446_744_073_709_551_615;
     const INIT_SUPPLY: u64 = 1_000_000_000_000;
-    const ASSET_SYMBOL: vector<u8> = b"QiaraT27";
-    const DECIMALS_N: u64 = 1_000_000;
+    const ASSET_SYMBOL: vector<u8> = b"QiaraT29";
+    const DECIMALS_N: u64 = 1_000_000;    
 
-    const E1: u64 = 1;
-    
-
-    // Coin types
+    // Token Type
     struct Qiara has drop, store, key {}
-
-    struct State has key {
-        paused: bool,
-    }
 
     struct CreationTime has key{
         time: u64,
@@ -77,8 +73,10 @@ module dev::QiaraTestV27 {
         name: String,
         symbol: String, 
         decimals: u8,
+        decimals_scale: u64,
         icon_uri: String,
-        project_uri: String, 
+        project_uri: String,
+        is_paused: bool, 
     }
 
     struct CoinData has key{
@@ -91,7 +89,7 @@ module dev::QiaraTestV27 {
     // ----------------------------------------------------------------
     // Module init
     // ----------------------------------------------------------------
-    fun init_module(admin: &signer) acquires State  {
+    fun init_module(admin: &signer)  {
         let constructor_ref = &object::create_named_object(admin, ASSET_SYMBOL);
         primary_fungible_store::create_primary_store_enabled_fungible_asset(
             constructor_ref,
@@ -99,8 +97,8 @@ module dev::QiaraTestV27 {
             utf8(b"Qiara Token"),
             utf8(ASSET_SYMBOL), /* symbol */
             6, 
-            utf8(b""), /* icon */
-            utf8(b""), /* project */
+            utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/icon.webp"), /* icon */
+            utf8(b"https://x.com/QiaraProtocol"), /* project */
         );
         let asset = get_metadata();
         // Create mint/burn/transfer refs to allow creator to manage the fungible asset.
@@ -117,11 +115,8 @@ module dev::QiaraTestV27 {
         let asset_address = object::create_object_address(&ADMIN, ASSET_SYMBOL);
         let obj_adress = object::address_to_object<Metadata>(asset_address);
 
-        let sign_wallet = primary_fungible_store::ensure_primary_store_exists(
-            signer::address_of(admin),
-            asset
-        );
 
+        let sign_wallet = primary_fungible_store::ensure_primary_store_exists(signer::address_of(admin),asset);
 
         let vault_store = fungible_asset::create_store(constructor_ref, obj_adress);
         
@@ -130,21 +125,18 @@ module dev::QiaraTestV27 {
         move_to(admin, CreationTime {time: timestamp::now_seconds() });
 
 
-        // Create a global state to pause the FA coin and move to Metadata object.
-        move_to(&metadata_object_signer,State { paused: false, });
-
         // Override the deposit and withdraw functions which mean overriding transfer.
         // This ensures all transfer will call withdraw and deposit functions in this module
         // and perform the necessary checks.
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTestV27"),
+            string::utf8(b"QiaraTestV29"),
             string::utf8(b"deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTestV27"),
+            string::utf8(b"QiaraTestV29"),
             string::utf8(b"withdraw"),
         );
         dispatchable_fungible_asset::register_dispatch_functions(
@@ -161,10 +153,11 @@ module dev::QiaraTestV27 {
     }
 
     // --------------------------
-    // Mint / burn / transfer
+    // PUBLIC FUNCTIONS
     // --------------------------
     /// Deposit tokens into an arbitrary FungibleStore (ERC-20 transferToVault)
-    public entry fun deposit_to_store(sender: &signer,store: Object<FungibleStore>,amount: u64) acquires ManagedFungibleAsset, State, CreationTime {
+    public entry fun deposit_to_store(sender: &signer,store: Object<FungibleStore>,amount: u64) acquires ManagedFungibleAsset, CreationTime {
+        assert!(!capabilities::assert_wallet_capability(signer::address_of(sender), utf8(b"QiaraToken"), utf8(b"BLACKLIST")), ERROR_BLACKLISTED);
         let asset = get_metadata();
         let managed = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
         let transfer_ref = &managed.transfer_ref;
@@ -177,39 +170,39 @@ module dev::QiaraTestV27 {
 
 
     /// Withdraw tokens back from a FungibleStore into the callers account (ERC-20 withdraw)
-    public entry fun withdraw_from_store(caller: &signer,store: Object<FungibleStore>,amount: u64) acquires ManagedFungibleAsset, State, CreationTime {
+    public entry fun withdraw_from_store(sender: &signer,store: Object<FungibleStore>,amount: u64) acquires ManagedFungibleAsset, CreationTime {
+        assert!(!capabilities::assert_wallet_capability(signer::address_of(sender), utf8(b"QiaraToken"), utf8(b"BLACKLIST")), ERROR_BLACKLISTED);
         let asset = get_metadata();
         let managed = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
         let transfer_ref = &managed.transfer_ref;
 
         let fa = withdraw(store, amount, transfer_ref);
 
-        let caller_wallet = primary_fungible_store::ensure_primary_store_exists(signer::address_of(caller),asset);
+        let caller_wallet = primary_fungible_store::ensure_primary_store_exists(signer::address_of(sender),asset);
         deposit(caller_wallet, fa, transfer_ref);
     }
 
 
     /// Deposit function override to ensure that the account is not denylisted and the FA coin is not paused.
     /// OPTIONAL
-    public fun deposit<T: key>(store: Object<T>,fa: FungibleAsset,transfer_ref: &TransferRef,) acquires State {
+    public fun deposit<T: key>(store: Object<T>,fa: FungibleAsset,transfer_ref: &TransferRef,) {
         assert_not_paused();
-        //let _fa = calculate_fees(store, amount);
         fungible_asset::deposit_with_ref(transfer_ref, store, fa);
     }
 
     /// Withdraw function override to ensure that the account is not denylisted and the FA coin is not paused.
     /// OPTIONAL
-    public fun withdraw<T: key>(store: Object<T>,amount: u64,transfer_ref: &TransferRef): FungibleAsset acquires State, CreationTime {
+    public fun withdraw<T: key>(store: Object<T>,amount: u64,transfer_ref: &TransferRef): FungibleAsset acquires CreationTime {
         assert_not_paused();
         calculate_fees(store, amount, transfer_ref)
     }
 
-    public entry fun transfer(user: &signer, to: address, amount: u64) acquires ManagedFungibleAsset, State, CreationTime {
+    public entry fun transfer(user: &signer, to: address, amount: u64) acquires ManagedFungibleAsset, CreationTime {
         assert_not_paused();
+        assert!(!capabilities::assert_wallet_capability(signer::address_of(user), utf8(b"QiaraToken"), utf8(b"TRANSFER_BLACKLIST")), ERROR_BLACKLISTED);
         let asset = get_metadata();
         let managed = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
         let transfer_ref = &managed.transfer_ref;
-        //let burn_ref = &managed.burn_ref;
 
         let from_wallet = primary_fungible_store::primary_store(signer::address_of(user), asset);
         let to_wallet = primary_fungible_store::ensure_primary_store_exists(to, asset);
@@ -217,8 +210,54 @@ module dev::QiaraTestV27 {
         deposit(to_wallet, fa, transfer_ref);
     }
 
+    /// Burn fungible assets directly from the caller's own account.
+    /// Anyone can call this to burn their own tokens.
+    public entry fun burn(caller: &signer, amount: u64) acquires ManagedFungibleAsset {
+        let asset = get_metadata();
+        let wallet = primary_fungible_store::primary_store(signer::address_of(caller), asset);
+        let managed = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
+        let fa = fungible_asset::withdraw_with_ref(&managed.transfer_ref, wallet, amount);
+        fungible_asset::burn(&managed.burn_ref, fa);
+    }
 
-    fun calculate_fees<T: key>(store: Object<T>,amount: u64,transfer_ref: &TransferRef): FungibleAsset acquires State, CreationTime {
+
+    public entry fun claim_inflation(claimer: &signer) acquires SupplyVault, ManagedFungibleAsset, CreationTime {
+        assert!(capabilities::assert_wallet_capability(signer::address_of(claimer), utf8(b"QiaraToken"), utf8(b"INFLATION_CLAIM")), ERROR_NOT_AUTHORIZED_FOR_CLAIMING);
+        let asset = get_metadata();
+
+        let managed = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
+        let seconds_per_year = 31_536_000; // 365*24*60*60
+        let claimable_amount = claimable();
+
+        // Time since last claim
+        let vault = borrow_global_mut<SupplyVault>(ADMIN);
+        let delta_seconds = timestamp::now_seconds() - vault.last_claimed;
+
+        // Calculate claimable amount proportionally
+
+        let fa = withdraw(vault.vault,(claimable_amount as u64),&managed.transfer_ref,);
+
+        let to_wallet = primary_fungible_store::ensure_primary_store_exists(signer::address_of(claimer),asset
+        );
+
+        deposit(to_wallet, fa, &managed.transfer_ref,);
+        vault.last_claimed = timestamp::now_seconds();
+    }
+
+
+    // --------------------------
+    // HELPERS
+    // --------------------------
+    /// Assert that the FA coin is not paused.
+    fun assert_not_paused() {
+        assert!(!storage::expect_bool(storage::viewConstant(utf8(b"QiaraToken"), utf8(b"PAUSED"))), ERROR_PAUSED);
+    }
+
+    /// Borrow the immutable reference of the refs of `metadata`.
+    /// This validates that the signer is the metadata object's owner.
+    inline fun authorized_borrow_refs(owner: &signer,asset: Object<Metadata>,): &ManagedFungibleAsset acquires ManagedFungibleAsset {assert!(object::is_owner(asset, signer::address_of(owner)), ERROR_NOT_OWNER);borrow_global<ManagedFungibleAsset>(object::object_address(&asset))}
+
+    fun calculate_fees<T: key>(store: Object<T>,amount: u64,transfer_ref: &TransferRef): FungibleAsset acquires CreationTime {
         let asset = get_metadata();
         let month = get_month();
 
@@ -247,83 +286,9 @@ module dev::QiaraTestV27 {
         fungible_asset::withdraw_with_ref(transfer_ref, store, transfer_amount)
     }
 
-
-    /// Burn fungible assets directly from the caller's own account.
-    /// Anyone can call this to burn their own tokens.
-    public entry fun burn(caller: &signer, amount: u64) acquires ManagedFungibleAsset {
-        let asset = get_metadata();
-        let wallet = primary_fungible_store::primary_store(signer::address_of(caller), asset);
-        let managed = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
-        let fa = fungible_asset::withdraw_with_ref(&managed.transfer_ref, wallet, amount);
-        fungible_asset::burn(&managed.burn_ref, fa);
-    }
-
-    /// Pause or unpause the transfer of FA coin. This checks that the caller is the pauser.
-    public entry fun set_pause(pauser: &signer, paused: bool) acquires State {
-        let asset = get_metadata();
-        assert!(object::is_owner(asset, signer::address_of(pauser)), ENOT_OWNER);
-        let state = borrow_global_mut<State>(object::create_object_address(&ADMIN, ASSET_SYMBOL));
-        if (state.paused == paused) { return };
-        state.paused = paused;
-    }
-
-    /// Assert that the FA coin is not paused.
-    /// OPTIONAL
-    fun assert_not_paused() acquires State {
-        let state = borrow_global<State>(object::create_object_address(&ADMIN, ASSET_SYMBOL));
-        assert!(!state.paused, EPAUSED);
-    }
-
-    /// Borrow the immutable reference of the refs of `metadata`.
-    /// This validates that the signer is the metadata object's owner.
-    inline fun authorized_borrow_refs(
-        owner: &signer,
-        asset: Object<Metadata>,
-    ): &ManagedFungibleAsset acquires ManagedFungibleAsset {
-        assert!(object::is_owner(asset, signer::address_of(owner)), ENOT_OWNER);
-        borrow_global<ManagedFungibleAsset>(object::object_address(&asset))
-    }
-
-    public entry fun claim_inflation(claimer: &signer) acquires SupplyVault, ManagedFungibleAsset, State, CreationTime {
-        let circulating_supply = circulating_supply();
-        let asset = get_metadata();
-
-        let managed = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
-        let seconds_per_year = 31_536_000; // 365*24*60*60
-        let claimable_amount = claimable();
-
-        // Time since last claim
-        let vault = borrow_global_mut<SupplyVault>(ADMIN);
-        let delta_seconds = timestamp::now_seconds() - vault.last_claimed;
-
-        // Calculate claimable amount proportionally
-
-        let fa = withdraw(
-            vault.vault,
-            (claimable_amount as u64),
-            &managed.transfer_ref,
-        );
-
-        let to_wallet = primary_fungible_store::ensure_primary_store_exists(
-            signer::address_of(claimer),
-            asset
-        );
-
-        deposit(
-            to_wallet,
-            fa,
-            &managed.transfer_ref,
-        );
-
-        vault.last_claimed = timestamp::now_seconds();
-    }
-
-
-
     // --------------------------
-    // Mint / burn / transfer
+    // VIEWS
     // --------------------------
-
     #[view]
     /// Return the address of the managed fungible asset that's created when this module is deployed.
     public fun get_metadata(): Object<Metadata> {
@@ -357,8 +322,10 @@ module dev::QiaraTestV27 {
             name: fungible_asset::name(metadata),
             symbol: fungible_asset::symbol(metadata),
             decimals: fungible_asset::decimals(metadata),
+            decimals_scale: DECIMALS_N,
             icon_uri: fungible_asset::icon_uri(metadata),
             project_uri: fungible_asset::project_uri(metadata),
+            is_paused: storage::expect_bool(storage::viewConstant(utf8(b"QiaraToken"), utf8(b"PAUSED"))),
         }
     }
 

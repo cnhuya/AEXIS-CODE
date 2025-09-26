@@ -4,6 +4,7 @@ module 0x0::SUIBITCOIN {
 
     public struct SUIBITCOIN has drop {}
 
+
     fun init(witness: SUIBITCOIN, ctx: &mut TxContext) {
             let (treasury, metadata) = coin::create_currency(
                     witness,

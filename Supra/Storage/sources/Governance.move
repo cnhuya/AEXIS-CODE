@@ -1,4 +1,4 @@
-module dev::QiaraGovernanceV21 {
+module dev::QiaraGovernanceV22 {
     use std::signer;
     use std::string::{Self, String, utf8};
     use std::vector;
@@ -11,17 +11,18 @@ module dev::QiaraGovernanceV21 {
     use supra_framework::primary_fungible_store;
     use aptos_std::from_bcs;
 
-    use dev::QiaraStorageV21::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV21::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraStorageV22::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV22::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraFunctionsV22::{Self as functions, Access as FunctionAccess};
 
     const OWNER: address = @dev;
-    const QIARA_TOKEN: address = @0x5c40d567117372c61b156f88ef6353e211d0da1db92b0f5cafdd6e2a92d86312;
+    const QIARA_TOKEN: address = @0xf6d11e5ace09708c285e9dbabb267f4c4201718aaf0e0a70664ae48aaa38452f;
 
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_CONSTANT_ALREADY_EXISTS: u64 = 2;
     const ERROR_NOT_ENOUGH_TOKENS_TO_PROPOSE: u64 = 3;
     const ERROR_PROPOSAL_NOT_FINISHED_YET: u64 = 4;
-    const ERROR_INVALIED_PROPOSAL_TYPE: u64 = 5;
+    const ERROR_INVALID_PROPOSAL_TYPE: u64 = 5;
     const ERROR_NOT_ENOUGH_VOTES: u64 = 6;
     const ERROR_ALREADY_VOTED: u64 = 7;
     const ERROR_BLACKLISTED: u64 = 8;
@@ -30,7 +31,8 @@ module dev::QiaraGovernanceV21 {
 
     struct Access has key, store, drop {
         storage_access: StorageAccess,
-        capabilities_access: CapabilitiesAccess
+        capabilities_access: CapabilitiesAccess,
+        function_access: FunctionAccess
     }
 
     struct Proposal has store, drop {
@@ -42,7 +44,7 @@ module dev::QiaraGovernanceV21 {
         constant: vector<String>,
         new_value: vector<vector<u8>>,
         value_type: vector<String>,
-        isChange: bool,
+        isChange: vector<bool>,
         editable: vector<bool>,
         yes: u64,
         no: u64,
@@ -60,7 +62,7 @@ module dev::QiaraGovernanceV21 {
         end: u64,
         header: vector<String>,
         constant: vector<String>,
-        isChange: bool,
+        isChange: vector<bool>,
         editable: vector<bool>,
         new_value: vector<vector<u8>>,
         value_type: vector<String>,
@@ -77,7 +79,7 @@ module dev::QiaraGovernanceV21 {
         constant: vector<String>,
         new_value: vector<vector<u8>>,
         value_type: vector<String>,
-        isChange: bool,
+        isChange: vector<bool>,
         editable: vector<bool>,
         yes: u64,
         no: u64,
@@ -96,7 +98,7 @@ module dev::QiaraGovernanceV21 {
         proposals: vector<Proposal>
     }
 
-    fun make_proposal(id: u64, type: vector<String>, proposer: address, duration: u64, header: vector<String>, constant: vector<String>, isChange: bool, editable: vector<bool>, new_value: vector<vector<u8>>, value_type:vector<String>): Proposal {
+    fun make_proposal(id: u64, type: vector<String>, proposer: address, duration: u64, header: vector<String>, constant: vector<String>, isChange: vector<bool>, editable: vector<bool>, new_value: vector<vector<u8>>, value_type:vector<String>): Proposal {
         Proposal {id, type, proposer, duration, header, constant, new_value, value_type, isChange, editable, yes: 0, no: 0, voters: vector::empty<address>(), result: 0}
     }
 
@@ -122,12 +124,13 @@ module dev::QiaraGovernanceV21 {
         if (!exists<Access>(OWNER)) {
             move_to(admin, Access {
                 storage_access: storage::give_access(admin),
-                capabilities_access: capabilities::give_access(admin)
+                capabilities_access: capabilities::give_access(admin),
+                function_access: functions::give_access(admin)
             });
         };
     }
 
-    public entry fun propose(proposer: &signer, type: vector<String>, isChange: bool, header: vector<String>, constant_name: vector<String>, new_value: vector<vector<u8>>, value_type: vector<String>, duration: u64, editable: vector<bool>) acquires PendingProposals, ProposalCount {
+    public entry fun propose(proposer: &signer, type: vector<String>, isChange: vector<bool>, header: vector<String>, constant_name: vector<String>, new_value: vector<vector<u8>>, value_type: vector<String>, duration: u64, editable: vector<bool>) acquires PendingProposals, ProposalCount {
         let addr = signer::address_of(proposer);
         assert_allowed_type(type);
         assert!(!capabilities::assert_wallet_capability(signer::address_of(proposer), utf8(b"QiaraGovernance"), utf8(b"BLACKLIST")), ERROR_BLACKLISTED);
@@ -196,64 +199,81 @@ public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires Pen
             let min_votes = storage::expect_u64(
                 storage::viewConstant(utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOTAL_VOTES_PERCENTAGE_SUPPLY"))
             );
-            assert!(yes >= min_votes, ERROR_NOT_ENOUGH_VOTES);
+            if(yes >= min_votes){
+                // 3. Calculate quorum %
+                let total_votes = yes + no;
+                let  result: u8 = 2; // default fail
+                if (total_votes != 0) {
+                    let quorum_required = storage::expect_u64(
+                        storage::viewConstant(utf8(b"QiaraGovernance"), utf8(b"MINIMUM_QUARUM_FOR_PROPOSAL_TO_PASS"))
+                    );
 
-            // 3. Calculate quorum %
-            let total_votes = yes + no;
-            let  result: u8 = 2; // default fail
-            if (total_votes != 0) {
-                let quorum_required = storage::expect_u64(
-                    storage::viewConstant(utf8(b"QiaraGovernance"), utf8(b"MINIMUM_QUARUM_FOR_PROPOSAL_TO_PASS"))
-                );
+                    if (((yes * 100) / total_votes) >= quorum_required) {
+                        result = 1;
+                        let x = vector::length(&type);
+                        while(x > 0){
+                            let _type = vector::borrow(&type, x-1);
+                            let _isChange = *vector::borrow(&isChange, x-1);
+                            x=x-1;
 
-                if (((yes * 100) / total_votes) >= quorum_required) {
-                    result = 1;
-                    let x = vector::length(&type);
-                    while(x > 0){
-                        let _type = vector::borrow(&type, x-1);
-                        x=x-1;
-
-                         if (*_type == utf8(b"Storage")) {
-                            if (isChange) {
-                                storage::change_constant_multi(
-                                    user,
-                                    header,
-                                    constant,
-                                    new_value,
-                                    &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
-                                );
-                            } else {
-                                storage::handle_registration_multi(
-                                    user,
-                                    header,
-                                    constant,
-                                    new_value,
-                                    value_type,
-                                    editable,
-                                    &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
-                                );
-                            };
-                        } else if (*_type == utf8(b"Capabilities")) {
-                            if (isChange) {
-                                capabilities::remove_capability_multi(
-                                    user,
-                                    to_adress_multi(new_value),
-                                    header,
-                                    constant,
-                                    &capabilities::give_change_permission(&borrow_global<Access>(OWNER).capabilities_access)
-                                );
-                            } else {
-                                capabilities::create_capability_multi(
-                                    user,
-                                    to_adress_multi(new_value),
-                                    header,
-                                    constant,
-                                    editable,
-                                    &capabilities::give_change_permission(&borrow_global<Access>(OWNER).capabilities_access)
-                                );
+                            if (*_type == utf8(b"Constant")) {
+                                if (_isChange) {
+                                    storage::change_constant_multi(
+                                        user,
+                                        header,
+                                        constant,
+                                        new_value,
+                                        &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
+                                    );
+                                } else {
+                                    storage::handle_registration_multi(
+                                        user,
+                                        header,
+                                        constant,
+                                        new_value,
+                                        value_type,
+                                        editable,
+                                        &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
+                                    );
+                                };
+                            } else if (*_type == utf8(b"Capability")) {
+                                if (_isChange) {
+                                    capabilities::remove_capability_multi(
+                                        user,
+                                        to_adress_multi(new_value),
+                                        header,
+                                        constant,
+                                        &capabilities::give_change_permission(&borrow_global<Access>(OWNER).capabilities_access)
+                                    );
+                                } else {
+                                    capabilities::create_capability_multi(
+                                        user,
+                                        to_adress_multi(new_value),
+                                        header,
+                                        constant,
+                                        editable,
+                                        &capabilities::give_change_permission(&borrow_global<Access>(OWNER).capabilities_access)
+                                    );
+                                };
+                            } else if (*_type == utf8(b"Function")) {
+                                if (_isChange) {
+                                    functions::consume_function_multi (
+                                        user,
+                                        header,
+                                        constant,
+                                        &functions::give_function_permission(&borrow_global<Access>(OWNER).function_access)
+                                    );
+                                } else {
+                                    functions::register_function_multi(
+                                        user,
+                                        header,
+                                        constant,
+                                        &functions::give_function_permission(&borrow_global<Access>(OWNER).function_access)
+                                    );
+                                };
                             };
                         };
-                    }
+                    };
                 };
             };
 
@@ -334,10 +354,11 @@ public entry fun vote(user: &signer, proposal_id: u64, isYes: bool) acquires Pen
 
     fun assert_allowed_type(types: vector<String>){
         let len = vector::length(&types);
-        while (len > 0) {
-            let type = vector::borrow(&types, len-1);
-            len = len - 1;
-            assert!(*type == utf8(b"Storage") || *type == utf8(b"Capabilities"), ERROR_INVALIED_PROPOSAL_TYPE);
+        let i = 0;
+        while (i < len) {
+            let type = vector::borrow(&types, i);
+            assert!(*type == utf8(b"Constant") || *type == utf8(b"Capability") || *type == utf8(b"Function"), ERROR_INVALID_PROPOSAL_TYPE);
+            i = i + 1;
         }
     }
 }

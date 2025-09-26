@@ -70,10 +70,10 @@ module dev::QiaraInterestV1{
 
     fun pay_interest(addr: address){
         let utilization = Margin::get_utilization_ratio(addr);
-        let last_updated = Margin::get_last_updated<USD, CREDIT>(addr);
+        let last_updated = Margin::get_last_updated(addr);
         if((!timestamp::now_seconds() / 3600) - last_updated = 0){
             Margin::update_time<USD, CREDIT>;
-            let coin_metadata = VerifiedTokens::get_coin_metadata_by_res();
+         //   let coin_metadata = VerifiedTokens::get_coin_metadata<>();
         }
 
         let page = table::borrow_mut(&mut order_book.book, current_page);

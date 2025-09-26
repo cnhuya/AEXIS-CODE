@@ -1,4 +1,4 @@
-module dev::QiaraFunctionsV21 {
+module dev::QiaraFunctionsV22 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -21,10 +21,9 @@ module dev::QiaraFunctionsV21 {
     }
 
     const OWNER: address = @dev;
-    const ERROR_CONSTANT_DOES_NOT_EXIST: u64 = 2;
-    const ERROR_NOT_ADMIN: u64 = 3;
-    const ERROR_HEADER_DOESNT_EXISTS: u64 = 5;
-    const ERROR_CONSTANT_ALREADY_EXISTS: u64 = 6;
+    const ERROR_NOT_ADMIN: u64 = 1;
+    const ERROR_HEADER_DOESNT_EXISTS: u64 = 2;
+    const ERROR_FUNCTION_DOESNT_EXISTS: u64 = 3;
 
 
     // ----------------------------------------------------------------
@@ -74,7 +73,7 @@ module dev::QiaraFunctionsV21 {
                 let c_ref = vector::borrow(constants, i);
                 if (*c_ref == constant_name) {
                     // Constant with this name already exists for this header
-                    abort ERROR_CONSTANT_ALREADY_EXISTS
+                    abort ERROR_FUNCTION_DOESNT_EXISTS
                 };
                 i = i + 1;
             };
@@ -95,7 +94,8 @@ module dev::QiaraFunctionsV21 {
         };
     }
 
-    public fun consume_function(address: &signer, header: String, constant_name: String) acquires FunctionDatabase {
+
+    public fun consume_function(address: &signer, header: String, constant_name: String, permission: &FunctionPermission) acquires FunctionDatabase {
         assert_function_registration(header,constant_name);
         let db = borrow_global_mut<FunctionDatabase>(OWNER);
         let constants = table::borrow_mut(&mut db.database, header);
@@ -108,7 +108,15 @@ module dev::QiaraFunctionsV21 {
             };
             i = i + 1;
         };
-        abort ERROR_CONSTANT_ALREADY_EXISTS
+        abort ERROR_FUNCTION_DOESNT_EXISTS
+    }
+
+    public fun consume_function_multi(address: &signer, header: vector<String>, constant_name: vector<String>, permission: &FunctionPermission) acquires FunctionDatabase{
+        let len = vector::length(&header);
+        while(len>0){
+            consume_function(address, *vector::borrow(&header, len-1), *vector::borrow(&constant_name, len-1), permission);
+            len=len-1;
+        };
     }
 
     #[view]
@@ -122,7 +130,7 @@ module dev::QiaraFunctionsV21 {
         let db = borrow_global<FunctionDatabase>(OWNER);
 
         if (!table::contains(&db.database, header)) {
-            abort ERROR_CONSTANT_DOES_NOT_EXIST;
+            abort ERROR_FUNCTION_DOESNT_EXISTS;
         };
 
         let constants_ref = table::borrow(&db.database, header);

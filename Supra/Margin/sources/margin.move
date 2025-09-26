@@ -38,6 +38,8 @@ module dev::QiaraMarginV2{
         borrowed: u64,
         rewards: u64,
         interest: u64,
+        reward_index_snapshot: u128,
+        interest_index_snapshot: u128,
         last_update: u64,
         leverage: u64,
     }
@@ -81,6 +83,18 @@ module dev::QiaraMarginV2{
         assert_user_registered(addr);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
         balance.last_update = timestamp::now_seconds() / 3600;
+    }
+
+    public fun update_reward_index<T, X, Y>(addr: address, index: u128, cap: Permission) acquires TokenHoldings{
+        assert_user_registered(addr);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+        balance.reward_index_snapshot = index;
+    }
+
+    public fun update_interest_index<T, X, Y>(addr: address, index: u128, cap: Permission) acquires TokenHoldings{
+        assert_user_registered(addr);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+        balance.interest_index_snapshot = index;
     }
 
     public fun add_deposit<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
@@ -260,9 +274,7 @@ module dev::QiaraMarginV2{
                         utilization = (bor_usd * 100) / current_raw_borrow;
                     };
 
-                    let margin_interest = current_raw_borrow
-                        * (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))
-                        / (VerifiedTokens::get_coin_metadata_denom(&metadata)) / 100;
+                    let margin_interest = current_raw_borrow* (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata)) / 100;
 
                     total_dep = total_dep + (dep_usd * (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
                     total_bor = total_bor + bor_usd;
@@ -286,13 +298,19 @@ module dev::QiaraMarginV2{
         return *find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>())
     }
 
-#[view]
-public fun get_user_vaults<X, Y>(addr: address): vector<Balance> acquires TokenHoldings {
-    let th = borrow_global<TokenHoldings>(addr);
-    let inner = table::borrow(&th.holdings, type_info::type_name<Y>());
-    *table::borrow(inner, type_info::type_name<X>())
-}
+    #[view]
+    public fun get_user_raw_vault<T, X, Y>(addr: address): (String, u64, u64, u64, u64, u128, u128 u64, u64) acquires TokenHoldings {
+        let balance  = *find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>())
+        return (balance.token, balance.deposited, balance.borrowed, balance.rewards, balance.interest, balance.reward_index_snapshot, balance.interest_index_snapshot, balance.last_update, balance.leverage);
+    }
 
+
+    #[view]
+    public fun get_user_vaults<X, Y>(addr: address): vector<Balance> acquires TokenHoldings {
+        let th = borrow_global<TokenHoldings>(addr);
+        let inner = table::borrow(&th.holdings, type_info::type_name<Y>());
+        *table::borrow(inner, type_info::type_name<X>())
+    }
 
 
     fun find_balance(feature_table: &mut TokenHoldings, token: String, vault: String, feature: String): &mut Balance {
@@ -324,6 +342,8 @@ public fun get_user_vaults<X, Y>(addr: address): vector<Balance> acquires TokenH
             borrowed: 0,
             rewards: 0,
             interest: 0,
+            reward_index_snapshot: 0,
+            interest_index_snapshot: 0,
             last_update: 0,
             leverage: 1,
         };

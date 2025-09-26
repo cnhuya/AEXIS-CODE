@@ -1,5 +1,5 @@
 [package]
-name = "my_first_package"
+name = "suibtc_vault"
 edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
 # license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
 # authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
@@ -7,12 +7,6 @@ edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
 [addresses]
 dev = "0x515bbfb8778044ab8fa5393f89844e5e27454445c7c65a915e6028df402d5082"
 std = "0x1"
-
-[dependencies.MoveStdlib]
-git = "https://github.com/MystenLabs/sui.git"
-rev = "dev"
-subdir = "crates/sui-framework/packages/move-stdlib"
-
 
 [dev-dependencies]
 # The dev-dependencies section allows overriding dependencies for `--test` and

@@ -1,7 +1,7 @@
 module 0x0::SUIBITCOIN_VAULT;
     use sui::coin::{Coin, SUIBITCOIN};
     use sui::transfer;
-
+    use
 
     /// Per-user vault object that holds a single coin deposit
     public struct UserVault has key {
