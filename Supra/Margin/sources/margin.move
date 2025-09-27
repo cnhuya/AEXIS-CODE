@@ -1,4 +1,4 @@
-module dev::QiaraMarginV2{
+module dev::QiaraMarginV3{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -6,9 +6,11 @@ module dev::QiaraMarginV2{
     use std::table;
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
+
     use dev::QiaraVerifiedTokensV2::{Self as VerifiedTokens, Tier, CoinData, Metadata};
-    use dev::QiaraFeatureTypesV2::{Self as FeatureTypes};
-    use dev::QiaraVaultTypesV2::{Self as VaultTypes};
+
+    use dev::QiaraFeatureTypesV3::{Self as FeatureTypes};
+    use dev::QiaraVaultTypesV3::{Self as VaultTypes};
 
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_USER_NOT_REGISTERED: u64 = 2;
@@ -28,16 +30,21 @@ module dev::QiaraMarginV2{
     }
 
     struct TokenHoldings has key {
-        holdings: table::Table<String, table::Table<String, vector<Balance>>>
+        holdings: table::Table<String, table::Table<String, vector<Balance>>>,
+        credits: table::Table<String, Credit>,
     }
 
+
+    struct Credit has key, store, copy, drop{
+        token: String,
+        rewards: u64,
+        interest: u64,
+    }
 
     struct Balance has key, store, copy, drop {
         token: String,
         deposited: u64,
         borrowed: u64,
-        rewards: u64,
-        interest: u64,
         reward_index_snapshot: u128,
         interest_index_snapshot: u128,
         last_update: u64,
@@ -59,7 +66,14 @@ module dev::QiaraMarginV2{
 
     public entry fun init_user(user: &signer) {
         if (!exists<TokenHoldings>(signer::address_of(user))) {
-            move_to(user, TokenHoldings { holdings: table::new<String, table::Table<String, vector<Balance>>>()});
+move_to(
+    user,
+    TokenHoldings {
+        holdings: table::new<String, table::Table<String, vector<Balance>>>(),
+        credits: table::new<String, Credit>(),
+    },
+);
+
         };
 
         if (!exists<VaultRegistry>(signer::address_of(user))) {
@@ -129,168 +143,195 @@ module dev::QiaraMarginV2{
         }
     }
 
-    public fun add_interest<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_interest<B>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         assert_user_registered(addr);
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
-        balance.interest = balance.interest + value;
+        let credit = find_credit(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<B>());
+        credit.interest = credit.interest + value;
     }
 
-    public fun remove_interest<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_interest<B>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         assert_user_registered(addr);
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
-        if(value > balance.interest){
-            balance.interest = 0
+        let credit = find_credit(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<B>());
+        if(value > credit.interest){
+            credit.interest = 0
         } else {
-            balance.interest = balance.interest - value;
+            credit.interest = credit.interest - value;
         }
     }
 
-    public fun add_rewards<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_rewards<A>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         assert_user_registered(addr);
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
-        balance.rewards = balance.rewards + value;
+        let credit = find_credit(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<A>());
+        credit.rewards = credit.rewards + value;
     }
 
-    public fun remove_rewards<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_rewards<A>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         assert_user_registered(addr);
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
-        if(value > balance.rewards){
-            balance.rewards = 0
+        let credit = find_credit(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<A>());
+        if(value > credit.rewards){
+            credit.rewards = 0
         } else {
-            balance.rewards = balance.rewards - value;
+            credit.rewards = credit.rewards - value;
         }
     }
 
 
     #[view]
-    public fun get_user_position_usd<T,X, Y>(addr: address): (u256, u256, u256, u256, u256, u256) acquires TokenHoldings  {
+    public fun get_user_position_usd<T, X, Y>(addr: address): (u256, u256, u256, u256, u256, u256)acquires TokenHoldings{
         assert_user_registered(addr);
 
         let tokens_holdings = borrow_global_mut<TokenHoldings>(addr);
-        
         let metadata = VerifiedTokens::get_coin_metadata_by_res(&type_info::type_name<T>());
-        
-        let uv = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
 
+        // Scope 1: use balance
+        let dep_usd;
+        let bor_usd;
+        let raw_borrow;
+        {
+            let uv = find_balance(tokens_holdings,type_info::type_name<T>(),type_info::type_name<X>(),type_info::type_name<Y>(),);
 
-        let dep_usd = (((uv.deposited as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256) / (VerifiedTokens::get_coin_metadata_denom(&metadata)))*(VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))/100;
-        let bor_usd = ((uv.borrowed as u256)  *  (VerifiedTokens::get_coin_metadata_price(&metadata) as u256) / (uv.leverage as u256)) / (VerifiedTokens::get_coin_metadata_denom(&metadata));
-        let reward_usd = (uv.rewards as u256)  *  (VerifiedTokens::get_coin_metadata_price(&metadata) as u256) / (VerifiedTokens::get_coin_metadata_denom(&metadata));
-        let interest_usd = (uv.interest as u256)  *  (VerifiedTokens::get_coin_metadata_price(&metadata) as u256) / (VerifiedTokens::get_coin_metadata_denom(&metadata));
-        let raw_borrow = (uv.borrowed as u256)  *  (VerifiedTokens::get_coin_metadata_price(&metadata) as u256) / (VerifiedTokens::get_coin_metadata_denom(&metadata));
-       
-        let utilization = 0u256;
-        if(dep_usd == 0){
-            utilization = 0
-        } else {
-            utilization = (bor_usd * 100) / raw_borrow;
+            dep_usd = (((uv.deposited as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata)))* (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
+            bor_usd = ((uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (uv.leverage as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
+            raw_borrow = (uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
         };
 
-        let tier = VerifiedTokens::get_tier(VerifiedTokens::get_coin_metadata_decimals(&metadata));
-        let margin_interest = raw_borrow * (utilization*(VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / (VerifiedTokens::get_coin_metadata_denom(&metadata)) / 100;
+        // Scope 2: use credit
+        let reward_usd;
+        let interest_usd;
+        {
+            let credit = find_credit(tokens_holdings, type_info::type_name<T>());
 
-        (dep_usd, bor_usd, raw_borrow, reward_usd ,interest_usd, margin_interest)
+            reward_usd = (credit.rewards as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
+            interest_usd = (credit.interest as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
+        };
+
+        let utilization = if (raw_borrow == 0) 0 else (bor_usd * 100) / raw_borrow;
+        let margin_interest = raw_borrow* (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata))/ 100;
+
+        (dep_usd, bor_usd, raw_borrow, reward_usd, interest_usd, margin_interest)
     }
 
-    #[view]
-    public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u256) acquires FeaturesRegistry, VaultRegistry, TokenHoldings {
-        assert_user_registered(addr);
-        let tokens_holdings = borrow_global_mut<TokenHoldings>(addr);
-        let vault_registry = borrow_global_mut<VaultRegistry>(addr);
-        let feature_registry = borrow_global_mut<FeaturesRegistry>(addr);
-        let total_dep = 0u256;
-        let total_bor = 0u256;
-        let raw_borrow = 0u256;
-        let total_rew = 0u256;
-        let total_int = 0u256;
-        let utilization = 0u256;
-        let total_expected_interest = 0u256;
+#[view]
+public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u256) 
+    acquires FeaturesRegistry, VaultRegistry, TokenHoldings 
+{
+    assert_user_registered(addr);
+    let tokens_holdings = borrow_global_mut<TokenHoldings>(addr);
+    let vault_registry = borrow_global_mut<VaultRegistry>(addr);
+    let feature_registry = borrow_global_mut<FeaturesRegistry>(addr);
 
-        let n = vector::length(&feature_registry.features);
-        let i = 0;
+    let  total_dep = 0u256;
+    let  total_bor = 0u256;
+    let  raw_borrow = 0u256;
+    let  total_rew = 0u256;
+    let  total_int = 0u256;
+    let  utilization = 0u256;
+    let  total_expected_interest = 0u256;
 
-        // search through features
-        while (i < n) {
-            let feature = vector::borrow(&feature_registry.features, i);
-            let vaults = table::borrow(&vault_registry.vaults, *feature);
-            let a = vector::length(vaults);
-            let b = 0;
+    let n = vector::length(&feature_registry.features);
+    let i = 0;
 
-            // search through vaults
-            while (b < a) {
-                let vault = vector::borrow(vaults, b);
+    // search through features
+    while (i < n) {
+        let feature = vector::borrow(&feature_registry.features, i);
+        let vaults = table::borrow(&vault_registry.vaults, *feature);
+        let a = vector::length(vaults);
+        let  b = 0;
 
-                // First, collect all the token information we need without holding references
-                let feature_str = *feature;
-                let vault_str = *vault;
-                
-                // Get the list of tokens for this vault/feature combination
-                let token_list = {
-                    let holdings_ref = table::borrow(&tokens_holdings.holdings, feature_str);
-                    if (table::contains(holdings_ref, vault_str)) {
-                        let balances = table::borrow(holdings_ref, vault_str);
-                        // Extract token identifiers as copies
-                        let len = vector::length(balances);
-                        let j = 0;
-                        let tokens = vector::empty<String>();
-                        while (j < len) {
-                            let holding = vector::borrow(balances, j);
-                            vector::push_back(&mut tokens, holding.token);
-                            j = j + 1;
-                        };
-                        tokens
-                    } else {
-                        vector::empty<String>()
-                    }
-                };
+        // search through vaults
+        while (b < a) {
+            let vault = vector::borrow(vaults, b);
 
-                // Now process each token without holding any references to tokens_holdings
-                let num_tokens = vector::length(&token_list);
-                let y = 0;
-                while (y < num_tokens) {
-                    let token_id = *vector::borrow(&token_list, y);
-                    
-                    // Now we can safely borrow mutably since we don't hold any other references
+            // First, collect tokens without holding references
+            let feature_str = *feature;
+            let vault_str = *vault;
+
+            let token_list = {
+                let holdings_ref = table::borrow(&tokens_holdings.holdings, feature_str);
+                if (table::contains(holdings_ref, vault_str)) {
+                    let balances = table::borrow(holdings_ref, vault_str);
+                    let len = vector::length(balances);
+                    let  j = 0;
+                    let  tokens = vector::empty<String>();
+                    while (j < len) {
+                        let holding = vector::borrow(balances, j);
+                        vector::push_back(&mut tokens, holding.token);
+                        j = j + 1;
+                    };
+                    tokens
+                } else {
+                    vector::empty<String>()
+                }
+            };
+
+            // Process each token separately
+            let num_tokens = vector::length(&token_list);
+            let  y = 0;
+            while (y < num_tokens) {
+                let token_id = *vector::borrow(&token_list, y);
+                let metadata = VerifiedTokens::get_coin_metadata_by_res(&token_id);
+                // Scope 1: borrow balance
+                let dep_usd;
+                let bor_usd;
+                let current_raw_borrow;
+                {
                     let uv = find_balance(tokens_holdings, token_id, vault_str, feature_str);
                     let metadata = VerifiedTokens::get_coin_metadata_by_res(&uv.token);
-                    let (price, price_decimals, _, _) =
-                        supra_oracle_storage::get_price(VerifiedTokens::get_coin_metadata_oracle(&metadata));
-
-                    let dep_usd = (((uv.deposited as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)
+                    dep_usd = (((uv.deposited as u256) 
+                        * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)
                         / (VerifiedTokens::get_coin_metadata_denom(&metadata)))
                         * (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
-                    let bor_usd = ((uv.borrowed as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)
-                        / (uv.leverage as u256)) / (VerifiedTokens::get_coin_metadata_denom(&metadata));
-                    let reward_usd = (uv.rewards as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)
+                    bor_usd = ((uv.borrowed as u256) 
+                        * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)
+                        / (uv.leverage as u256)) 
                         / (VerifiedTokens::get_coin_metadata_denom(&metadata));
-                    let interest_usd = (uv.interest as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)
+                    current_raw_borrow = (uv.borrowed as u256)
+                        * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)
                         / (VerifiedTokens::get_coin_metadata_denom(&metadata));
-                    let current_raw_borrow = (uv.borrowed as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)
-                        / (VerifiedTokens::get_coin_metadata_denom(&metadata));
-
-                    if (dep_usd == 0) {
-                        utilization = 0
-                    } else {
-                        utilization = (bor_usd * 100) / current_raw_borrow;
-                    };
-
-                    let margin_interest = current_raw_borrow* (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata)) / 100;
-
-                    total_dep = total_dep + (dep_usd * (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
-                    total_bor = total_bor + bor_usd;
-                    total_rew = total_rew + reward_usd;
-                    total_int = total_int + interest_usd;
-                    total_expected_interest = total_expected_interest + margin_interest;
-                    raw_borrow = raw_borrow + current_raw_borrow;
-
-                    y = y + 1;
                 };
-                b = b + 1;
+
+                // Scope 2: borrow credit
+                let reward_usd;
+                let interest_usd;
+                {
+                    let credit = find_credit(tokens_holdings, token_id);
+                    reward_usd = (credit.rewards as u256) 
+                        * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)
+                        / (VerifiedTokens::get_coin_metadata_denom(&metadata));
+                    interest_usd = (credit.interest as u256) 
+                        * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)
+                        / (VerifiedTokens::get_coin_metadata_denom(&metadata));
+                };
+
+                // Safe utilization calc
+                if (current_raw_borrow == 0) {
+                    utilization = 0;
+                } else {
+                    utilization = (bor_usd * 100) / current_raw_borrow;
+                };
+
+                let margin_interest = current_raw_borrow 
+                    * (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))
+                    / (VerifiedTokens::get_coin_metadata_denom(&metadata)) / 100;
+
+                total_dep = total_dep + (dep_usd * (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
+                total_bor = total_bor + bor_usd;
+                total_rew = total_rew + reward_usd;
+                total_int = total_int + interest_usd;
+                total_expected_interest = total_expected_interest + margin_interest;
+                raw_borrow = raw_borrow + current_raw_borrow;
+
+                y = y + 1;
             };
-            i = i + 1;
+
+            b = b + 1;
         };
-        (total_dep, total_bor, raw_borrow, total_rew, total_int, total_expected_interest)
-    }
+        i = i + 1;
+    };
+
+    (total_dep, total_bor, raw_borrow, total_rew, total_int, total_expected_interest)
+}
+
 
 
     #[view]
@@ -299,9 +340,9 @@ module dev::QiaraMarginV2{
     }
 
     #[view]
-    public fun get_user_raw_vault<T, X, Y>(addr: address): (String, u64, u64, u64, u64, u128, u128 u64, u64) acquires TokenHoldings {
-        let balance  = *find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>())
-        return (balance.token, balance.deposited, balance.borrowed, balance.rewards, balance.interest, balance.reward_index_snapshot, balance.interest_index_snapshot, balance.last_update, balance.leverage);
+    public fun get_user_raw_vault<T, X, Y>(addr: address): (String, u64, u64, u128, u128, u64, u64) acquires TokenHoldings {
+        let balance  = *find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+        return (balance.token, balance.deposited, balance.borrowed, balance.reward_index_snapshot, balance.interest_index_snapshot, balance.last_update, balance.leverage)
     }
 
 
@@ -312,6 +353,14 @@ module dev::QiaraMarginV2{
         *table::borrow(inner, type_info::type_name<X>())
     }
 
+
+    fun find_credit(token_table: &mut TokenHoldings, token: String,): &mut Credit {
+        if (!table::contains(&token_table.credits, token)) {
+            table::add(&mut token_table.credits, token, Credit {token: token, rewards: 0, interest: 0});
+        };
+
+       table::borrow_mut(&mut token_table.credits, token)
+    }
 
     fun find_balance(feature_table: &mut TokenHoldings, token: String, vault: String, feature: String): &mut Balance {
         if (!table::contains(&feature_table.holdings, feature)) {
@@ -340,8 +389,6 @@ module dev::QiaraMarginV2{
             token: token,
             deposited: 0,
             borrowed: 0,
-            rewards: 0,
-            interest: 0,
             reward_index_snapshot: 0,
             interest_index_snapshot: 0,
             last_update: 0,
