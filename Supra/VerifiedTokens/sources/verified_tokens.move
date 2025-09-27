@@ -63,12 +63,12 @@ module dev::QiaraVerifiedTokensV2{
             move_to(admin, Tokens { list: vector::empty<Metadata>() });
         };
 
-        add_tier(admin, 0, 100, 95, 1, 100_000_000, 75_000_000);
-        add_tier(admin, 1, 200, 85, 10, 50_000_000, 20_000_000);
-        add_tier(admin, 2, 375, 75, 20, 10_000_000, 7_000_000);
-        add_tier(admin, 3, 500, 60, 40, 1_000_000, 500_000);
-        add_tier(admin, 4, 750, 50, 80, 600_000, 250_000);
-        add_tier(admin, 5, 1000, 30, 125, 250_000, 100_000);
+        add_tier(admin, 0, 100, 95, 100, 100_000_000, 75_000_000);
+        add_tier(admin, 1, 200, 85, 250, 50_000_000, 20_000_000);
+        add_tier(admin, 2, 375, 80, 500, 10_000_000, 7_000_000);
+        add_tier(admin, 3, 500, 70,  750, 1_000_000, 500_000);
+        add_tier(admin, 4, 750, 60, 1000, 600_000, 250_000);
+        add_tier(admin, 5, 1000, 50, 1500, 250_000, 100_000);
     }
 
 
@@ -169,6 +169,16 @@ module dev::QiaraVerifiedTokensV2{
     }
 
     public fun minimal_w_fee(tier_id: u8): u16 acquires Tiers{
+        let tier = get_tier(tier_id);
+        tier.minimal_w_fee
+    }
+
+    public fun borrow_scale(tier_id: u8): u16 acquires Tiers{
+        let tier = get_tier(tier_id);
+        tier.minimal_w_fee
+    }
+
+    public fun lend_scale(tier_id: u8): u16 acquires Tiers{
         let tier = get_tier(tier_id);
         tier.minimal_w_fee
     }
