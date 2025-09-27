@@ -8,6 +8,7 @@ module dev::QiaraVerifiedTokensV2{
     use supra_oracle::supra_oracle_storage;
     use supra_framework::coin;
 
+    use dev::QiaraStorageV22::{Self as storage};
     use dev::QiaraMath::{Self as Math};
 
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -173,14 +174,12 @@ module dev::QiaraVerifiedTokensV2{
         tier.minimal_w_fee
     }
 
-    public fun borrow_scale(tier_id: u8): u16 acquires Tiers{
-        let tier = get_tier(tier_id);
-        tier.minimal_w_fee
+    public fun borrow_scale(tier_id: u8): u16 {
+        storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"))) - (storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"BORROW_SCALE")))*(tier_id as u16))
     }
 
-    public fun lend_scale(tier_id: u8): u16 acquires Tiers{
-        let tier = get_tier(tier_id);
-        tier.minimal_w_fee
+    public fun lend_scale(tier_id: u8): u16 {
+        storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"))) - (storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"LEND_SCALE")))*(tier_id as u16))
     }
 
     public fun deposit_limit(tier_id: u8): u128 acquires Tiers{
