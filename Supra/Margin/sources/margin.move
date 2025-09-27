@@ -135,7 +135,7 @@ move_to(
         balance.deposited = balance.deposited + value;
     }
 
-    public fun remove_deposit<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_deposit<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         assert_user_registered(addr);
         let vault = find_vault(borrow_global_mut<Vaults>(addr),  type_info::type_name<T>(), type_info::type_name<X>(),);
         assert!(vault.total_deposited >= (value as u128), ERROR_NOT_ENOUGH_LIQUIDITY);
