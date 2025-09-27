@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraTypesV2"
+    name = "QiaraTypesV3"
     version = "2.1.1"
     authors = []
 
@@ -15,5 +15,10 @@
     git = "https://github.com/Entropy-Foundation/aptos-core.git"
     rev = "dev"
     subdir = "aptos-move/framework/supra-framework"
+
+    [dependencies.QiaraMath]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Math'
 
     [dev-dependencies]

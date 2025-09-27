@@ -1,8 +1,11 @@
-module dev::QiaraVaultTypesV2 {
+module dev::QiaraVaultTypesV3 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::signer;
     use std::table;
+    use std::timestamp;
+
+    use dev::QiaraMath::{Self as Math};
 
     const ERROR_NOT_ADMIN: u64 = 1;
 
@@ -30,20 +33,19 @@ module dev::QiaraVaultTypesV2 {
 
 
     struct RateList has key {
-        rates: table::Table<String, Rates>, 
+        rates: table::Table<String, Rate>, 
     }
 
-    struct Rate has key {
+    struct Rate has key, store, copy, drop {
         reward_index: u128,   // cumulative reward per unit deposited (scaled fixed-point)
-        interest_index: u128, // cumulative interest per unit borrowed
-        last_update: u64,     // last timestamp or block height
+        interest_index: u128,   // cumulative reward per unit deposited (scaled fixed-point)
         lend_rate: u64,       // per-second or per-block reward APR
-        borrow_rate: u64,     // per-second or per-block interest APR
+        last_update: u64,     // last timestamp or block height
     }
 
     fun init_module(address: &signer){
         if (!exists<RateList>(signer::address_of(address))) {
-            move_to(address, RateList {rates: table::new<String, Rates>()});
+            move_to(address, RateList {rates: table::new<String, Rate>()});
         };
     }
 
@@ -52,98 +54,60 @@ module dev::QiaraVaultTypesV2 {
         let key = type_info::type_name<X>();
 
         if (!table::contains(&x.rates, key)) {
-            table::add(&mut x.rates, key, Rates { reward_index:0, interest_index:0 lend_rate, borrow_rate, last_update: timestamp::now_seconds() });
+            table::add(&mut x.rates, key, Rate { reward_index:0, interest_index:0, lend_rate, last_update: timestamp::now_seconds() });
         } else {
             let rate = table::borrow_mut(&mut x.rates, key);
 
             // Blend with 50% weight
             rate.lend_rate = (rate.lend_rate + lend_rate) / 2;
-            rate.borrow_rate = (rate.borrow_rate + borrow_rate) / 2;
-
-            update_rate_state(rate);
         }
     }
 
-    public fun accrue_global<X>() acquires RateList {
+    public fun accrue_global<X>(lend_rate: u256, exp_scale: u256, utilization: u256, total_deposits: u256, total_borrows: u256, cap: Permission) acquires RateList {
 
         let rates = borrow_global_mut<RateList>(@dev);
-        let rate = table::borrow_mut(&rates.rates, type_info::type_name<X>());
+        let rate = table::borrow_mut(&mut rates.rates, type_info::type_name<X>());
 
-        let now = timestamp::now_seconds();
-        let SECONDS_PER_YEAR: u128 = 31_536_000;
-        let elapsed = now - rate.last_update;
-
+        let seconds_in_year: u256 = 31_536_000;
+        let elapsed = timestamp::now_seconds() - rate.last_update;
         if (elapsed == 0) return;
 
-        // Scale factor for fixed-point math (1e18 recommended)
-        let SCALE: u128 = 1000000000000000000;
-
         // Update reward index (distributes reward over all deposits)
-        if (rate.total_deposits > 0) {
-            let lend_rate_decimal: u128 = (rate.lend_rate as u128) * SCALE / 10000; // fixed-point 1e18
-            let reward_per_unit = ((lend_rate_decimal * (elapsed as u128) * SCALE) / SECONDS_PER_YEAR) / (rate.total_deposits as u128);
-            rate.reward_index = rate.reward_index + reward_per_unit;
-        }
+        if (total_deposits > 0) {
+            let lend_rate_decimal: u256 = Math::compute_rate(lend_rate,exp_scale,utilization,18) / 10000; 
+            let reward_per_unit = (lend_rate_decimal * (elapsed as u256) / seconds_in_year) / total_deposits;
+            rate.reward_index = (((rate.reward_index as u256) + reward_per_unit) as u128);
 
-        // Update interest index (accrues cost over all borrows)
-        if (rate.total_borrows > 0) {
-            let borrow_rate_decimal: u128 = (rate.borrow_rate as u128) * SCALE / 10000; // fixed-point 1e18
-            let interest_per_unit = ((borrow_rate_decimal * (elapsed as u128) * SCALE)  / SECONDS_PER_YEAR) / (rate.total_borrows as u128);
-            rate.interest_index = rate.interest_index + interest_per_unit;
-        }
+            let borrow_rate_decimal: u256 = Math::compute_rate(lend_rate,exp_scale,utilization,18) / 10000; 
+            let interest_per_unit = (borrow_rate_decimal * (elapsed as u256) / seconds_in_year) / total_borrows;
+            rate.interest_index = (((rate.interest_index as u256) + interest_per_unit) as u128);
+        };
 
-        rate.last_update = now;
+        rate.last_update = timestamp::now_seconds();
     }
 
-
-
-// === CHANGES === //
-    public fun get_vault_mutable_rate<X>(cap: Permission): &mut Rate acquires RateList{
-        let x = borrow_global_mut<RateList>(@dev);
-        let rate = table::borrow_mut(&x.rates, type_info::type_name<X>());
-        return rate
-    }
-
-    public fun change_vault_borrow_rate(rate: &mut Rate, borrow_rate: u64){
-        return rate.borrow_rate = borrow_rate;
-    }
-    public fun change_vault_lend_rate(rate: &mut Rate, lend_rate: u64){
-        return rate.lend_rate = lend_rate;
-    }
-    public fun change_vault_reward_index(rate: &mut Rate, reward_index: u64){
-        return rate.reward_index = reward_index;
-    }
-    public fun change_vault_interest_index(rate: &mut Rate, interest_index: u64){
-        return rate.interest_index = interest_index;
-    }
-    public fun change_vault_last_updated(rate: &mut Rate, last: u64){
-        return rate.last = last-update;
-    }
 
 // === GETS === //
     public fun get_vault_rate<X>(): Rate acquires RateList{
         let x = borrow_global<RateList>(@dev);
         let rate = table::borrow(&x.rates, type_info::type_name<X>());
-        return rate
+        return *rate
     }
 
-    public fun get_vault_raw<X>(): (u64,u64,u64,u64,u64) acquires RateList{
+    public fun get_vault_raw<X>(): (u64,u128,u128,u64) acquires RateList{
         let x = borrow_global_mut<RateList>(@dev);
-        let rate = table::borrow_mut(&x.rates, type_info::type_name<X>());
-        return (rate.lend_rate, rate.borrow_rate, rate.reward_index, rate.interest_index, rate.last_update);
+        let rate = table::borrow_mut(&mut x.rates, type_info::type_name<X>());
+        return (rate.lend_rate,rate.reward_index,rate.interest_index,rate.last_update)
     }
 
     public fun get_vault_lend_rate(rate: Rate): u64{
         return rate.lend_rate
     }
-    public fun get_vault_borrow_rate(rate: Rate): u64{
-        return rate.borrow_rate
-    }
-    public fun get_vault_reward_index(rate: Rate): u64{
+    public fun get_vault_reward_index(rate: Rate): u128{
         return rate.reward_index
     }
-    public fun get_vault_interest_index(rate: Rate): u64{
-        return rate.interest_index
+    public fun get_vault_interest_index(rate: Rate): u128{
+        return rate.reward_index
     }
     public fun get_vault_last_updated(rate: Rate): u64{
         return rate.last_update
