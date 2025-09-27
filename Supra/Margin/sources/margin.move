@@ -1,4 +1,4 @@
-module dev::QiaraMarginV5{
+module dev::QiaraMarginV6{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -128,7 +128,7 @@ move_to(
 
     public fun add_deposit<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         assert_user_registered(addr);
-        let vault = find_vault(borrow_global_mut<Vaults>(addr),  type_info::type_name<T>(), type_info::type_name<X>(),);
+        let vault = find_vault(borrow_global_mut<Vaults>(addr),  type_info::type_name<T>());
         assert!(vault.total_deposited >= (value as u128), ERROR_NOT_ENOUGH_LIQUIDITY);
         vault.total_deposited + (value as u128);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
@@ -137,7 +137,7 @@ move_to(
 
     public fun remove_deposit<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         assert_user_registered(addr);
-        let vault = find_vault(borrow_global_mut<Vaults>(addr),  type_info::type_name<T>(), type_info::type_name<X>(),);
+        let vault = find_vault(borrow_global_mut<Vaults>(addr),  type_info::type_name<T>());
         assert!(vault.total_deposited >= (value as u128), ERROR_NOT_ENOUGH_LIQUIDITY);
         vault.total_deposited - (value as u128);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
@@ -150,7 +150,7 @@ move_to(
 
     public fun add_borrow<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         assert_user_registered(addr);
-        let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>(), type_info::type_name<X>());
+        let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>());
         vault.total_borrowed - (value as u128);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
         balance.borrowed = balance.borrowed + value;
@@ -158,7 +158,7 @@ move_to(
 
     public fun remove_borrow<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         assert_user_registered(addr);
-        let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>(), type_info::type_name<X>());
+        let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>());
         vault.total_borrowed - (value as u128);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
         if(value > balance.borrowed){
@@ -202,12 +202,12 @@ move_to(
 
     #[view]
     public fun get_vault<T, X>(): Vault acquires Vaults {
-        return *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>(), type_info::type_name<X>())
+        return *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>())
     }
 
     #[view]
     public fun get_raw_vault<T, X>(): (u128, u128, u128) acquires Vaults {
-        let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>(), type_info::type_name<X>());
+        let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>());
         return (vault.total_deposited, vault.total_borrowed, (vault.total_deposited - vault.total_borrowed))
     }
 
@@ -415,12 +415,12 @@ move_to(
         vector::borrow_mut(holdings, idx)
     }
 
-    fun find_vault(vault_table: &mut Vaults, token: String, vault: String): &mut Vault {
-        if (!table::contains(&vault_table.vaults, vault)) {
-            table::add(&mut vault_table.vaults, vault, Vault { total_deposited: 0, total_borrowed: 0 });
+    fun find_vault(vault_table: &mut Vaults, token: String): &mut Vault {
+        if (!table::contains(&vault_table.vaults, token)) {
+            table::add(&mut vault_table.vaults, token, Vault { total_deposited: 0, total_borrowed: 0 });
         };
 
-        table::borrow_mut(&mut vault_table.vaults, vault)
+        table::borrow_mut(&mut vault_table.vaults, token)
 
     }
 
