@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraMarginV6"
+    name = "QiaraMarginV8"
     version = "2.1.1"
     authors = []
 
@@ -21,6 +21,11 @@
     rev = "master"
     subdir = "supra/testnet/core"
 
+    [dependencies.QiaraMath]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Math'
+
     [dependencies.AptosStdlib]
     git = "https://github.com/Entropy-Foundation/aptos-core.git"
     rev = "dev"
@@ -31,7 +36,7 @@
     rev = 'main'
     subdir = 'Supra/VerifiedTokens'
 
-    [dependencies.QiaraTypesV3]
+    [dependencies.QiaraTypesV4]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'

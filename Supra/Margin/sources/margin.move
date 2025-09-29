@@ -1,4 +1,4 @@
-module dev::QiaraMarginV6{
+module dev::QiaraMarginV8{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -9,8 +9,10 @@ module dev::QiaraMarginV6{
 
     use dev::QiaraVerifiedTokensV2::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
-    use dev::QiaraFeatureTypesV3::{Self as FeatureTypes};
-    use dev::QiaraVaultTypesV3::{Self as VaultTypes};
+    use dev::QiaraFeatureTypesV4::{Self as FeatureTypes};
+    use dev::QiaraVaultTypesV4::{Self as VaultTypes};
+
+    use dev::QiaraMath::{Self as QiaraMath};
 
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_USER_NOT_REGISTERED: u64 = 2;
@@ -26,7 +28,7 @@ module dev::QiaraMarginV6{
         Access {}
     }
 
-    public fun give_permission(s: &signer, access: &Access): Permission {
+    public fun give_permission(access: &Access): Permission {
         Permission {}
     }
 
@@ -51,6 +53,10 @@ module dev::QiaraMarginV6{
         total_borrowed: u128,
     }
 
+    struct Leverage has key, store, copy, drop{
+        usd_weight: u256,
+        total_lev_usd: u256,
+    }
 
     struct Balance has key, store, copy, drop {
         token: String,
@@ -76,6 +82,9 @@ module dev::QiaraMarginV6{
         if (!exists<Vaults>(@dev)) {
             move_to(admin, Vaults { vaults: table::new<String, Vault>() });
         };
+        if (!exists<Leverage>(@dev)) {
+            move_to(admin, Leverage { total_lev_usd: 0, usd_weight: 0 });
+        };
 
     }
 
@@ -100,6 +109,21 @@ move_to(
             move_to(user, FeaturesRegistry { features: vector::empty<String>() });
         };
     }
+
+    public fun update_l(amount: u64, leverage: u64, _cap: &Permission) acquires Leverage {
+        let l = borrow_global_mut<Leverage>(@dev);
+
+        assert!(amount > 0, 101);
+
+        let amt =(amount as u256);
+        let lev =(leverage as u256);
+
+        l.usd_weight = l.usd_weight + amt;
+        l.total_lev_usd = l.total_lev_usd + (amt * lev);
+    }
+
+
+
 
     public fun update_leverage<T, X, Y>(addr: address, leverage: u64, cap: Permission) acquires TokenHoldings{
         assert_user_registered(addr);
@@ -332,7 +356,8 @@ move_to(
                         utilization = (bor_usd * 100) / current_raw_borrow;
                     };
 
-                    let margin_interest = current_raw_borrow * (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata)) / 100;
+                    let margin_interest = QiaraMath::compute_rate((VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(token_id)) as u256), (utilization as u256), ((VerifiedTokens::lend_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256), 5);
+                   // let margin_interest = current_raw_borrow * (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata)) / 100;
 
                     total_dep = total_dep + (dep_usd * (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
                     total_bor = total_bor + bor_usd;
