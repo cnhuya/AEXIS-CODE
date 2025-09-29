@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV2{
+module dev::QiaraVerifiedTokensV3{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -10,6 +10,8 @@ module dev::QiaraVerifiedTokensV2{
 
     use dev::QiaraStorageV22::{Self as storage};
     use dev::QiaraMath::{Self as Math};
+    use dev::QiaraCoinTypesV4::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+
 
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST: u64 = 2;
@@ -64,12 +66,26 @@ module dev::QiaraVerifiedTokensV2{
             move_to(admin, Tokens { list: vector::empty<Metadata>() });
         };
 
+
+
         add_tier(admin, 0, 100, 95, 100, 100_000_000, 75_000_000);
         add_tier(admin, 1, 200, 85, 250, 50_000_000, 20_000_000);
         add_tier(admin, 2, 375, 80, 500, 10_000_000, 7_000_000);
         add_tier(admin, 3, 500, 70,  750, 1_000_000, 500_000);
         add_tier(admin, 4, 750, 60, 1000, 600_000, 250_000);
         add_tier(admin, 5, 1000, 50, 1500, 250_000, 100_000);
+
+
+        allow_coin<BaseEthereum>(admin, 1, 1, utf8(b"Base"));
+        allow_coin<BaseUSDC>(admin, 0, 47,  utf8(b"Base"));
+
+        allow_coin<SuiEthereum>(admin, 1, 1,  utf8(b"Sui"));
+        allow_coin<SuiUSDC>(admin, 0, 47, utf8(b"Sui"));
+        allow_coin<SuiUSDT>(admin, 0, 47, utf8(b"Sui"));
+        allow_coin<SuiSui>(admin, 2, 90, utf8(b"Sui"));
+        allow_coin<SuiBitcoin>(admin, 1, 0, utf8(b"Sui"));
+
+        allow_coin<SupraCoin>(admin, 3, 500, utf8(b"Supra"));
     }
 
 
