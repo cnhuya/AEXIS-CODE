@@ -56,7 +56,7 @@ module dev::QiaraVerifiedTokensV3{
     }
 
     /// ========== INIT ==========
-    fun init_module(admin: &signer) acquires Tiers{
+    fun init_module(admin: &signer) acquires Tiers, Tokens{
         let deploy_addr = signer::address_of(admin);
 
         if (!exists<Tiers>(deploy_addr)) {
