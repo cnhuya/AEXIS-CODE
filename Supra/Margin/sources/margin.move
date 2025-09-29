@@ -7,7 +7,7 @@ module dev::QiaraMarginV8{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV2::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV3::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
     use dev::QiaraFeatureTypesV4::{Self as FeatureTypes};
     use dev::QiaraVaultTypesV4::{Self as VaultTypes};
