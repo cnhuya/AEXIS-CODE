@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV3{
+module dev::QiaraVerifiedTokensV4{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -310,19 +310,33 @@ module dev::QiaraVerifiedTokensV3{
         metadata.decimals
     }
 
-    public fun get_coin_metadata_by_res(res: &String): Metadata acquires Tokens {
-        let list = borrow_global<Tokens>(@dev);
-        let n = vector::length(&list.list);
-        let i = 0;
-        while (i < n) {
-            let m_ref = vector::borrow(&list.list, i);
-            if (String::bytes(&m_ref.resource) == String::bytes(res)) {
-                return *m_ref; // return by value (copy)
+
+    #[view]
+    public fun get_coin_metadata_by_res(res: String): Metadata acquires Tokens {
+        let vault_list = borrow_global_mut<Tokens>(@dev);
+        let len = vector::length(&vault_list.list);
+
+        while (len > 0) {
+            let metadat = vector::borrow(&vault_list.list, len - 1);
+            if (metadat.resource == res) {
+                let (price, price_decimals, _, _) = supra_oracle_storage::get_price(get_coin_metadata_oracle(metadat));
+                let denom = Math::pow10_u256((price_decimals as u8));
+                return Metadata { 
+                    tier: metadat.tier, 
+                    resource: metadat.resource, 
+                    price: price, 
+                    denom: denom, 
+                    oracleID: metadat.oracleID, 
+                    decimals: metadat.decimals, 
+                    chain: metadat.chain
+                };
             };
-            i = i + 1;
+            len = len - 1;
         };
-        abort ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST
+
+        abort(ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST)
     }
+
 
 
 }
