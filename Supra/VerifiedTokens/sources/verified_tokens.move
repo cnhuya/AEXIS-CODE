@@ -7,6 +7,7 @@ module dev::QiaraVerifiedTokensV3{
     use std::option::{Option};
     use supra_oracle::supra_oracle_storage;
     use supra_framework::coin;
+    use supra_framework::supra_coin::{Self, SupraCoin};
 
     use dev::QiaraStorageV22::{Self as storage};
     use dev::QiaraMath::{Self as Math};
