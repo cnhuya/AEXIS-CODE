@@ -1,4 +1,4 @@
-module dev::QiaraMarginV8{
+module dev::QiaraMarginV9{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,7 +7,7 @@ module dev::QiaraMarginV8{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV3::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV4::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
     use dev::QiaraFeatureTypesV4::{Self as FeatureTypes};
     use dev::QiaraVaultTypesV4::{Self as VaultTypes};
@@ -241,7 +241,7 @@ move_to(
         assert_user_registered(addr);
 
         let tokens_holdings = borrow_global_mut<TokenHoldings>(addr);
-        let metadata = VerifiedTokens::get_coin_metadata_by_res(&type_info::type_name<T>());
+        let metadata = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>());
 
         // Scope 1: use balance
         let dep_usd;
@@ -327,14 +327,14 @@ move_to(
                 let  y = 0;
                 while (y < num_tokens) {
                     let token_id = *vector::borrow(&token_list, y);
-                    let metadata = VerifiedTokens::get_coin_metadata_by_res(&token_id);
+                    let metadata = VerifiedTokens::get_coin_metadata_by_res(token_id);
                     // Scope 1: borrow balance
                     let dep_usd;
                     let bor_usd;
                     let current_raw_borrow;
                     {
                         let uv = find_balance(tokens_holdings, token_id, vault_str, feature_str);
-                        let metadata = VerifiedTokens::get_coin_metadata_by_res(&uv.token);
+                        let metadata = VerifiedTokens::get_coin_metadata_by_res(uv.token);
                         dep_usd = (((uv.deposited as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata)))* (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
                         bor_usd = ((uv.borrowed as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (uv.leverage as u256)) / (VerifiedTokens::get_coin_metadata_denom(&metadata));
                         current_raw_borrow = (uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
