@@ -1,4 +1,4 @@
-module dev::QiaraCoinTypesV3{
+module dev::QiaraCoinTypesV4{
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};

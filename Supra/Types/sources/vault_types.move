@@ -1,4 +1,4 @@
-module dev::QiaraVaultTypesV3 {
+module dev::QiaraVaultTypesV4 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::signer;
@@ -88,15 +88,15 @@ module dev::QiaraVaultTypesV3 {
 
 
 // === GETS === //
-    public fun get_vault_rate<X>(): Rate acquires RateList{
+    public fun get_vault_rate(res: String): Rate acquires RateList{
         let x = borrow_global<RateList>(@dev);
-        let rate = table::borrow(&x.rates, type_info::type_name<X>());
+        let rate = table::borrow(&x.rates, res);
         return *rate
     }
 
-    public fun get_vault_raw<X>(): (u64,u128,u128,u64) acquires RateList{
+    public fun get_vault_raw(res: String): (u64,u128,u128,u64) acquires RateList{
         let x = borrow_global_mut<RateList>(@dev);
-        let rate = table::borrow_mut(&mut x.rates, type_info::type_name<X>());
+        let rate = table::borrow_mut(&mut x.rates, res);
         return (rate.lend_rate,rate.reward_index,rate.interest_index,rate.last_update)
     }
 
