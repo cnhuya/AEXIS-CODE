@@ -155,6 +155,7 @@ move_to(
     public fun add_deposit<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         assert_user_registered(addr);
         let vault = find_vault(borrow_global_mut<Vaults>(addr),  type_info::type_name<T>());
+
         assert!(vault.total_deposited >= (value as u128), ERROR_NOT_ENOUGH_LIQUIDITY);
         vault.total_deposited + (value as u128);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
@@ -176,21 +177,47 @@ move_to(
 
     public fun add_borrow<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         assert_user_registered(addr);
-        let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>());
-        vault.total_borrowed - (value as u128);
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
-        balance.borrowed = balance.borrowed + value;
+        
+        {
+           let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
+           vault.total_borrowed + (value as u128);
+        }
+
+        {
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+            balance.borrowed = balance.borrowed + value;
+        }
+
+        {
+            let credit = find_credit(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>());
+            credit.borrowed = credit.borrowed + value;
+        }
     }
 
     public fun remove_borrow<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         assert_user_registered(addr);
-        let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>());
-        vault.total_borrowed - (value as u128);
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
-        if(value > balance.borrowed){
-            balance.borrowed = 0
-        } else {
-            balance.borrowed = balance.borrowed - value;
+
+        {
+           let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
+           vault.total_borrowed - (value as u128);
+        }
+
+        {
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+            if(value > balance.borrowed){
+                balance.borrowed = 0
+            } else {
+                balance.borrowed = balance.borrowed - value;
+            }
+        }
+
+        {
+            let credit = find_credit(borrow_global_mut<TokenHoldings>(addr), type_info::type_name<T>());
+            if(value > credit.borrowed){
+                credit.borrowed = 0
+            } else {
+                credit.borrowed = credit.borrowed - value;
+            }
         }
     }
 

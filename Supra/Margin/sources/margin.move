@@ -1,4 +1,4 @@
-module dev::QiaraMarginV11{
+module dev::QiaraMarginV12{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -128,7 +128,7 @@ module dev::QiaraMarginV11{
         balance.interest_index_snapshot = index;
     }
 
-    public fun update_leverage<T, X, Y>(addr: address, leverage: u64, cap: Permission) acquires TokenHoldings{
+    public fun update_leverage<T>(addr: address, leverage: u64, cap: Permission) acquires TokenHoldings{
         assert_user_registered(addr);
 
         {
@@ -229,7 +229,7 @@ module dev::QiaraMarginV11{
         };
     }
 
-    public fun add_interest<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_interest<T>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         assert_user_registered(addr);
 
         {
@@ -238,7 +238,7 @@ module dev::QiaraMarginV11{
         }
     }
 
-    public fun remove_interest<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_interest<T>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         assert_user_registered(addr);
 
         {
@@ -251,7 +251,7 @@ module dev::QiaraMarginV11{
         }
     }
 
-    public fun add_rewards<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_rewards<T>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         assert_user_registered(addr);
 
         {
@@ -260,7 +260,7 @@ module dev::QiaraMarginV11{
         }
     }
 
-    public fun remove_rewards<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_rewards<T>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         assert_user_registered(addr);
 
         {
