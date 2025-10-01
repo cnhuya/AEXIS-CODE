@@ -1,4 +1,4 @@
-module dev::QiaraMarginV14{
+module dev::QiaraMarginV15{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -120,11 +120,16 @@ module dev::QiaraMarginV14{
         balance.last_update = timestamp::now_seconds() / 3600;
     }
 
-    public fun update_indexes<T, X, Y>(addr: address, index: u128, cap: Permission) acquires TokenHoldings{
+    public fun update_interest_index<T, X, Y>(addr: address, index: u128, cap: Permission) acquires TokenHoldings{
+        assert_user_registered(addr);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+        balance.interest_index_snapshot = index;
+    }
+
+    public fun update_reward_index<T, X, Y>(addr: address, index: u128, cap: Permission) acquires TokenHoldings{
         assert_user_registered(addr);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
         balance.reward_index_snapshot = index;
-        balance.interest_index_snapshot = index;
     }
 
     public fun update_leverage<T>(addr: address, leverage: u64, cap: Permission) acquires TokenHoldings{
