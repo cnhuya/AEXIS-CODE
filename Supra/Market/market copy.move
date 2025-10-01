@@ -195,6 +195,10 @@ module dev::QiaraVaultsV3 {
 
     /// Deposit on behalf of `recipient`
     /// No need for recipient to have signed anything.
+    /// 
+    /// Security:
+    /// 1.Tato funkce muze byt zavolana pouze z smart modulu "bridge"
+    /// 2.Signer musi minimalne X Qiara Tokenu stakovat
     public fun bridge_deposit<T, E, X:store, A>(user: &signer, access: &Access, permission: Permission, recipient: address,amount: u64,coins: Coin<T>, lend_rate: u64, borrow_rate: u64) acquires GlobalVault, Permissions, TableUnclaimedUserVaultList {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 

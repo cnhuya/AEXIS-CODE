@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV5 {
+module dev::QiaraVaultsV8 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -12,11 +12,11 @@ module dev::QiaraVaultsV5 {
     use supra_framework::event;
 
     use dev::QiaraVerifiedTokensV5::{Self as VerifiedTokens, Tier, CoinData, Metadata};
-    use dev::QiaraMarginV15::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraMarginV17::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use dev::QiaraChainTypesV5::{Self as ChainTypes};
-    use dev::QiaraVaultTypesV5::{Self as VaultTypes, Access as VaultTypesAccess};
+    use dev::QiaraVaultTypesV5::{Self as VaultTypes, Access as VaultTypesAccess, None, AlphaLend, SuiLend, Moonwell};
     use dev::QiaraFeatureTypesV5::{Market};
 
     use dev::QiaraMath::{Self as QiaraMath};
@@ -39,6 +39,7 @@ module dev::QiaraVaultsV5 {
     const ERROR_NO_DEPOSITS_FOR_THIS_VAULT_PROVIDER: u64 = 10;
     const ERROR_CANT_LIQUIDATE_THIS_VAULT: u64 = 11;
     const ERROR_CANT_ACRUE_THIS_VAULT: u64 = 12;
+    const ERROR_NO_VAULT_FOUND: u64 = 13;
 
 // === ACCESS === //
     struct Access has store, key, drop {}
@@ -62,6 +63,17 @@ module dev::QiaraVaultsV5 {
     }
 
 // === STRUCTS === //
+   
+    struct Vault has key, store, copy, drop{
+        provider: String,
+        total_deposited: u128,
+        total_borrowed: u128,
+    }
+
+    struct VaultRegistry has key {
+        vaults: table::Table<String, vector<Vault>>,
+    }
+
     struct GlobalVault<phantom T> has key {
         tier: u8,
         balance: coin::Coin<T>,
@@ -118,11 +130,15 @@ module dev::QiaraVaultsV5 {
     }
 
 // === FUNCTIONS === //
-    fun init_module(address: &signer){
-        init_all_vaults(address)
+    fun init_module(admin: &signer){
+        if (!exists<VaultRegistry>(@dev)) {
+            move_to(admin, VaultRegistry {vaults: table::new<String, vector<Vault>>()});
+        };
+        init_all_vaults(admin)
+        
     }
 
-    public entry fun init_all_vaults(address: &signer){
+    public fun init_all_vaults(address: &signer){
         init_vault<BaseEthereum>(address, 1, 1, utf8(b"Base"));
         init_vault<BaseUSDC>(address, 0, 47,  utf8(b"Base"));
 
@@ -134,6 +150,52 @@ module dev::QiaraVaultsV5 {
 
         init_vault<SupraCoin>(address, 3, 500, utf8(b"Supra"));
     }
+
+
+    public entry fun init_all_providers(address: &signer) acquires VaultRegistry{
+        init_provider<BaseEthereum, None>(address);
+        init_provider<BaseEthereum, Moonwell>(address);
+
+        init_provider<BaseUSDC, None>(address);
+        init_provider<BaseUSDC, Moonwell>(address);
+
+        init_provider<SupraCoin, None>(address);
+
+        init_provider<SuiEthereum, None>(address);
+        init_provider<SuiUSDC, None>(address);
+        init_provider<SuiUSDT, None>(address);
+        init_provider<SuiSui, None>(address);
+        init_provider<SuiBitcoin, None>(address);
+
+        init_provider<SuiEthereum, AlphaLend>(address);
+        init_provider<SuiUSDC, AlphaLend>(address);
+        init_provider<SuiUSDT, AlphaLend>(address);
+        init_provider<SuiSui, AlphaLend>(address);
+        init_provider<SuiBitcoin, AlphaLend>(address);
+
+        init_provider<SuiEthereum, SuiLend>(address);
+        init_provider<SuiUSDC, SuiLend>(address);
+        init_provider<SuiUSDT, SuiLend>(address);
+        init_provider<SuiSui, SuiLend>(address);
+        init_provider<SuiBitcoin, SuiLend>(address);
+
+    }
+
+public entry fun init_provider<T, X>(admin: &signer) acquires VaultRegistry {
+    assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
+
+    let registry = borrow_global_mut<VaultRegistry>(@dev);
+    let token_key = type_info::type_name<T>();
+
+    // If no entry exists for this token, initialize with an empty vector
+    if (!table::contains(&registry.vaults, token_key)) {
+        table::add(&mut registry.vaults, token_key, vector::empty<Vault>());
+    };
+
+    let vault_vector = table::borrow_mut(&mut registry.vaults, token_key);
+    vector::push_back(vault_vector,Vault {provider: type_info::type_name<X>(),total_deposited: 0,total_borrowed: 0});
+}
+
 
     public entry fun init_vault<T>(admin: &signer, tier: u8, oracleID: u32, chain: String){
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
@@ -148,7 +210,7 @@ module dev::QiaraVaultsV5 {
     /// Security:
     /// 1.Tato funkce muze byt zavolana pouze z smart modulu "bridge"
     /// 2.Signer musi minimalne X Qiara Tokenu stakovat
-    public fun bridge_deposit<T, E, X:store, A>(user: &signer, permission: Permission, recipient: address,amount: u64,coins: Coin<T>, lend_rate: u64, borrow_rate: u64) acquires GlobalVault, Permissions {
+    public fun bridge_deposit<T, E, X:store>(user: &signer, permission: Permission, recipient: address,amount: u64,coins: Coin<T>, lend_rate: u64, borrow_rate: u64) acquires VaultRegistry, GlobalVault, Permissions {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         let vault = borrow_global_mut<GlobalVault<T>>(@dev);
@@ -156,6 +218,9 @@ module dev::QiaraVaultsV5 {
 
         VaultTypes::change_rates<X>(lend_rate, borrow_rate, VaultTypes::give_permission(&borrow_global<Permissions>(@dev).vault_types));
         Margin::add_deposit<T, X, Market>(recipient, amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+
+        let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<X>()); 
+        provider_vault.total_deposited = provider_vault.total_deposited + (amount as u128);
 
         event::emit(BridgedDepositEvent {
             validator: signer::address_of(user),
@@ -166,12 +231,20 @@ module dev::QiaraVaultsV5 {
             time: timestamp::now_seconds(),
         });}
 
-
-    public fun bridge_swap<T, X: store, Y, A, B>(user: &signer, permission: Permission, recipient: address, amount_in: u64) acquires GlobalVault, Permissions {
+    // T - Token From
+    // Y - Token To
+    // X - Vault provider From
+    // Z - Vault provider To
+    // A - Rewards token
+    // B - Interest token
+    public fun bridge_swap<T, X: store, Z:store, Y, A, B>(user: &signer, permission: Permission, recipient: address, amount_in: u64) acquires GlobalVault, Permissions, VaultRegistry {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         // Step 1: withdraw tokens of type T from user
         Margin::remove_deposit<T, X, Market>(recipient, amount_in, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        let provider_vault_x = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<X>()); 
+        provider_vault_x.total_deposited = provider_vault_x.total_deposited - (amount_in as u128);
+
 
         // Step 2: calculate output amount in Y (simple price * ratio example)
         let metadata_in = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>());
@@ -183,16 +256,22 @@ module dev::QiaraVaultsV5 {
         let amount_out = ((amount_in as u128) * price_in) / price_out;
 
         // Step 3: update margin/tracking if necessary
-        Margin::add_deposit<Y, X, Market>(recipient, (amount_out as u64), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::add_deposit<Y, Z, Market>(recipient, (amount_out as u64), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        let provider_vault_z = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<Z>()); 
+        provider_vault_z.total_deposited = provider_vault_z.total_deposited + (amount_out as u128);
+
 
         accrue<T, X, A, B>(recipient);
     }
 
-    public entry fun swap<T, X: store, Y, A, B>(user: &signer,amount_in: u64) acquires GlobalVault, Permissions {
+    public entry fun swap<T, X: store, Z:store, Y, A, B>(user: &signer,amount_in: u64) acquires GlobalVault, Permissions, VaultRegistry {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         // Step 1: withdraw tokens of type T from user
         Margin::remove_deposit<T, X, Market>(signer::address_of(user), amount_in, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        let provider_vault_x = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<X>()); 
+        provider_vault_x.total_deposited = provider_vault_x.total_deposited - (amount_in as u128);
+
 
         // Step 2: calculate output amount in Y (simple price * ratio example)
         let metadata_in = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>());
@@ -204,13 +283,16 @@ module dev::QiaraVaultsV5 {
         let amount_out = ((amount_in as u128) * price_in) / price_out;
 
         // Step 3: update margin/tracking if necessary
-        Margin::add_deposit<Y, X, Market>(signer::address_of(user), (amount_out as u64), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::add_deposit<Y, Z, Market>(signer::address_of(user), (amount_out as u64), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        let provider_vault_z = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<Z>()); 
+        provider_vault_z.total_deposited = provider_vault_z.total_deposited + (amount_out as u128);
+
 
         accrue<T, X, A, B>(signer::address_of(user));
     }
 
 
-    public entry fun deposit<T, X:store, A, B>(user: &signer, amount: u64) acquires GlobalVault, Permissions {
+    public entry fun deposit<T, X:store, A, B>(user: &signer, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global_mut<GlobalVault<T>>(@dev);
 
@@ -218,6 +300,9 @@ module dev::QiaraVaultsV5 {
         coin::merge(&mut vault.balance, coins);
 
         Margin::add_deposit<T, X, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<X>()); 
+        provider_vault.total_deposited = provider_vault.total_deposited + (amount as u128);
+
 
         accrue<T,X, A, B>(signer::address_of(user));
 
@@ -235,7 +320,7 @@ module dev::QiaraVaultsV5 {
     /// log event emmited in this function in backend and add it to registered events in chains.move
     /// this is needed in case validators could overfetch multiple times this event and that way unlock multiple times on other chains
     /// from locked vaults
-    public entry fun bridge<T, E, X:store, A, B>(user: &signer, destination_address: vector<u8>, amount: u64) acquires GlobalVault, Permissions {
+    public entry fun bridge<T, E, X:store, A, B>(user: &signer, destination_address: vector<u8>, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
        // let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
  
@@ -260,7 +345,7 @@ module dev::QiaraVaultsV5 {
         event::emit(BridgeEvent { amount, validator: signer::address_of(user), token: type_info::type_name<T>(), to: destination_address, chain: ChainTypes::convert_chainType_to_string<E>(), time: timestamp::now_seconds() });
     }
 
-    public entry fun withdraw<T, X:store, A, B>(user: &signer, amount: u64) acquires GlobalVault, Permissions {
+    public entry fun withdraw<T, X:store, A, B>(user: &signer, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global_mut<GlobalVault<T>>(@dev);
         assert!(coin::value(&vault.balance) >= amount, ERROR_NOT_ENOUGH_LIQUIDITY);
@@ -269,12 +354,14 @@ module dev::QiaraVaultsV5 {
         coin::deposit(signer::address_of(user), coins);
 
         Margin::remove_deposit<T, X, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<X>()); 
+        provider_vault.total_deposited = provider_vault.total_deposited - (amount as u128);
 
         accrue<T,X, A, B>(signer::address_of(user));
         event::emit(VaultEvent { type: utf8(b"Withdraw"), amount, address: signer::address_of(user), token: type_info::type_name<T>(), time: timestamp::now_seconds() });
     }
 
-    public entry fun borrow<T, X:store, A, B>(user: &signer, amount: u64) acquires GlobalVault, Permissions {
+    public entry fun borrow<T, X:store, A, B>(user: &signer, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         let vault = borrow_global_mut<GlobalVault<T>>(@dev);
@@ -289,11 +376,31 @@ module dev::QiaraVaultsV5 {
         coin::deposit(signer::address_of(user), coins);
 
         Margin::add_borrow<T, X, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<X>()); 
+        provider_vault.total_borrowed = provider_vault.total_borrowed + (amount as u128);
+
         accrue<T, X, A, B>(signer::address_of(user));
         event::emit(VaultEvent { type: utf8(b"Borrow"), amount, address: signer::address_of(user), token: type_info::type_name<T>(), time: timestamp::now_seconds() });
     }
 
-    public entry fun claim_rewards<T, X:store, A, B>(user: &signer) acquires GlobalVault, Permissions {
+
+    public entry fun repay<T, X:store, A, B>(user: &signer, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
+        assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
+
+        let vault = borrow_global_mut<GlobalVault<T>>(@dev);
+
+        let coins = coin::withdraw<T>(user, amount);
+        coin::merge(&mut vault.balance, coins);
+
+        Margin::remove_borrow<T, X, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<X>()); 
+        provider_vault.total_borrowed = provider_vault.total_borrowed - (amount as u128);
+
+        accrue<T, X, A, B>(signer::address_of(user));
+        event::emit(VaultEvent { type: utf8(b"Repay"), amount, address: signer::address_of(user), token: type_info::type_name<T>(), time: timestamp::now_seconds() });
+    }
+
+    public entry fun claim_rewards<T, X:store, A, B>(user: &signer) acquires GlobalVault, Permissions, VaultRegistry {
         let addr = signer::address_of(user);
         let type_str = type_info::type_name<T>();
 
@@ -351,6 +458,7 @@ module dev::QiaraVaultsV5 {
         }
     }
 
+
     #[view]
     fun get_balance_amount<T>(): u64 acquires GlobalVault {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
@@ -359,25 +467,50 @@ module dev::QiaraVaultsV5 {
     }
 
     #[view]
-    public fun get_complete_vault<T, X:store>(): CompleteVault acquires GlobalVault {
-        let vault = get_vault<T, X>();
+    public fun get_complete_vault<T, X:store>(tokenStr: String, vaultStr: String): CompleteVault acquires GlobalVault, VaultRegistry {
+        let vault = get_vaultUSD<T>(tokenStr, vaultStr);
         CompleteVault { vault: vault, coin: VerifiedTokens::get_coin_data<T>(), tier: VerifiedTokens::get_tier(vault.tier), Metadata: VerifiedTokens::get_coin_metadata<T>()  }
     }
 
     #[view]
-    public fun get_vault<T, X: store>(): VaultUSD acquires GlobalVault {
+    public fun get_vault(tokenStr: String): Vault acquires VaultRegistry {
+        let vault_vect = table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, tokenStr);
+
+        let i = 0;
+        let len = vector::length(vault_vect);
+
+        while (i < len) {
+            let vault_ref = vector::borrow(vault_vect, i);
+            if (vault_ref.provider == tokenStr) {
+                // return a copy of the struct
+                return Vault {provider: vault_ref.provider,total_deposited: vault_ref.total_deposited,total_borrowed: vault_ref.total_borrowed,};
+            };
+            i = i + 1;
+        };
+
+        abort(ERROR_NO_VAULT_FOUND)
+    }
+
+
+    #[view]
+    public fun get_vaultUSD<T>(tokenStr: String, vaultStr: String): VaultUSD acquires GlobalVault, VaultRegistry {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global<GlobalVault<T>>(@dev);
         let balance = coin::value(&vault.balance);
         let metadata = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>());
 
-        let (total_deposited, total_borrowed, _) = Margin::get_raw_vault<T,X>();
-        let utilization = get_utilization_ratio(total_deposited, total_borrowed);
+        let vault_total = get_vault(tokenStr);
+        let utilization = get_utilization_ratio(vault_total.total_deposited, vault_total.total_borrowed);
 
         let (price, price_decimals, _, _) = supra_oracle_storage::get_price(VerifiedTokens::get_coin_metadata_oracle(&metadata));
-        let lend_apy = QiaraMath::compute_rate((VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(type_info::type_name<X>())) as u256), (utilization as u256), ((VerifiedTokens::lend_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256), 5);
-        let borrow_apy = QiaraMath::compute_rate((VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(type_info::type_name<X>())) as u256), (utilization as u256), ((VerifiedTokens::borrow_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256), 5);
-        VaultUSD {tier: vault.tier, oracle_price: (price as u128), oracle_decimals: (price_decimals as u8), total_deposited: total_deposited,balance: balance, borrowed: total_borrowed, utilization: utilization, rewards: lend_apy, interest: borrow_apy, fee: get_withdraw_fee(utilization)}
+        let lend_apy = QiaraMath::compute_rate((VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(vaultStr)) as u256), (utilization as u256), ((VerifiedTokens::lend_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256), 5);
+        let borrow_apy = QiaraMath::compute_rate((VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(vaultStr)) as u256), (utilization as u256), ((VerifiedTokens::borrow_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256), 5);
+        VaultUSD {tier: vault.tier, oracle_price: (price as u128), oracle_decimals: (price_decimals as u8), total_deposited: vault_total.total_deposited,balance: balance, borrowed: vault_total.total_borrowed, utilization: utilization, rewards: lend_apy, interest: borrow_apy, fee: get_withdraw_fee(utilization)}
+    }
+
+    #[view]
+    public fun get_vault_providers(tokenStr: String): vector<Vault> acquires VaultRegistry {
+        return *table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, tokenStr)
     }
 
     #[view]
@@ -391,12 +524,14 @@ module dev::QiaraVaultsV5 {
         return (bonus)
     }
 
-    public fun accrue<T, X: store, A, B>(user: address) acquires GlobalVault, Permissions {
+    public fun accrue<T, X: store, A, B>(user: address) acquires GlobalVault, Permissions, VaultRegistry {
 
         // staci fetchovat jen jeden vault teoreticky? protoze z nej poterbuju ty rewards a interests indexy? a to pak previst na token A a B... ?
         let (lend_rate, reward_index, interest_index, last_updated) = VaultTypes::get_vault_raw(type_info::type_name<X>());
-        let vault = get_vault<T, X>();
-        VaultTypes::accrue_global<X>((lend_rate as u256), (VerifiedTokens::borrow_scale(vault.tier) as u256), (vault.utilization as u256), (get_balance_amount<T>() as u256), (((get_balance_amount<T>() as u128) - vault.total_deposited) as u256), VaultTypes::give_permission(&borrow_global<Permissions>(@dev).vault_types));
+        let vault = get_vault(type_info::type_name<T>());
+        let metadata = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>());
+        let utilization = get_utilization_ratio(vault.total_deposited, vault.total_borrowed);
+        VaultTypes::accrue_global<X>((lend_rate as u256), (VerifiedTokens::borrow_scale((VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256), (utilization as u256), (get_balance_amount<T>() as u256), (((get_balance_amount<T>() as u128) - vault.total_deposited) as u256), VaultTypes::give_permission(&borrow_global<Permissions>(@dev).vault_types));
 
         let scale: u128 = 1000000000000000000;
 
@@ -418,4 +553,23 @@ module dev::QiaraVaultsV5 {
         
         Margin::update_time<T, X, Market>(user, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
     }
+
+fun find_vault(vault_table: &mut VaultRegistry, provider: String): &mut Vault {
+    // borrow the vector mutably from the table
+    let vault_vect = table::borrow_mut(&mut vault_table.vaults, provider);
+
+    let i = 0;
+    let len = vector::length(vault_vect);
+
+    while (i < len) {
+        let vault_ref = vector::borrow_mut(vault_vect, i);
+        if (vault_ref.provider == provider) {
+            return vault_ref;
+        };
+        i = i + 1;
+    };
+
+    abort(ERROR_NO_VAULT_FOUND)
+}
+
 }
