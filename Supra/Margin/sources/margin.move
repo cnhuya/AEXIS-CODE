@@ -14,12 +14,13 @@ module dev::QiaraMarginV13{
 
     use dev::QiaraMath::{Self as QiaraMath};
 
+// === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_USER_NOT_REGISTERED: u64 = 2;
     const ERROR_CANT_UPDATE_MARGIN_FOR_THIS_VAULT: u64 = 3;
     const ERROR_NOT_ENOUGH_LIQUIDITY: u64 = 4;
 
-
+// === ACCESS === //
     struct Access has store, key, drop {}
     struct Permission has key, drop {}
 
@@ -31,7 +32,7 @@ module dev::QiaraMarginV13{
     public fun give_permission(access: &Access): Permission {
         Permission {}
     }
-
+// === STRUCTS === //
     struct TokenHoldings has key {
         holdings: table::Table<address, table::Table<String, table::Table<String, vector<Balance>>>>,
         credits: table::Table<address, table::Table<String, Credit>>,
