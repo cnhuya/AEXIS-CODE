@@ -1,4 +1,4 @@
-module dev::QiaraMarginV15{
+module dev::QiaraMarginV16{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -278,14 +278,20 @@ module dev::QiaraMarginV15{
     }
 
 // === PUBLIC VIEWS === //
+
     #[view]
-    public fun get_vault<T, X>(): Vault acquires Vaults {
-        return *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>())
+    public fun get_list_of_vaults(res: String): vector<String> acquires VaultRegistry {
+        return *table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, res)
     }
 
     #[view]
-    public fun get_raw_vault<T, X>(): (u128, u128, u128) acquires Vaults {
-        let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>());
+    public fun get_vault(res: String): Vault acquires Vaults {
+        return *find_vault(borrow_global_mut<Vaults>(@dev), res)
+    }
+
+    #[view]
+    public fun get_raw_vault(tokenStr: String): (u128, u128, u128) acquires Vaults {
+        let vault = *find_vault(borrow_global_mut<Vaults>(@dev), tokenStr);
         return (vault.total_deposited, vault.total_borrowed, (vault.total_deposited - vault.total_borrowed))
     }
 
