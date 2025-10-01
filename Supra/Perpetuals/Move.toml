@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraPerpsV11"
+    name = "QiaraPerpsV12"
     version = "2.1.1"
     authors = []
 
@@ -26,7 +26,7 @@
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
 
-    [dependencies.QiaraVerifiedTokensV4]
+    [dependencies.QiaraVerifiedTokensV5]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/VerifiedTokens'
@@ -36,7 +36,7 @@
     rev = 'main'
     subdir = 'Supra/Math'
 
-    [dependencies.QiaraMarginV13]
+    [dependencies.QiaraMarginV14]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'

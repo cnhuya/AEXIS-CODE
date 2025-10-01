@@ -1,12 +1,12 @@
-module dev::QiaraPerpsV11{
+module dev::QiaraPerpsV12{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::type_info::{Self, TypeInfo};
     use std::table;
 
-    use dev::QiaraMarginV13::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraVerifiedTokensV4::{Self as VerifiedTokens};
+    use dev::QiaraMarginV14::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV5::{Self as VerifiedTokens};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
