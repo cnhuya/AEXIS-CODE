@@ -1,4 +1,4 @@
-module dev::QiaraMarginV16{
+module dev::QiaraMarginV17{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -285,17 +285,6 @@ module dev::QiaraMarginV16{
     }
 
     #[view]
-    public fun get_vault(res: String): Vault acquires Vaults {
-        return *find_vault(borrow_global_mut<Vaults>(@dev), res)
-    }
-
-    #[view]
-    public fun get_raw_vault(tokenStr: String): (u128, u128, u128) acquires Vaults {
-        let vault = *find_vault(borrow_global_mut<Vaults>(@dev), tokenStr);
-        return (vault.total_deposited, vault.total_borrowed, (vault.total_deposited - vault.total_borrowed))
-    }
-
-    #[view]
     public fun get_user_position_usd<T, X, Y>(addr: address): (u256, u256, u256, u256, u256, u256)acquires TokenHoldings{
         assert_user_registered(addr);
 
@@ -497,19 +486,19 @@ module dev::QiaraMarginV16{
         // Borrow the user's holdings table
         let user_holdings = table::borrow_mut(&mut feature_table.holdings, addr);
 
-        // Ensure vault entry exists
-        if (!table::contains(user_holdings, vault)) {
+        // Ensure feature entry exists
+        if (!table::contains(user_holdings, feature)) {
             table::add(user_holdings,vault,table::new<String, vector<Balance>>(),);
         };
 
-        let vault_table = table::borrow_mut(user_holdings, vault);
+        let vault_table = table::borrow_mut(user_holdings, feature);
 
-        // Ensure feature entry exists
-        if (!table::contains(vault_table, feature)) {
-            table::add(vault_table, feature, vector::empty<Balance>());
+        // Ensure vault entry exists
+        if (!table::contains(vault_table, vault)) {
+            table::add(vault_table, vault, vector::empty<Balance>());
         };
 
-        let holdings = table::borrow_mut(vault_table, feature);
+        let holdings = table::borrow_mut(vault_table, vault);
         let len = vector::length(holdings);
         let i = 0;
 
@@ -530,13 +519,12 @@ module dev::QiaraMarginV16{
         vector::borrow_mut(holdings, idx)
     }
 
-    fun find_vault(vault_table: &mut Vaults, token: String): &mut Vault {
-        if (!table::contains(&vault_table.vaults, token)) {
-            table::add(&mut vault_table.vaults, token, Vault { total_deposited: 0, total_borrowed: 0 });
+    fun find_vault(vault_table: &mut Vaults, vault: String): &mut Vault {
+        if (!table::contains(&vault_table.vaults, vault)) {
+            table::add(&mut vault_table.vaults, vault, Vault { total_deposited: 0, total_borrowed: 0 });
         };
 
-        table::borrow_mut(&mut vault_table.vaults, token)
-
+        table::borrow_mut(&mut vault_table.vaults, vault)
     }
 
 // === HELPERS === //
