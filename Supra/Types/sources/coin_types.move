@@ -1,4 +1,4 @@
-module dev::QiaraCoinTypesV4{
+module dev::QiaraCoinTypesV5{
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
@@ -6,9 +6,10 @@ module dev::QiaraCoinTypesV4{
     use supra_framework::coin::{Self, Coin, BurnCapability, FreezeCapability, MintCapability};
     use std::type_info::{Self, TypeInfo};
 
+// === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
     const ERROR_NOT_VALIDATOR: u64 = 1;
-
+// === ACCESS === //
     struct Access has store, key, drop {}
     struct Permission has key, drop {}
 
@@ -17,13 +18,10 @@ module dev::QiaraCoinTypesV4{
         Access {}
     }
 
-    public fun give_permission(s: &signer, access: &Access): Permission {
+    public fun give_permission(access: &Access): Permission {
         Permission {}
     }
-
-    // ----------------------------------------------------------------
-    // Coin type markers
-    // ----------------------------------------------------------------
+// === STRUCTS === //
     struct SuiBitcoin has drop, store, key {}
     struct SuiEthereum has drop, store, key {}
     struct SuiSui has drop, store, key {}
@@ -33,20 +31,11 @@ module dev::QiaraCoinTypesV4{
     struct BaseEthereum has drop, store, key {}
     struct BaseUSDC has drop, store, key {}
 
-
-    public fun return_all_coin_types(): vector<String>{
-        return vector<String>[type_info::type_name<SuiBitcoin>(),type_info::type_name<SuiEthereum>(),type_info::type_name<SuiSui>(),
-        type_info::type_name<SuiUSDC>(),type_info::type_name<SuiUSDT>(),type_info::type_name<BaseEthereum>(),type_info::type_name<BaseUSDC>()]
-    }
-
     // Vault holds all initially minted coins for a given T
     struct Vault<phantom T> has key {
         balance: coin::Coin<T>,
     }
-
-    // ----------------------------------------------------------------
-    // Module init: set up all coins and their vaults under ADMIN
-    // ----------------------------------------------------------------
+// === INIT === //
     fun init_module(admin: &signer) {
         assert!(signer::address_of(admin) == @dev, 1);
 
@@ -60,34 +49,15 @@ module dev::QiaraCoinTypesV4{
         init_with_vault<BaseUSDC>(admin,    utf8(b"Base USDC"),      utf8(b"BASEUSDC"), 6);
     }
 
-
-    // ----------------------------------------------------------------
     // Initialize a single coin T and create a vault with full u64::MAX
-    // ----------------------------------------------------------------
-    public entry fun init_with_vault<T: store>(
-        admin: &signer,
-        name: String,
-        symbol: String,
-        decimals: u8
-    ) {
-        // Ensure only ADMIN can call
+    public entry fun init_with_vault<T: store>(admin: &signer, name: String, symbol: String, decimals: u8 ) {
         assert!(signer::address_of(admin) == @dev, 1);
 
-
-
-        // Initialize metadata & supply tracking
-        let (burn_cap, freeze_cap, mint_cap) = coin::initialize<T>(
-            admin,
-            name,
-            symbol,
-            decimals,
-            true
-        );
+        let (burn_cap, freeze_cap, mint_cap) = coin::initialize<T>(admin,name,symbol,decimals,true);
 
         // Register ADMIN to hold balances of T
         register<T>(admin);
 
-        // Mint full u64::MAX to ADMIN
         let max_amount: u64 = 18446744073709551615;
         //let coins = managed_coin::mint<T>(admin, signer::address_of(admin), max_amount);
         let coins_minted = coin::mint(max_amount, &mint_cap);
@@ -102,32 +72,9 @@ module dev::QiaraCoinTypesV4{
         // e.g., move_from<Capabilities<T>>(admin)
     }
 
-
-    // ----------------------------------------------------------------
     // User coin registration
-    // ----------------------------------------------------------------
     public entry fun register<T>(user: &signer) {
         managed_coin::register<T>(user);
-    }
-
-    // ----------------------------------------------------------------
-    // Vault-controlled flows (only validators can use)
-    // ----------------------------------------------------------------
-    public fun withdraw_to<T>(banker: &signer, cap: Permission, recipient: address, amount: u64)acquires Vault {
-        let who = signer::address_of(banker);
-        //assert!(vector::contains(&Chains::get_supra_bankers(), &who), ERROR_NOT_VALIDATOR);
-
-        let vault = borrow_global_mut<Vault<T>>(@dev);
-        let coins = coin::extract(&mut vault.balance, amount);
-        coin::deposit<T>(recipient, coins);
-    }
-
-    public fun extract_to<T>(banker: &signer, cap: Permission, recipient: address, amount: u64): Coin<T> acquires Vault {
-        let who = signer::address_of(banker);
-        //assert!(vector::contains(&Chains::get_supra_bankers(), &who), ERROR_NOT_VALIDATOR);
-
-        let vault = borrow_global_mut<Vault<T>>(@dev);
-        coin::extract(&mut vault.balance, amount)
     }
 
     //public native deposit
@@ -145,19 +92,39 @@ module dev::QiaraCoinTypesV4{
         coin::transfer<T>(sender, recipient, amount);
     }
 
-    // ----------------------------------------------------------------
-    // Views
-    // ----------------------------------------------------------------
+// === HELPER FUNCTIONS === //
+    // Vault-controlled flows (only validators can use)
+
+    public fun withdraw_to<T>(banker: &signer, cap: Permission, recipient: address, amount: u64)acquires Vault {
+        let who = signer::address_of(banker);
+        //assert!(vector::contains(&Chains::get_supra_bankers(), &who), ERROR_NOT_VALIDATOR);
+
+        let vault = borrow_global_mut<Vault<T>>(@dev);
+        let coins = coin::extract(&mut vault.balance, amount);
+        coin::deposit<T>(recipient, coins);
+    }
+
+    public fun extract_to<T>(banker: &signer, cap: Permission, recipient: address, amount: u64): Coin<T> acquires Vault {
+        let who = signer::address_of(banker);
+        //assert!(vector::contains(&Chains::get_supra_bankers(), &who), ERROR_NOT_VALIDATOR);
+
+        let vault = borrow_global_mut<Vault<T>>(@dev);
+        coin::extract(&mut vault.balance, amount)
+    }
+
+    public fun return_all_coin_types(): vector<String>{
+        return vector<String>[type_info::type_name<SuiBitcoin>(),type_info::type_name<SuiEthereum>(),type_info::type_name<SuiSui>(),
+        type_info::type_name<SuiUSDC>(),type_info::type_name<SuiUSDT>(),type_info::type_name<BaseEthereum>(),type_info::type_name<BaseUSDC>()]
+    }
+// === VIEW FUNCTIONS === //
     #[view]
     public fun balance_of<T>(addr: address): u64 {
         coin::balance<T>(addr)
     }
 
-    /// "Circulating" supply if you treat the ADMIN vault as non-circulating.
     #[view]
     public fun supply<T>(): u64 acquires Vault {
         let vault = borrow_global<Vault<T>>(@dev);
         18446744073709551615 - (coin::value(&vault.balance))
     }
-
 }

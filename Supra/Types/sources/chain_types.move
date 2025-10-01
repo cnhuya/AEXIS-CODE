@@ -1,18 +1,16 @@
-module dev::QiaraChainTypesV4 {
+module dev::QiaraChainTypesV5 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
 
+// === STRUCTS === //
     struct Supra has store, key { }
-
     struct Sui has store, key { }
-
     struct Base has store, key { }
 
-
+// === HELPER FUNCTIONS === //
     public fun return_all_chain_types(): vector<String>{
         return vector<String>[type_info::type_name<Supra>(),type_info::type_name<Sui>(),type_info::type_name<Base>()]
     }
-
 
     public fun convert_chainType_to_string<T>(): String{
         let type = type_info::type_name<T>();

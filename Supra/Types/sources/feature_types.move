@@ -1,16 +1,14 @@
-module dev::QiaraFeatureTypesV4 {
+module dev::QiaraFeatureTypesV5 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
 
+// === STRUCTS === //
     struct Market has store, key { }
-
     struct Perpetuals has store, key { }
-
-
+// === HELPER FUNCTIONS === //
     public fun return_all_feature_types(): vector<String>{
         return vector<String>[type_info::type_name<Market>(),type_info::type_name<Perpetuals>()]
     }
-
 
     public fun convert_featureType_to_string<T>(): String{
         let type = type_info::type_name<T>();
@@ -22,5 +20,4 @@ module dev::QiaraFeatureTypesV4 {
             return utf8(b"Unknown")
         }
     }
-
 }

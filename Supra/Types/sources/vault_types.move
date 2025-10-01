@@ -1,4 +1,4 @@
-module dev::QiaraVaultTypesV4 {
+module dev::QiaraVaultTypesV5 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::signer;
@@ -6,22 +6,21 @@ module dev::QiaraVaultTypesV4 {
     use std::timestamp;
 
     use dev::QiaraMath::{Self as Math};
-
+// === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
-
+// === ACCESS === //
     struct Access has store, key, drop {}
     struct Permission has key, drop {}
-
 
     public fun give_access(s: &signer): Access {
         assert!(signer::address_of(s) == @dev, ERROR_NOT_ADMIN);
         Access {}
     }
 
-    public fun give_permission(s: &signer, access: &Access): Permission {
+    public fun give_permission(access: &Access): Permission {
         Permission {}
     }
-
+// === STRUCTS === //
     // Global - No vault provider
     struct None has store, key { }
 
@@ -43,12 +42,13 @@ module dev::QiaraVaultTypesV4 {
         last_update: u64,     // last timestamp or block height
     }
 
+// === INIT === //
     fun init_module(address: &signer){
         if (!exists<RateList>(signer::address_of(address))) {
             move_to(address, RateList {rates: table::new<String, Rate>()});
         };
     }
-
+// === HELPER FUNCTIONS === //
     public fun change_rates<X>(lend_rate: u64, borrow_rate: u64, cap: Permission) acquires RateList {
         let x = borrow_global_mut<RateList>(@dev);
         let key = type_info::type_name<X>();
@@ -113,7 +113,7 @@ module dev::QiaraVaultTypesV4 {
         return rate.last_update
     }
 
-// === HELP FUNCTIONS === //
+// === HELPER FUNCTIONS === //
     public fun return_all_vault_provider_types(): vector<String>{
         return vector<String>[type_info::type_name<None>(), type_info::type_name<AlphaLend>(),type_info::type_name<SuiLend>(),type_info::type_name<Moonwell>()]
     }
