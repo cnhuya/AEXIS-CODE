@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV6{
+module dev::QiaraVerifiedTokensV7{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -18,6 +18,19 @@ module dev::QiaraVerifiedTokensV6{
     const ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST: u64 = 2;
     const ERROR_TIER_ALREADY_EXISTS: u64 = 3;
     const ERROR_COIN_ALREADY_ALLOWED: u64 = 4;
+
+// === ACCESS === //
+    struct Access has store, key, drop {}
+    struct Permission has key, drop {}
+
+    public fun give_access(s: &signer): Access {
+        assert!(signer::address_of(s) == @dev, ERROR_NOT_ADMIN);
+        Access {}
+    }
+
+    public fun give_permission(access: &Access): Permission {
+        Permission {}
+    }
 
 // === STRUCTS === //
     struct Tiers has key {
@@ -56,7 +69,7 @@ module dev::QiaraVerifiedTokensV6{
     }
 
 // === INIT === //
-    fun init_module(admin: &signer) acquires Tiers, Tokens{
+    fun init_module(admin: &signer) acquires Tiers{
         let deploy_addr = signer::address_of(admin);
 
         if (!exists<Tiers>(deploy_addr)) {
@@ -73,22 +86,11 @@ module dev::QiaraVerifiedTokensV6{
         add_tier(admin, 3, 500, 70,  750, 1_000_000, 500_000);
         add_tier(admin, 4, 750, 60, 1000, 600_000, 250_000);
         add_tier(admin, 5, 1000, 50, 1500, 250_000, 100_000);
-
-        allow_coin<BaseEthereum>(admin, 1, 1, utf8(b"Base"));
-        allow_coin<BaseUSDC>(admin, 0, 47,  utf8(b"Base"));
-
-        allow_coin<SuiEthereum>(admin, 1, 1,  utf8(b"Sui"));
-        allow_coin<SuiUSDC>(admin, 0, 47, utf8(b"Sui"));
-        allow_coin<SuiUSDT>(admin, 0, 47, utf8(b"Sui"));
-        allow_coin<SuiSui>(admin, 2, 90, utf8(b"Sui"));
-        allow_coin<SuiBitcoin>(admin, 1, 0, utf8(b"Sui"));
-
-        allow_coin<SupraCoin>(admin, 3, 500, utf8(b"Supra"));
     }
 
 
 // === ENTRY FUNCTIONS === //
-    public entry fun allow_coin<T>(admin: &signer, tier_id: u8, oracleID: u32, chain: String) acquires Tokens{
+    public fun allow_coin<T>(admin: &signer, tier_id: u8, oracleID: u32, chain: String, permission: Permission) acquires Tokens{
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
         let vault_list = borrow_global_mut<Tokens>(signer::address_of(admin));
