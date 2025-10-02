@@ -1,9 +1,16 @@
-module dev::QiaraHelperV1 {
+module dev::QiaraHelperV3 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
 
-    use dev::QiaraStorageV13::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV13::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use supra_framework::supra_coin::{Self, SupraCoin};
+
+    use dev::QiaraStorageV22::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV22::{Self as capabilities, Access as CapabilitiesAccess};
+
+    use dev::QiaraVaultsV11::{Self as Market, Vault};
+
+    use dev::QiaraVerifiedTokensV8::{Self as VerifiedTokens, Metadata, Tier};
 
     struct Governance has copy, drop{
         minimum_tokens_to_propose: u64,
@@ -11,6 +18,27 @@ module dev::QiaraHelperV1 {
         quarum_to_pass: u64,
         minimum_votes: u64,
         scale: u64,
+    }
+
+    struct Vaults has drop{
+        tier: Tier,
+        metadata: Metadata,
+        vaults: vector<Vault>,
+    }
+
+
+    #[view]
+    public fun viewVaults(): vector<Vaults> {
+        let tokens = VerifiedTokens::get_registered_vaults();
+        let len = vector::length(&tokens);
+        let vect = vector::empty<Vaults>();
+        while(len>0){
+            let metadata = vector::borrow(&tokens, len-1);
+            let tier = VerifiedTokens::get_tier(VerifiedTokens::get_coin_metadata_tier(metadata));
+            vector::push_back(&mut vect, Vaults {tier: tier, metadata: VerifiedTokens::get_coin_metadata_by_res(VerifiedTokens::get_coin_metadata_resource(metadata)), vaults: Market::get_vault_providers(VerifiedTokens::get_coin_metadata_resource(metadata))});
+            len = len-1;
+        };
+        return vect
     }
 
     #[view]
