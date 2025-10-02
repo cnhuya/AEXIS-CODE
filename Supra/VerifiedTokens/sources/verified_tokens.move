@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV5{
+module dev::QiaraVerifiedTokensV6{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -17,6 +17,7 @@ module dev::QiaraVerifiedTokensV5{
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST: u64 = 2;
     const ERROR_TIER_ALREADY_EXISTS: u64 = 3;
+    const ERROR_COIN_ALREADY_ALLOWED: u64 = 4;
 
 // === STRUCTS === //
     struct Tiers has key {
@@ -91,9 +92,9 @@ module dev::QiaraVerifiedTokensV5{
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
         let vault_list = borrow_global_mut<Tokens>(signer::address_of(admin));
-        let type = type_info::type_name<T>();
+        assert!(!vector::contains(&vault_list.list,&Metadata { tier: tier_id, resource: type_info::type_name<T>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<T>(), chain: chain }), ERROR_COIN_ALREADY_ALLOWED);
             
-        vector::push_back(&mut vault_list.list, Metadata { tier: tier_id, resource: type, price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<T>(), chain: chain });
+        vector::push_back(&mut vault_list.list, Metadata { tier: tier_id, resource: type_info::type_name<T>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<T>(), chain: chain });
     }
 
     public entry fun change_coin_oracle<T>(admin: &signer, oracleID: u32) acquires Tokens {
@@ -240,9 +241,6 @@ module dev::QiaraVerifiedTokensV5{
             let coin_data = get_coin_data<T>();
             coin_data.supply
         }
-
-
-
 
     // === GET COIN METADATA === //
 
