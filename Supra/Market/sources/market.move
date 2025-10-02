@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV10 {
+module dev::QiaraVaultsV11 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,8 +11,8 @@ module dev::QiaraVaultsV10 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
 
-    use dev::QiaraVerifiedTokensV7::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV19::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV8::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
+    use dev::QiaraMarginV20::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use dev::QiaraChainTypesV5::{Self as ChainTypes};
@@ -183,21 +183,20 @@ module dev::QiaraVaultsV10 {
 
     }
 
-public entry fun init_provider<T, X>(admin: &signer) acquires VaultRegistry {
-    assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
+    public entry fun init_provider<T, X>(admin: &signer) acquires VaultRegistry {
+        assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
-    let registry = borrow_global_mut<VaultRegistry>(@dev);
-    let token_key = type_info::type_name<T>();
+        let registry = borrow_global_mut<VaultRegistry>(@dev);
+        let token_key = type_info::type_name<T>();
 
-    // If no entry exists for this token, initialize with an empty vector
-    if (!table::contains(&registry.vaults, token_key)) {
-        table::add(&mut registry.vaults, token_key, vector::empty<Vault>());
-    };
+        // If no entry exists for this token, initialize with an empty vector
+        if (!table::contains(&registry.vaults, token_key)) {
+            table::add(&mut registry.vaults, token_key, vector::empty<Vault>());
+        };
 
-    let vault_vector = table::borrow_mut(&mut registry.vaults, token_key);
-    vector::push_back(vault_vector,Vault {provider: type_info::type_name<X>(),total_deposited: 0,total_borrowed: 0});
-}
-
+        let vault_vector = table::borrow_mut(&mut registry.vaults, token_key);
+        vector::push_back(vault_vector,Vault {provider: type_info::type_name<X>(),total_deposited: 0,total_borrowed: 0});
+    }
 
     public entry fun init_vault<T>(admin: &signer, tier: u8, oracleID: u32, chain: String) acquires Permissions{
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
