@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV7{
+module dev::QiaraVerifiedTokensV8{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -51,6 +51,7 @@ module dev::QiaraVerifiedTokensV7{
 
     struct Metadata has key, store, copy,drop{
         tier: u8,
+        tier_name: String,
         resource: String,
         price: u128,
         denom: u256,
@@ -94,9 +95,9 @@ module dev::QiaraVerifiedTokensV7{
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
         let vault_list = borrow_global_mut<Tokens>(signer::address_of(admin));
-        assert!(!vector::contains(&vault_list.list,&Metadata { tier: tier_id, resource: type_info::type_name<T>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<T>(), chain: chain }), ERROR_COIN_ALREADY_ALLOWED);
+        assert!(!vector::contains(&vault_list.list,&Metadata { tier: tier_id, tier_name: convert_tier_to_string(tier_id), resource: type_info::type_name<T>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<T>(), chain: chain }), ERROR_COIN_ALREADY_ALLOWED);
             
-        vector::push_back(&mut vault_list.list, Metadata { tier: tier_id, resource: type_info::type_name<T>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<T>(), chain: chain });
+        vector::push_back(&mut vault_list.list, Metadata { tier: tier_id, tier_name: convert_tier_to_string(tier_id), resource: type_info::type_name<T>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<T>(), chain: chain });
     }
 
     public entry fun change_coin_oracle<T>(admin: &signer, oracleID: u32) acquires Tokens {
@@ -264,6 +265,7 @@ module dev::QiaraVerifiedTokensV7{
                     let denom = Math::pow10_u256((price_decimals as u8));
                     return Metadata { 
                         tier: metadat.tier, 
+                        tier_name: metadat.tier_name, 
                         resource: metadat.resource, 
                         price: price, 
                         denom: denom, 
@@ -281,6 +283,10 @@ module dev::QiaraVerifiedTokensV7{
 
         public fun get_coin_metadata_tier(metadata: &Metadata): u8 {
             metadata.tier
+        }
+
+        public fun get_coin_metadata_tier_name(metadata: &Metadata): String {
+            metadata.tier_name
         }
 
         public fun get_coin_metadata_resource(metadata: &Metadata): String {
@@ -315,6 +321,7 @@ module dev::QiaraVerifiedTokensV7{
                     let denom = Math::pow10_u256((price_decimals as u8));
                     return Metadata { 
                         tier: metadat.tier, 
+                        tier_name: metadat.tier_name, 
                         resource: metadat.resource, 
                         price: price, 
                         denom: denom, 
@@ -328,4 +335,22 @@ module dev::QiaraVerifiedTokensV7{
 
             abort(ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST)
         }
+// === CONVERT === //
+    public fun convert_tier_to_string(tier: u8): String{
+        if(tier == 1 ){
+            return utf8(b"Stable")
+        } else if(tier == 2 ){
+            return utf8(b"Bluechip")
+        } else if(tier == 3 ){
+            return utf8(b"Adopted")
+        } else if(tier == 4 ){
+            return utf8(b"Volatile")
+        } else if(tier == 5){
+            return utf8(b"Experimental")
+        } else if(tier == 6){
+            return utf8(b"Fragile")
+        } else{
+            return utf8(b"Unknown")
+        }
+    }
 }
