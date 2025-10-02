@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV8 {
+module dev::QiaraVaultsV10 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,8 +11,8 @@ module dev::QiaraVaultsV8 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
 
-    use dev::QiaraVerifiedTokensV5::{Self as VerifiedTokens, Tier, CoinData, Metadata};
-    use dev::QiaraMarginV17::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV7::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
+    use dev::QiaraMarginV19::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use dev::QiaraChainTypesV5::{Self as ChainTypes};
@@ -60,6 +60,7 @@ module dev::QiaraVaultsV8 {
         vault_types: VaultTypesAccess,
         storage: StorageAccess,
         capabilities: CapabilitiesAccess,
+        verified_tokens: VerifiedTokensAccess,
     }
 
 // === STRUCTS === //
@@ -130,15 +131,17 @@ module dev::QiaraVaultsV8 {
     }
 
 // === FUNCTIONS === //
-    fun init_module(admin: &signer){
+    fun init_module(admin: &signer) acquires Permissions{
         if (!exists<VaultRegistry>(@dev)) {
             move_to(admin, VaultRegistry {vaults: table::new<String, vector<Vault>>()});
         };
+        if (!exists<Permissions>(@dev)) {
+            move_to(admin, Permissions {margin: Margin::give_access(admin), vault_types:  VaultTypes::give_access(admin), storage:  storage::give_access(admin), capabilities:  capabilities::give_access(admin), verified_tokens:  VerifiedTokens::give_access(admin)});
+        };
         init_all_vaults(admin)
-        
     }
 
-    public fun init_all_vaults(address: &signer){
+    public fun init_all_vaults(address: &signer) acquires Permissions{
         init_vault<BaseEthereum>(address, 1, 1, utf8(b"Base"));
         init_vault<BaseUSDC>(address, 0, 47,  utf8(b"Base"));
 
@@ -150,7 +153,6 @@ module dev::QiaraVaultsV8 {
 
         init_vault<SupraCoin>(address, 3, 500, utf8(b"Supra"));
     }
-
 
     public entry fun init_all_providers(address: &signer) acquires VaultRegistry{
         init_provider<BaseEthereum, None>(address);
@@ -197,11 +199,11 @@ public entry fun init_provider<T, X>(admin: &signer) acquires VaultRegistry {
 }
 
 
-    public entry fun init_vault<T>(admin: &signer, tier: u8, oracleID: u32, chain: String){
+    public entry fun init_vault<T>(admin: &signer, tier: u8, oracleID: u32, chain: String) acquires Permissions{
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
         if (!exists<GlobalVault<T>>(@dev)) {
             move_to(admin, GlobalVault {tier: tier,balance: coin::zero<T>(),});
-            VerifiedTokens::allow_coin<T>(admin, tier, oracleID, chain);
+            VerifiedTokens::allow_coin<T>(admin, tier, oracleID, chain, VerifiedTokens::give_permission(&borrow_global<Permissions>(@dev).verified_tokens));
         }
     }
     /// Deposit on behalf of `recipient`
