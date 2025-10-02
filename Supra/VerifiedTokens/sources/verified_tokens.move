@@ -337,17 +337,17 @@ module dev::QiaraVerifiedTokensV8{
         }
 // === CONVERT === //
     public fun convert_tier_to_string(tier: u8): String{
-        if(tier == 1 ){
+        if(tier == 0 ){
             return utf8(b"Stable")
-        } else if(tier == 2 ){
+        } else if(tier == 1 ){
             return utf8(b"Bluechip")
-        } else if(tier == 3 ){
+        } else if(tier == 2 ){
             return utf8(b"Adopted")
-        } else if(tier == 4 ){
+        } else if(tier == 3 ){
             return utf8(b"Volatile")
-        } else if(tier == 5){
+        } else if(tier == 4){
             return utf8(b"Experimental")
-        } else if(tier == 6){
+        } else if(tier == 5){
             return utf8(b"Fragile")
         } else{
             return utf8(b"Unknown")
