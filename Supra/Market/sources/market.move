@@ -71,6 +71,17 @@ module dev::QiaraVaultsV12 {
         total_borrowed: u128,
     }
 
+
+    struct FullVault has key, store, copy, drop{
+        provider: String,
+        total_deposited: u128,
+        total_borrowed: u128,
+        utilization: u64,
+        lend_rate: u64,
+        borrow_rate: u64
+    }
+
+
     struct VaultRegistry has key {
         vaults: table::Table<String, vector<Vault>>,
     }
@@ -474,15 +485,15 @@ module dev::QiaraVaultsV12 {
     }
 
     #[view]
-    public fun get_vault(tokenStr: String): Vault acquires VaultRegistry {
-        let vault_vect = table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, tokenStr);
+    public fun get_vault(vaultStr: String): Vault acquires VaultRegistry {
+        let vault_vect = table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, vaultStr);
 
         let i = 0;
         let len = vector::length(vault_vect);
 
         while (i < len) {
             let vault_ref = vector::borrow(vault_vect, i);
-            if (vault_ref.provider == tokenStr) {
+            if (vault_ref.provider == vaultStr) {
                 // return a copy of the struct
                 return Vault {provider: vault_ref.provider,total_deposited: vault_ref.total_deposited,total_borrowed: vault_ref.total_borrowed,};
             };
@@ -491,6 +502,52 @@ module dev::QiaraVaultsV12 {
 
         abort(ERROR_NO_VAULT_FOUND)
     }
+
+    #[view]
+    public fun get_vault_raw(vaultStr: String): (String, u128, u128) acquires VaultRegistry {
+        let vault_vect = table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, vaultStr);
+
+        let i = 0;
+        let len = vector::length(vault_vect);
+
+        while (i < len) {
+            let vault_ref = vector::borrow(vault_vect, i);
+            if (vault_ref.provider == vaultStr) {
+                return (vault_ref.provider, vault_ref.total_deposited, vault_ref.total_borrowed)
+            };
+            i = i + 1;
+        };
+
+        abort(ERROR_NO_VAULT_FOUND)
+    }
+
+
+    #[view]
+    public fun get_full_vault(vaultStr: String): (vector<String>, vector<u128>, vector<u128>) acquires VaultRegistry {
+        let vault_vect = table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, vaultStr);
+
+        let i = 0;
+        let len = vector::length(vault_vect);
+
+        let providers = vector::empty<String>();
+        let total_deposits = vector::empty<u128>();
+        let total_borrows = vector::empty<u128>();
+
+        while (i < len) {
+            let vault_ref = vector::borrow(vault_vect, i);
+
+            // push values into the output vectors
+            vector::push_back(&mut providers, vault_ref.provider);
+            vector::push_back(&mut total_deposits, vault_ref.total_deposited);
+            vector::push_back(&mut total_borrows, vault_ref.total_borrowed);
+
+            i = i + 1;
+        };
+
+        // return all vectors as tuple
+        (providers, total_deposits, total_borrows)
+    }
+
 
 
     #[view]
