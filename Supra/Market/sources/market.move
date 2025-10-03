@@ -462,11 +462,12 @@ module dev::QiaraVaultsV12 {
         return ((amount as u256) / (price as u256)) / VerifiedTokens::get_coin_metadata_denom(&metadata)
     }
 
+    #[view]
     public fun get_utilization_ratio(deposited: u128, borrowed: u128): u64 {
-        if (deposited== 0) {
+        if (deposited == 0 || borrowed == 0) {
             0
         } else {
-            ((borrowed * 100) / deposited as u64)
+            (((borrowed * 100) / deposited) as u64)
         }
     }
 
