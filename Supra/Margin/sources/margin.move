@@ -12,7 +12,7 @@ module dev::QiaraMarginV21{
     use dev::QiaraFeatureTypesV5::{Self as FeatureTypes};
     use dev::QiaraVaultTypesV5::{Self as VaultTypes};
 
-    use dev::QiaraMath::{Self as QiaraMath};
+    use dev::QiaraMathV9::{Self as QiaraMath};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -405,7 +405,14 @@ module dev::QiaraMarginV21{
                         utilization = (bor_usd * 100) / current_raw_borrow;
                     };
 
-                    let margin_interest = QiaraMath::compute_rate((VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(token_id)) as u256), (utilization as u256), ((VerifiedTokens::lend_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256), 5);
+                    let (margin_interest, _, _) = QiaraMath::compute_rate(
+    (utilization as u256),
+    (VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(token_id)) as u256),
+    ((VerifiedTokens::lend_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256),
+    false,
+    5
+);
+
                    // let margin_interest = current_raw_borrow * (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata)) / 100;
 
                     total_dep = total_dep + (dep_usd * (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
