@@ -19,7 +19,7 @@ module dev::QiaraVaultsV12 {
     use dev::QiaraVaultTypesV5::{Self as VaultTypes, Access as VaultTypesAccess, None, AlphaLend, SuiLend, Moonwell};
     use dev::QiaraFeatureTypesV5::{Market};
 
-    use dev::QiaraMath::{Self as QiaraMath};
+    use dev::QiaraMathV9::{Self as QiaraMath};
 
     use dev::QiaraStorageV22::{Self as storage, Access as StorageAccess};
     use dev::QiaraCapabilitiesV22::{Self as capabilities, Access as CapabilitiesAccess};
@@ -222,13 +222,13 @@ module dev::QiaraVaultsV12 {
     /// Security:
     /// 1.Tato funkce muze byt zavolana pouze z smart modulu "bridge"
     /// 2.Signer musi minimalne X Qiara Tokenu stakovat
-    public fun bridge_deposit<T, E, X:store>(user: &signer, permission: Permission, recipient: address,amount: u64,coins: Coin<T>, lend_rate: u64, borrow_rate: u64) acquires VaultRegistry, GlobalVault, Permissions {
+    public fun bridge_deposit<T, E, X:store>(user: &signer, permission: Permission, recipient: address,amount: u64,coins: Coin<T>, lend_rate: u64) acquires VaultRegistry, GlobalVault, Permissions {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         let vault = borrow_global_mut<GlobalVault<T>>(@dev);
         coin::merge(&mut vault.balance, coins);
 
-        VaultTypes::change_rates<X>(lend_rate, borrow_rate, VaultTypes::give_permission(&borrow_global<Permissions>(@dev).vault_types));
+        VaultTypes::change_rates<X>(lend_rate, VaultTypes::give_permission(&borrow_global<Permissions>(@dev).vault_types));
         Margin::add_deposit<T, X, Market>(recipient, amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
 
         let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<X>()); 
@@ -562,8 +562,8 @@ module dev::QiaraVaultsV12 {
         let utilization = get_utilization_ratio(vault_total.total_deposited, vault_total.total_borrowed);
 
         let (price, price_decimals, _, _) = supra_oracle_storage::get_price(VerifiedTokens::get_coin_metadata_oracle(&metadata));
-        let lend_apy = QiaraMath::compute_rate((VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(vaultStr)) as u256), (utilization as u256), ((VerifiedTokens::lend_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256), 5);
-        let borrow_apy = QiaraMath::compute_rate((VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(vaultStr)) as u256), (utilization as u256), ((VerifiedTokens::borrow_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256), 5);
+        let (lend_apy, _, _) = QiaraMath::compute_rate((utilization as u256),(VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(tokenStr)) as u256),((VerifiedTokens::lend_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256),true,5);
+        let (borrow_apy, _, _) = QiaraMath::compute_rate((utilization as u256),(VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(tokenStr)) as u256),((VerifiedTokens::lend_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256),false,5);
         VaultUSD {tier: vault.tier, oracle_price: (price as u128), oracle_decimals: (price_decimals as u8), total_deposited: vault_total.total_deposited,balance: balance, borrowed: vault_total.total_borrowed, utilization: utilization, rewards: lend_apy, interest: borrow_apy, fee: get_withdraw_fee(utilization)}
     }
 
