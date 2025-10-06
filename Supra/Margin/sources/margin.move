@@ -1,4 +1,4 @@
-module dev::QiaraMarginV21{
+module dev::QiaraMarginV22{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,7 +7,7 @@ module dev::QiaraMarginV21{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV9::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV10::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
     use dev::QiaraFeatureTypesV5::{Self as FeatureTypes};
     use dev::QiaraVaultTypesV5::{Self as VaultTypes};
@@ -408,7 +408,7 @@ module dev::QiaraMarginV21{
                     let (margin_interest, _, _) = QiaraMath::compute_rate(
     (utilization as u256),
     (VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(token_id)) as u256),
-    ((VerifiedTokens::lend_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256),
+    (VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(&metadata),false) as u256),
     false,
     5
 );
