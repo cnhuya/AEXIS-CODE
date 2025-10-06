@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraVerifiedTokensV9"
+    name = "QiaraVerifiedTokensV10"
     version = "2.1.1"
     authors = []
 
@@ -31,7 +31,7 @@
     rev = 'main'
     subdir = 'Supra/Math'
 
-    [dependencies.QiaraStorageV22]
+    [dependencies.QiaraStorageV23]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Storage'

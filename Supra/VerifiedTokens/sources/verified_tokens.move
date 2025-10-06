@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV9{
+module dev::QiaraVerifiedTokensV10{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -9,7 +9,7 @@ module dev::QiaraVerifiedTokensV9{
     use supra_framework::coin;
     use supra_framework::supra_coin::{Self, SupraCoin};
 
-    use dev::QiaraStorageV22::{Self as storage};
+    use dev::QiaraStorageV23::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
     use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 
@@ -189,12 +189,10 @@ module dev::QiaraVerifiedTokensV9{
             tier.minimal_w_fee
         }
 
-        public fun borrow_scale(tier_id: u8): u16 {
-            storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"))) - (storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"BORROW_SCALE")))*(tier_id as u16))
-        }
-
-        public fun lend_scale(tier_id: u8): u16 {
-            storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"))) - (storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"LEND_SCALE")))*(tier_id as u16))
+        public fun rate_scale(tier_id: u8, isLending: bool): u16 {
+            let x = 0;
+            if(isLending) { x = 1000 };
+            (storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"))) - ((tier_id as u16)*1000)) - x
         }
 
         public fun deposit_limit(tier_id: u8): u128 acquires Tiers{
