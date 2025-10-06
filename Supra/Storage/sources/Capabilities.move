@@ -8,9 +8,17 @@ module dev::QiaraCapabilitiesV22 {
     use aptos_std::from_bcs;
     use std::bcs::{Self as bc};
 
-
     struct Access has key, store, drop { }
-    struct CapabilitiesChangePermission has key, drop { }
+    struct Permission has key, drop { }
+
+    public fun give_access(s: &signer): Access {
+        assert!(signer::address_of(s) == @dev, ERROR_NOT_ADMIN);
+        Access {}
+    }
+
+    public fun give_permission(access: &Access): Permission {
+        Permission {}
+    }
 
     struct Capability has store, drop, key, copy {
         name: String,
@@ -60,22 +68,14 @@ module dev::QiaraCapabilitiesV22 {
         };
 
         
-        create_capability(admin, signer::address_of(admin), utf8(b"QiaraToken"), utf8(b"TOKEN_CLAIM_CAPABILITY"), true, &give_change_permission(&give_access(admin)));
-        create_capability(admin, @0x281d0fce12a353b1f6e8bb6d1ae040a6deba248484cf8e9173a5b428a6fb74e7, utf8(b"QiaraGovernance"), utf8(b"BLACKLIST"), true, &give_change_permission(&give_access(admin)));
+        create_capability(admin, signer::address_of(admin), utf8(b"QiaraToken"), utf8(b"TOKEN_CLAIM_CAPABILITY"), true, &give_permission(&give_access(admin)));
+        create_capability(admin, @0x281d0fce12a353b1f6e8bb6d1ae040a6deba248484cf8e9173a5b428a6fb74e7, utf8(b"QiaraGovernance"), utf8(b"BLACKLIST"), true, &give_permission(&give_access(admin)));
 
     }
 
 
-    public fun give_access(admin: &signer): Access{
-        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
-        Access {}
-    }
 
-    public fun give_change_permission(access: &Access): CapabilitiesChangePermission{
-        CapabilitiesChangePermission {}
-    }
-
-    public fun create_capability_multi(addr: &signer,  address: vector<address>, header: vector<String>, constant_name: vector<String>, removable: vector<bool>, permission: &CapabilitiesChangePermission) acquires Capabilities, KeyRegistry{
+    public fun create_capability_multi(addr: &signer,  address: vector<address>, header: vector<String>, constant_name: vector<String>, removable: vector<bool>, permission: &Permission) acquires Capabilities, KeyRegistry{
         let len = vector::length(&header);
         while(len>0){
             create_capability(addr, *vector::borrow(&address, len-1), *vector::borrow(&header, len-1), *vector::borrow(&constant_name, len-1), *vector::borrow(&removable, len-1), permission);
@@ -89,7 +89,7 @@ public fun create_capability(
     header: String,
     name: String,
     removable: bool,
-    cap: &CapabilitiesChangePermission
+    cap: &Permission
 ) acquires Capabilities, KeyRegistry {
     assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
 
@@ -132,7 +132,7 @@ public fun create_capability(
 }
 
 
-    public fun remove_capability_multi(addr: &signer,  address: vector<address>, header: vector<String>, constant_name: vector<String>, permission: &CapabilitiesChangePermission) acquires Capabilities, KeyRegistry{
+    public fun remove_capability_multi(addr: &signer,  address: vector<address>, header: vector<String>, constant_name: vector<String>, permission: &Permission) acquires Capabilities, KeyRegistry{
         let len = vector::length(&header);
         while(len>0){
             remove_capability(addr, *vector::borrow(&address, len-1), *vector::borrow(&header, len-1), *vector::borrow(&constant_name, len-1), permission);
@@ -145,7 +145,7 @@ public fun remove_capability(
     addr: address,
     header: String,
     name: String,
-    cap: &CapabilitiesChangePermission
+    cap: &Permission
 ) acquires Capabilities, KeyRegistry {
     assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
 

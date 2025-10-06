@@ -223,7 +223,7 @@ public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires Pen
                                         header,
                                         constant,
                                         new_value,
-                                        &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
+                                        &storage::give_permission(&borrow_global<Access>(OWNER).storage_access)
                                     );
                                 } else {
                                     storage::handle_registration_multi(
@@ -233,7 +233,7 @@ public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires Pen
                                         new_value,
                                         value_type,
                                         editable,
-                                        &storage::give_change_permission(&borrow_global<Access>(OWNER).storage_access)
+                                        &storage::give_permission(&borrow_global<Access>(OWNER).storage_access)
                                     );
                                 };
                             } else if (*_type == utf8(b"Capability")) {
@@ -243,7 +243,7 @@ public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires Pen
                                         to_adress_multi(new_value),
                                         header,
                                         constant,
-                                        &capabilities::give_change_permission(&borrow_global<Access>(OWNER).capabilities_access)
+                                        &capabilities::give_permission(&borrow_global<Access>(OWNER).capabilities_access)
                                     );
                                 } else {
                                     capabilities::create_capability_multi(
@@ -252,7 +252,7 @@ public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires Pen
                                         header,
                                         constant,
                                         editable,
-                                        &capabilities::give_change_permission(&borrow_global<Access>(OWNER).capabilities_access)
+                                        &capabilities::give_permission(&borrow_global<Access>(OWNER).capabilities_access)
                                     );
                                 };
                             } else if (*_type == utf8(b"Function")) {
@@ -261,14 +261,14 @@ public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires Pen
                                         user,
                                         header,
                                         constant,
-                                        &functions::give_function_permission(&borrow_global<Access>(OWNER).function_access)
+                                        &functions::give_permission(&borrow_global<Access>(OWNER).function_access)
                                     );
                                 } else {
                                     functions::register_function_multi(
                                         user,
                                         header,
                                         constant,
-                                        &functions::give_function_permission(&borrow_global<Access>(OWNER).function_access)
+                                        &functions::give_permission(&borrow_global<Access>(OWNER).function_access)
                                     );
                                 };
                             };

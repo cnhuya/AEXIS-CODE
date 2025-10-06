@@ -9,12 +9,22 @@ module dev::QiaraFunctionsV22 {
     use std::bcs::{Self as bc};
 
 
+    struct Access has key, store, drop { }
+    struct Permission has key, drop { }
+
+
+    public fun give_access(s: &signer): Access {
+        assert!(signer::address_of(s) == @dev, ERROR_NOT_ADMIN);
+        Access {}
+    }
+
+    public fun give_permission(access: &Access): Permission {
+        Permission {}
+    }
+
     struct KeyRegistry has key {
         keys: vector<String>,
     }
-
-    struct Access has key, store, drop { }
-    struct FunctionPermission has key, drop { }
 
     struct FunctionDatabase has key {
         database: Table<String, vector<String>>
@@ -48,16 +58,8 @@ module dev::QiaraFunctionsV22 {
 
     }
 
-    public fun give_access(admin: &signer): Access{
-        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
-        Access {}
-    }
 
-    public fun give_function_permission(access: &Access): FunctionPermission{
-        FunctionPermission {}
-    }
-
-    fun register_function(address: &signer, header: String, constant_name: String, permission: &FunctionPermission) acquires FunctionDatabase, KeyRegistry {
+    fun register_function(address: &signer, header: String, constant_name: String, permission: &Permission) acquires FunctionDatabase, KeyRegistry {
         assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
         let db = borrow_global_mut<FunctionDatabase>(OWNER);
         let key_registry = borrow_global_mut<KeyRegistry>(OWNER);
@@ -86,7 +88,7 @@ module dev::QiaraFunctionsV22 {
         }
     }
 
-    public fun register_function_multi(address: &signer, header: vector<String>, constant_name: vector<String>, permission: &FunctionPermission) acquires KeyRegistry, FunctionDatabase{
+    public fun register_function_multi(address: &signer, header: vector<String>, constant_name: vector<String>, permission: &Permission) acquires KeyRegistry, FunctionDatabase{
         let len = vector::length(&header);
         while(len>0){
             register_function(address, *vector::borrow(&header, len-1), *vector::borrow(&constant_name, len-1), permission);
@@ -95,7 +97,7 @@ module dev::QiaraFunctionsV22 {
     }
 
 
-    public fun consume_function(address: &signer, header: String, constant_name: String, permission: &FunctionPermission) acquires FunctionDatabase {
+    public fun consume_function(address: &signer, header: String, constant_name: String, permission: &Permission) acquires FunctionDatabase {
         assert_function_registration(header,constant_name);
         let db = borrow_global_mut<FunctionDatabase>(OWNER);
         let constants = table::borrow_mut(&mut db.database, header);
@@ -111,7 +113,7 @@ module dev::QiaraFunctionsV22 {
         abort ERROR_FUNCTION_DOESNT_EXISTS
     }
 
-    public fun consume_function_multi(address: &signer, header: vector<String>, constant_name: vector<String>, permission: &FunctionPermission) acquires FunctionDatabase{
+    public fun consume_function_multi(address: &signer, header: vector<String>, constant_name: vector<String>, permission: &Permission) acquires FunctionDatabase{
         let len = vector::length(&header);
         while(len>0){
             consume_function(address, *vector::borrow(&header, len-1), *vector::borrow(&constant_name, len-1), permission);
