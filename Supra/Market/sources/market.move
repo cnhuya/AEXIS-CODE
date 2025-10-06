@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV12 {
+module dev::QiaraVaultsV13 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,8 +11,8 @@ module dev::QiaraVaultsV12 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
 
-    use dev::QiaraVerifiedTokensV9::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV21::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV10::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
+    use dev::QiaraMarginV22::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use dev::QiaraChainTypesV5::{Self as ChainTypes};
@@ -21,8 +21,8 @@ module dev::QiaraVaultsV12 {
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
-    use dev::QiaraStorageV22::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV22::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraStorageV23::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV23::{Self as capabilities, Access as CapabilitiesAccess};
 
 
 // === ERRORS === //
@@ -562,8 +562,8 @@ module dev::QiaraVaultsV12 {
         let utilization = get_utilization_ratio(vault_total.total_deposited, vault_total.total_borrowed);
 
         let (price, price_decimals, _, _) = supra_oracle_storage::get_price(VerifiedTokens::get_coin_metadata_oracle(&metadata));
-        let (lend_apy, _, _) = QiaraMath::compute_rate((utilization as u256),(VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(tokenStr)) as u256),((VerifiedTokens::lend_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256),true,5);
-        let (borrow_apy, _, _) = QiaraMath::compute_rate((utilization as u256),(VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(tokenStr)) as u256),((VerifiedTokens::lend_scale(VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256),false,5);
+        let (lend_apy, _, _) = QiaraMath::compute_rate((utilization as u256),(VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(tokenStr)) as u256),((VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(&metadata), true)) as u256),true,5);
+        let (borrow_apy, _, _) = QiaraMath::compute_rate((utilization as u256),(VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(tokenStr)) as u256),((VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(&metadata), false)) as u256),false,5);
         VaultUSD {tier: vault.tier, oracle_price: (price as u128), oracle_decimals: (price_decimals as u8), total_deposited: vault_total.total_deposited,balance: balance, borrowed: vault_total.total_borrowed, utilization: utilization, rewards: lend_apy, interest: borrow_apy, fee: get_withdraw_fee(utilization)}
     }
 
@@ -590,7 +590,7 @@ module dev::QiaraVaultsV12 {
         let vault = get_vault(type_info::type_name<T>());
         let metadata = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>());
         let utilization = get_utilization_ratio(vault.total_deposited, vault.total_borrowed);
-        VaultTypes::accrue_global<X>((lend_rate as u256), (VerifiedTokens::borrow_scale((VerifiedTokens::get_coin_metadata_tier(&metadata))) as u256), (utilization as u256), (get_balance_amount<T>() as u256), (((get_balance_amount<T>() as u128) - vault.total_deposited) as u256), VaultTypes::give_permission(&borrow_global<Permissions>(@dev).vault_types));
+        VaultTypes::accrue_global<X>((lend_rate as u256), (VerifiedTokens::rate_scale((VerifiedTokens::get_coin_metadata_tier(&metadata)), false) as u256), (utilization as u256), (get_balance_amount<T>() as u256), (((get_balance_amount<T>() as u128) - vault.total_deposited) as u256), VaultTypes::give_permission(&borrow_global<Permissions>(@dev).vault_types));
 
         let scale: u128 = 1000000000000000000;
 
