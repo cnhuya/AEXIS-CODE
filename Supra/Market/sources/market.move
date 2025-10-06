@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV13 {
+module dev::QiaraVaultsV14 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,8 +11,8 @@ module dev::QiaraVaultsV13 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
 
-    use dev::QiaraVerifiedTokensV10::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV22::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV11::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
+    use dev::QiaraMarginV23::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use dev::QiaraChainTypesV5::{Self as ChainTypes};
@@ -21,8 +21,8 @@ module dev::QiaraVaultsV13 {
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
-    use dev::QiaraStorageV23::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV23::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraStorageV24::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV24::{Self as capabilities, Access as CapabilitiesAccess};
 
 
 // === ERRORS === //
