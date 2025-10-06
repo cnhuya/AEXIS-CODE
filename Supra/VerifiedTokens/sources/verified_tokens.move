@@ -192,7 +192,7 @@ module dev::QiaraVerifiedTokensV10{
         public fun rate_scale(tier_id: u8, isLending: bool): u16 {
             let x = 0;
             if(isLending) { x = 1000 };
-            (storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"))) - ((tier_id as u16)*1000)) - x
+            (2500 + storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"))) - ((tier_id as u16)*100)) - x
         }
 
         public fun deposit_limit(tier_id: u8): u128 acquires Tiers{
