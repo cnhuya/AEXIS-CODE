@@ -4,8 +4,10 @@ module dev::QiaraVaultTypesV5 {
     use std::signer;
     use std::table;
     use std::timestamp;
+    use supra_framework::supra_coin::{Self, SupraCoin};
+    use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraMath::{Self as Math};
+    use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
 // === ACCESS === //
@@ -49,7 +51,20 @@ module dev::QiaraVaultTypesV5 {
         };
     }
 // === HELPER FUNCTIONS === //
-    public fun change_rates<X>(lend_rate: u64, borrow_rate: u64, cap: Permission) acquires RateList {
+//SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC
+    public entry fun change_rate(addr: signer) acquires RateList {
+        change_rates<SuiBitcoin>(1222,give_permission(give_access(addr)));
+        change_rates<SuiEthereum>(2147,give_permission(give_access(addr)));
+        change_rates<SuiSui>(3578,give_permission(give_access(addr)));
+        change_rates<SuiUSDC>(987,give_permission(give_access(addr)));
+        change_rates<SuiUSDT>(754,give_permission(give_access(addr)));
+        change_rates<BaseEthereum>(5774,give_permission(give_access(addr)));
+        change_rates<BaseUSDC>(855,give_permission(give_access(addr)));
+        change_rates<SupraCoin>(12987,give_permission(give_access(addr)));
+    }
+
+
+    public fun change_rates<X>(lend_rate: u64, cap: Permission) acquires RateList {
         let x = borrow_global_mut<RateList>(@dev);
         let key = type_info::type_name<X>();
 
@@ -117,6 +132,7 @@ module dev::QiaraVaultTypesV5 {
     public fun return_all_vault_provider_types(): vector<String>{
         return vector<String>[type_info::type_name<None>(), type_info::type_name<AlphaLend>(),type_info::type_name<SuiLend>(),type_info::type_name<Moonwell>()]
     }
+
 
     public fun convert_vaultProvider_to_string<T>(): String{
         let type = type_info::type_name<T>();

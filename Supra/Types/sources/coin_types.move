@@ -5,7 +5,7 @@ module dev::QiaraCoinTypesV5{
     use supra_framework::managed_coin::{Self};
     use supra_framework::coin::{Self, Coin, BurnCapability, FreezeCapability, MintCapability};
     use std::type_info::{Self, TypeInfo};
-
+    use supra_framework::supra_coin::{Self, SupraCoin};
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
     const ERROR_NOT_VALIDATOR: u64 = 1;
@@ -23,9 +23,9 @@ module dev::QiaraCoinTypesV5{
     }
 // === STRUCTS === //
     struct SuiBitcoin has drop, store, key {}
-    struct SuiEthereum has drop, store, key {}
-    struct SuiSui has drop, store, key {}
-    struct SuiUSDC has drop, store, key {}
+    struct SuiEui has drop, store, key {}
+    struct SuiUSthereum has drop, store, key {}
+    struct SuiSDC has drop, store, key {}
     struct SuiUSDT has drop, store, key {}
 
     struct BaseEthereum has drop, store, key {}
@@ -47,6 +47,7 @@ module dev::QiaraCoinTypesV5{
 
         init_with_vault<BaseEthereum>(admin,    utf8(b"Base Ethereum"),      utf8(b"BASEBTC"), 18);
         init_with_vault<BaseUSDC>(admin,    utf8(b"Base USDC"),      utf8(b"BASEUSDC"), 6);
+
     }
 
     // Initialize a single coin T and create a vault with full u64::MAX
