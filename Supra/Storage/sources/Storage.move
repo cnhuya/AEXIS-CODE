@@ -1,4 +1,4 @@
-module dev::QiaraStorageV23 {
+module dev::QiaraStorageV24 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -102,7 +102,7 @@ module dev::QiaraStorageV23 {
         register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"TREASURY_FEE"), 1_000, false, &give_permission(&give_access(admin))); // 0,001% a month
         register_constant<bool>(admin, utf8(b"QiaraToken"), utf8(b"TRANSFERABLE"), false, true, &give_permission(&give_access(admin)));
         register_constant<bool>(admin, utf8(b"QiaraToken"), utf8(b"PAUSED"), false, true, &give_permission(&give_access(admin)));
-        register_constant<u16>(admin, utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"), 5000, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"), 7500, true, &give_permission(&give_access(admin)));
         register_constant<u64>(admin, utf8(b"QiaraMargin"), utf8(b"BASE_UTIL_FEE"), 1_000_000, true, &give_permission(&give_access(admin)));
         register_constant<u64>(admin, utf8(b"QiaraMargin"), utf8(b"EXP_SCALE"), 50_000_000, true, &give_permission(&give_access(admin)));
         register_constant<u64>(admin, utf8(b"QiaraMargin"), utf8(b"EXP_AGGRESION"), 10, true, &give_permission(&give_access(admin)));
