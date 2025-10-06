@@ -23,9 +23,9 @@ module dev::QiaraCoinTypesV5{
     }
 // === STRUCTS === //
     struct SuiBitcoin has drop, store, key {}
-    struct SuiEui has drop, store, key {}
-    struct SuiUSthereum has drop, store, key {}
-    struct SuiSDC has drop, store, key {}
+    struct SuiSui has drop, store, key {}
+    struct SuiEthereum has drop, store, key {}
+    struct SuiUSDC has drop, store, key {}
     struct SuiUSDT has drop, store, key {}
 
     struct BaseEthereum has drop, store, key {}

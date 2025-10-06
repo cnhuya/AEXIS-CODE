@@ -52,15 +52,15 @@ module dev::QiaraVaultTypesV5 {
     }
 // === HELPER FUNCTIONS === //
 //SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC
-    public entry fun change_rate(addr: signer) acquires RateList {
-        change_rates<SuiBitcoin>(1222,give_permission(give_access(addr)));
-        change_rates<SuiEthereum>(2147,give_permission(give_access(addr)));
-        change_rates<SuiSui>(3578,give_permission(give_access(addr)));
-        change_rates<SuiUSDC>(987,give_permission(give_access(addr)));
-        change_rates<SuiUSDT>(754,give_permission(give_access(addr)));
-        change_rates<BaseEthereum>(5774,give_permission(give_access(addr)));
-        change_rates<BaseUSDC>(855,give_permission(give_access(addr)));
-        change_rates<SupraCoin>(12987,give_permission(give_access(addr)));
+    public entry fun change_rate(addr: &signer) acquires RateList {
+        change_rates<SuiBitcoin>(1222,give_permission(&give_access(addr)));
+        change_rates<SuiEthereum>(2147,give_permission(&give_access(addr)));
+        change_rates<SuiSui>(3578,give_permission(&give_access(addr)));
+        change_rates<SuiUSDC>(987,give_permission(&give_access(addr)));
+        change_rates<SuiUSDT>(754,give_permission(&give_access(addr)));
+        change_rates<BaseEthereum>(5774,give_permission(&give_access(addr)));
+        change_rates<BaseUSDC>(855,give_permission(&give_access(addr)));
+        change_rates<SupraCoin>(12987,give_permission(&give_access(addr)));
     }
 
 
@@ -78,28 +78,39 @@ module dev::QiaraVaultTypesV5 {
         }
     }
 
-    public fun accrue_global<X>(lend_rate: u256, exp_scale: u256, utilization: u256, total_deposits: u256, total_borrows: u256, cap: Permission) acquires RateList {
+public fun accrue_global<X>(
+    lend_rate: u256,
+    exp_scale: u256,
+    utilization: u256,
+    total_deposits: u256,
+    total_borrows: u256,
+    cap: Permission
+) acquires RateList {
+    let rates = borrow_global_mut<RateList>(@dev);
+    let rate = table::borrow_mut(&mut rates.rates, type_info::type_name<X>());
 
-        let rates = borrow_global_mut<RateList>(@dev);
-        let rate = table::borrow_mut(&mut rates.rates, type_info::type_name<X>());
+    let seconds_in_year: u256 = 31_536_000;
+    let elapsed = timestamp::now_seconds() - rate.last_update;
+    if (elapsed == 0) return;
 
-        let seconds_in_year: u256 = 31_536_000;
-        let elapsed = timestamp::now_seconds() - rate.last_update;
-        if (elapsed == 0) return;
+    // Update reward index (distributes reward over all deposits)
+    if (total_deposits > 0) {
+        let (lend_rate_decimal, _, _) = Math::compute_rate(utilization, lend_rate, exp_scale, true, 6);
+        let lend_rate_decimal = lend_rate_decimal / 10000;
 
-        // Update reward index (distributes reward over all deposits)
-        if (total_deposits > 0) {
-            let lend_rate_decimal: u256 = Math::compute_rate(lend_rate,exp_scale,utilization,18) / 10000; 
-            let reward_per_unit = (lend_rate_decimal * (elapsed as u256) / seconds_in_year) / total_deposits;
-            rate.reward_index = (((rate.reward_index as u256) + reward_per_unit) as u128);
+        let reward_per_unit = (lend_rate_decimal * (elapsed as u256) / seconds_in_year) / total_deposits;
+        rate.reward_index = (((rate.reward_index as u256) + reward_per_unit) as u128);
 
-            let borrow_rate_decimal: u256 = Math::compute_rate(lend_rate,exp_scale,utilization,18) / 10000; 
-            let interest_per_unit = (borrow_rate_decimal * (elapsed as u256) / seconds_in_year) / total_borrows;
-            rate.interest_index = (((rate.interest_index as u256) + interest_per_unit) as u128);
-        };
+        let (borrow_rate_decimal, _, _) = Math::compute_rate(utilization, lend_rate, exp_scale, false, 6);
+        let borrow_rate_decimal = borrow_rate_decimal / 10000;
 
-        rate.last_update = timestamp::now_seconds();
-    }
+        let interest_per_unit = (borrow_rate_decimal * (elapsed as u256) / seconds_in_year) / total_borrows;
+        rate.interest_index = (((rate.interest_index as u256) + interest_per_unit) as u128);
+    };
+
+    rate.last_update = timestamp::now_seconds()
+}
+
 
 
 // === GETS === //
