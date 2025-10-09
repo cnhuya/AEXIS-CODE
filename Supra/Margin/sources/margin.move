@@ -1,4 +1,4 @@
-module dev::QiaraMarginV23{
+module dev::QiaraMarginV24{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,7 +7,7 @@ module dev::QiaraMarginV23{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV11::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV12::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
     use dev::QiaraFeatureTypesV5::{Self as FeatureTypes};
     use dev::QiaraVaultTypesV5::{Self as VaultTypes};
@@ -141,7 +141,6 @@ module dev::QiaraMarginV23{
            let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
            vault.total_deposited + (value as u128);
         };
-
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
             balance.deposited = balance.deposited + value;
@@ -443,73 +442,114 @@ module dev::QiaraMarginV23{
 
 // === MUT RETURNS === //
 
-    fun find_credit(token_table: &mut TokenHoldings, addr: address, token: String): &mut Credit {
-        // If user (addr) doesn't exist in credits, add an empty table for them
+fun find_credit(token_table: &mut TokenHoldings, addr: address, token: String): &mut Credit {
+    // Use scoped blocks to end borrows early when needed
+    {
         if (!table::contains(&token_table.credits, addr)) {
             table::add(&mut token_table.credits, addr, table::new<String, Credit>());
         };
+    };
 
-        // Borrow the user's credit table
-        let user_credit_table = table::borrow_mut(&mut token_table.credits, addr);
+    let user_credit_table = table::borrow_mut(&mut token_table.credits, addr);
 
-        // If this token doesn't exist in user's table, initialize it
-        if (!table::contains(user_credit_table, token)) {
-            table::add(user_credit_table,token,Credit {token,deposited: 0,borrowed: 0,rewards: 0, interest: 0,leverage: 0,},);
-        };
+    if (!table::contains(user_credit_table, token)) {
+        table::add(
+            user_credit_table,
+            token,
+            Credit {
+                token,
+                deposited: 0,
+                borrowed: 0,
+                rewards: 0,
+                interest: 0,
+                leverage: 0,
+            },
+        );
+    };
 
-        // Finally, return a mutable reference to the Credit entry
-        table::borrow_mut(user_credit_table, token)
-    }
+    table::borrow_mut(user_credit_table, token)
+}
 
-    fun find_balance(feature_table: &mut TokenHoldings,addr: address,token: String,vault: String,feature: String): &mut Balance {
-        // Ensure outer address table exists
+fun find_balance(
+    feature_table: &mut TokenHoldings,
+    addr: address,
+    token: String,
+    vault: String,
+    feature: String
+): &mut Balance {
+    {
         if (!table::contains(&feature_table.holdings, addr)) {
-            table::add(&mut feature_table.holdings,addr,table::new<String, table::Table<String, vector<Balance>>>(),);
+            table::add(
+                &mut feature_table.holdings,
+                addr,
+                table::new<String, table::Table<String, vector<Balance>>>(),
+            );
         };
+    };
 
-        // Borrow the user's holdings table
-        let user_holdings = table::borrow_mut(&mut feature_table.holdings, addr);
+    let user_holdings = table::borrow_mut(&mut feature_table.holdings, addr);
 
-        // Ensure feature entry exists
+    {
         if (!table::contains(user_holdings, feature)) {
-            table::add(user_holdings,vault,table::new<String, vector<Balance>>(),);
+            table::add(
+                user_holdings,
+                feature,
+                table::new<String, vector<Balance>>(),
+            );
         };
+    };
 
-        let vault_table = table::borrow_mut(user_holdings, feature);
+    let vault_table = table::borrow_mut(user_holdings, feature);
 
-        // Ensure vault entry exists
+    {
         if (!table::contains(vault_table, vault)) {
             table::add(vault_table, vault, vector::empty<Balance>());
         };
+    };
 
-        let holdings = table::borrow_mut(vault_table, vault);
-        let len = vector::length(holdings);
-        let i = 0;
+    let holdings = table::borrow_mut(vault_table, vault);
+    let len = vector::length(holdings);
+    let i = 0;
 
-        // Search existing balances for token
-        while (i < len) {
-            let balance = vector::borrow_mut(holdings, i);
-            if (balance.token == token) {
-                return balance;
-            };
-            i = i + 1;
+    while (i < len) {
+        let balance = vector::borrow_mut(holdings, i);
+        if (balance.token == token) {
+            return balance;
         };
+        i = i + 1;
+    };
 
-        // If not found, create new balance
-        let new_balance = Balance {token,deposited: 0,borrowed: 0,reward_index_snapshot: 0,interest_index_snapshot: 0,last_update: 0,};
-        vector::push_back(holdings, new_balance);
+    let new_balance = Balance {
+        token,
+        deposited: 0,
+        borrowed: 0,
+        reward_index_snapshot: 0,
+        interest_index_snapshot: 0,
+        last_update: 0,
+    };
+    vector::push_back(holdings, new_balance);
 
-        let idx = vector::length(holdings) - 1;
-        vector::borrow_mut(holdings, idx)
-    }
+    let idx = vector::length(holdings) - 1;
+    vector::borrow_mut(holdings, idx)
+}
 
-    fun find_vault(vault_table: &mut Vaults, vault: String): &mut Vault {
+fun find_vault(vault_table: &mut Vaults, vault: String): &mut Vault {
+    {
         if (!table::contains(&vault_table.vaults, vault)) {
-            table::add(&mut vault_table.vaults, vault, Vault { total_deposited: 0, total_borrowed: 0 });
+            table::add(
+                &mut vault_table.vaults,
+                vault,
+                Vault {
+                    total_deposited: 0,
+                    total_borrowed: 0,
+                },
+            );
         };
+    };
 
-        table::borrow_mut(&mut vault_table.vaults, vault)
-    }
+    table::borrow_mut(&mut vault_table.vaults, vault)
+}
+
 
 // === HELPERS === //
     public fun is_user_registered(address: address): bool {
