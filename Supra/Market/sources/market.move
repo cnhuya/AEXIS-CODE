@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV15 {
+module dev::QiaraVaultsV16 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -309,7 +309,7 @@ module dev::QiaraVaultsV15 {
         accrue<T, X, A, B>(signer::address_of(user));
     }
 
-    public entry fun deposit<T, X:store, A, B>(user: &signer, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
+    public entry fun deposit<T, X:store, A, B>(user: &signer, amount: u64, rate: u64) acquires GlobalVault, Permissions, VaultRegistry {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global_mut<GlobalVault<T>>(@dev);
         let coins = coin::withdraw<T>(user, amount);
@@ -319,7 +319,7 @@ module dev::QiaraVaultsV15 {
         provider_vault.total_deposited = provider_vault.total_deposited + (amount as u128);
 
         accrue<T,X, A, B>(signer::address_of(user));
-
+        VaultTypes::change_rates<T>(rate, VaultTypes::give_permission(&borrow_global<Permissions>(@dev).vault_types));
         event::emit(VaultEvent { 
             type: utf8(b"Deposit"),
             amount, 
