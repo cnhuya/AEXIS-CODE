@@ -11,7 +11,7 @@ module dev::QiaraVaultsV16 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
 
-    use dev::QiaraVerifiedTokensV12::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
+    use dev::QiaraVerifiedTokensV13::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
     use dev::QiaraMarginV24::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
