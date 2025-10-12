@@ -1,4 +1,4 @@
-module dev::QiaraMarginV25{
+module dev::QiaraMarginV26{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -114,6 +114,10 @@ module dev::QiaraMarginV25{
         l.total_lev_usd = l.total_lev_usd + (amt * lev);
     }
 
+    fun tttta(number: u64){
+        abort(number);
+    }
+
     public fun update_time<T, X, Y>(addr: address, cap: Permission) acquires TokenHoldings{
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
         balance.last_update = timestamp::now_seconds() / 3600;
@@ -138,8 +142,8 @@ module dev::QiaraMarginV25{
 
     public fun add_deposit<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         {
-           let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
-           vault.total_deposited + (value as u128);
+           let vault = find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
+           vault.total_deposited = vault.total_deposited + (value as u128);
         };
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
@@ -154,8 +158,11 @@ module dev::QiaraMarginV25{
 
     public fun remove_deposit<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         {
-           let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
-           vault.total_deposited - (value as u128);
+           
+           let vault = find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
+          // tttta((vault.total_deposited  as u64));
+           vault.total_deposited = vault.total_deposited - (value as u128);
+          // tttta(value);
         };
 
         {
@@ -179,7 +186,7 @@ module dev::QiaraMarginV25{
 
     public fun add_borrow<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         {
-           let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
+           let vault = find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
            vault.total_borrowed + (value as u128);
         };
 
@@ -196,7 +203,7 @@ module dev::QiaraMarginV25{
 
     public fun remove_borrow<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
         {
-           let vault = *find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
+           let vault = find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
            vault.total_borrowed - (value as u128);
         };
 
@@ -275,9 +282,9 @@ module dev::QiaraMarginV25{
         {
             let uv = find_credit(tokens_holdings,addr, type_info::type_name<T>());
 
-            dep_usd = (((uv.deposited as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata)))* (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
-            bor_usd = ((uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (uv.leverage as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
-            raw_borrow = (uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
+            dep_usd = (((uv.deposited as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256))* (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
+            bor_usd = ((uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (uv.leverage as u256));
+            raw_borrow = (uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
         };
 
         // Scope 2: use credit
@@ -286,8 +293,8 @@ module dev::QiaraMarginV25{
         {
             let credit = find_credit(tokens_holdings,addr, type_info::type_name<T>());
 
-            reward_usd = (credit.rewards as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
-            interest_usd = (credit.interest as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
+            reward_usd = (credit.rewards as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+            interest_usd = (credit.interest as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
         };
 
         let utilization = if (raw_borrow == 0) 0 else (bor_usd * 100) / raw_borrow;
@@ -382,12 +389,12 @@ module dev::QiaraMarginV25{
                     };
 
                     let (margin_interest, _, _) = QiaraMath::compute_rate(
-    (utilization as u256),
-    (VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(token_id)) as u256),
-    (VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(&metadata),false) as u256),
-    false,
-    5
-);
+                        (utilization as u256),
+                        (VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(token_id)) as u256),
+                        (VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(&metadata),false) as u256),
+                        false,
+                        5
+                   );
 
                    // let margin_interest = current_raw_borrow * (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata)) / 100;
 
@@ -462,7 +469,7 @@ fun find_credit(token_table: &mut TokenHoldings, addr: address, token: String): 
                 borrowed: 0,
                 rewards: 0,
                 interest: 0,
-                leverage: 0,
+                leverage: 1,
             },
         );
     };
