@@ -1,4 +1,4 @@
-module dev::QiaraMarginV28{
+module dev::QiaraMarginV29{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,7 +7,7 @@ module dev::QiaraMarginV28{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV15::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV16::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
     use dev::QiaraFeatureTypesV5::{Self as FeatureTypes};
     use dev::QiaraVaultTypesV5::{Self as VaultTypes};
@@ -79,8 +79,14 @@ module dev::QiaraMarginV28{
     }
 
     struct UserVaults has key{
+        token: String,
+        vaults: vector<Provider>,
+    }
+
+    struct Provider has key, store, copy, drop {
         provider: String,
-        vaults: vector<Balance>,
+        deposited: u64,
+        borrowed: u64,
     }
 
 // === INIT === //
@@ -420,67 +426,96 @@ module dev::QiaraMarginV28{
         (total_dep, total_bor, raw_borrow, total_rew, total_int, total_expected_interest)
     }
 
-    #[view]
-    public fun get_all_user_vaults(addr: address): vector<UserVaults>
-    acquires TokenHoldings {
-        let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
-        let uv_vect = vector::empty<UserVaults>();
+   #[view]
+public fun get_all_user_vaults(addr: address): vector<UserVaults>acquires TokenHoldings {
+    let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
 
-        // get all vault provider types
-        let vaults = VaultTypes::return_all_vault_provider_types();
-        let a = vector::length(&vaults);
-        let b = 0;
+    let uv_vect = vector::empty<UserVaults>();
 
-        // loop through each vault provider
-        while (b < a) {
-            let vault = vector::borrow(&vaults, b);
-            let vault_str = *vault;
+    // Get all vault types (providers)
+    let vaults = VaultTypes::return_all_vault_provider_types();
+    let num_vaults = vector::length(&vaults);
 
-            let tokens = vector::empty<String>();
+    // --- collect all unique tokens across all vaults ---
+    let tokens = vector::empty<String>();
 
-            // --- fetch user's tokens if any ---
-            if (table::contains(&tokens_holdings.holdings, addr)) {
-                let user_holdings_ref = table::borrow(&tokens_holdings.holdings, addr);
+    let i = 0;
+    while (i < num_vaults) {
+        let vault = *vector::borrow(&vaults, i);
 
-                if (table::contains(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraCoinTypesV5::Market"))) {
-                    let holdings_ref = table::borrow(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraCoinTypesV5::Market"));
+        if (table::contains(&tokens_holdings.holdings, addr)) {
+            let user_holdings_ref = table::borrow(&tokens_holdings.holdings, addr);
 
-                    if (table::contains(holdings_ref, vault_str)) {
-                        let balances = table::borrow(holdings_ref, vault_str);
-                        let len = vector::length(balances);
-                        let  j = 0;
-                        while (j < len) {
-                            let holding = vector::borrow(balances, j);
-                            vector::push_back(&mut tokens, holding.token);
-                            j = j + 1;
+            if (table::contains(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Marketfault"))) {
+                let holdings_ref = table::borrow(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Marketfault"));
+
+                if (table::contains(holdings_ref, vault)) {
+                    let balances = table::borrow(holdings_ref, vault);
+                    let len = vector::length(balances);
+                    let  j = 0;
+                    while (j < len) {
+                        let balance = vector::borrow(balances, j);
+                        let token_id = balance.token;
+
+                        // Push unique tokens only
+                        let  exists = false;
+                        let  k = 0;
+                        let total = vector::length(&tokens);
+                        while (k < total) {
+                            let existing = *vector::borrow(&tokens, k);
+                            if (existing == token_id) {
+                                exists = true;
+                                break;
+                            };
+                            k = k + 1;
                         };
+                        if (!exists) {
+                            vector::push_back(&mut tokens, token_id);
+                        };
+                        j = j + 1;
                     };
                 };
             };
+        };
+        i = i + 1;
+    };
 
-            // --- build vault-specific balance list ---
-            let num_tokens = vector::length(&tokens);
-            let y = 0;
-            let v_vect = vector::empty<Balance>();
+    // --- Now, for each token, gather balances per provider ---
+    let num_tokens = vector::length(&tokens);
+    let  t = 0;
+    while (t < num_tokens) {
+        let token_id = *vector::borrow(&tokens, t);
+        let  providers = vector::empty<Provider>();
 
-            while (y < num_tokens) {
-                let token_id = *vector::borrow(&tokens, y);
+        let  v = 0;
+        while (v < num_vaults) {
+            let vault = *vector::borrow(&vaults, v);
 
-                // provide vault + feature params explicitly
-                let uv_ref = find_balance(tokens_holdings, addr, token_id, vault_str, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraCoinTypesV5::Market"));
-                vector::push_back(&mut v_vect, *uv_ref);
+            let bal_ref_opt = find_balance(tokens_holdings, addr, token_id, vault, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Marketfault"));
 
-                y = y + 1;
-            };
+                if (bal_ref_opt.deposited > 0 || bal_ref_opt.borrowed > 0) {
+                    let p = Provider {
+                        provider: vault,
+                        deposited: bal_ref_opt.deposited,
+                        borrowed: bal_ref_opt.borrowed,
+                    };
+                    vector::push_back(&mut providers, p);
+                };
 
-            let user_vault = UserVaults { provider: vault_str, vaults: v_vect };
-            vector::push_back(&mut uv_vect, user_vault);
-
-            b = b + 1;
+            v = v + 1;
         };
 
-        uv_vect
-    }
+        let user_token_vault = UserVaults {
+            token: token_id,
+            vaults: providers,
+        };
+        vector::push_back(&mut uv_vect, user_token_vault);
+
+        t = t + 1;
+    };
+
+    uv_vect
+}
 
 
 
