@@ -1,4 +1,4 @@
-module dev::QiaraMarginV27{
+module dev::QiaraMarginV28{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,7 +7,7 @@ module dev::QiaraMarginV27{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV14::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV15::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
     use dev::QiaraFeatureTypesV5::{Self as FeatureTypes};
     use dev::QiaraVaultTypesV5::{Self as VaultTypes};
@@ -76,6 +76,11 @@ module dev::QiaraMarginV27{
 
     struct FeaturesRegistry has key {
         features: vector<String>,
+    }
+
+    struct UserVaults has key{
+        provider: String,
+        vaults: vector<Balance>,
     }
 
 // === INIT === //
@@ -304,10 +309,9 @@ module dev::QiaraMarginV27{
     }
 
     #[view]
-    public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u256) acquires FeaturesRegistry, VaultRegistry, TokenHoldings {
+    public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u256) acquires  TokenHoldings {
         let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
-        let vault_registry = borrow_global_mut<VaultRegistry>(@dev);
-        let feature_registry = borrow_global_mut<FeaturesRegistry>(@dev);
+        let feature_registry = FeatureTypes::return_all_feature_types();
 
         let  total_dep = 0u256;
         let  total_bor = 0u256;
@@ -317,19 +321,19 @@ module dev::QiaraMarginV27{
         let  utilization = 0u256;
         let  total_expected_interest = 0u256;
 
-        let n = vector::length(&feature_registry.features);
+        let n = vector::length(&feature_registry);
         let i = 0;
 
         // search through features
         while (i < n) {
-            let feature = vector::borrow(&feature_registry.features, i);
-            let vaults = table::borrow(&vault_registry.vaults, *feature);
-            let a = vector::length(vaults);
+            let feature = vector::borrow(&feature_registry, i);
+            let vaults = FeatureTypes::return_all_feature_types();
+            let a = vector::length(&vaults);
             let  b = 0;
 
             // search through vaults
             while (b < a) {
-                let vault = vector::borrow(vaults, b);
+                let vault = vector::borrow(&vaults, b);
 
                 // First, collect tokens without holding references
                 let feature_str = *feature;
@@ -367,9 +371,9 @@ module dev::QiaraMarginV27{
                     {
                         let uv = find_credit(tokens_holdings,addr, token_id);
                         let metadata = VerifiedTokens::get_coin_metadata_by_res(uv.token);
-                        dep_usd = (((uv.deposited as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata)))* (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
-                        bor_usd = ((uv.borrowed as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (uv.leverage as u256)) / (VerifiedTokens::get_coin_metadata_denom(&metadata));
-                        current_raw_borrow = (uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
+                        dep_usd = ((uv.deposited as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)* (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
+                        bor_usd = ((uv.borrowed as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (uv.leverage as u256));
+                        current_raw_borrow = (uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
                     };
 
                     // Scope 2: borrow credit
@@ -377,8 +381,8 @@ module dev::QiaraMarginV27{
                     let interest_usd;
                     {
                         let credit = find_credit(tokens_holdings,addr, token_id);
-                        reward_usd = (credit.rewards as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
-                        interest_usd = (credit.interest as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (VerifiedTokens::get_coin_metadata_denom(&metadata));
+                        reward_usd = (credit.rewards as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+                        interest_usd = (credit.interest as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
                     };
 
                     // Safe utilization calc
@@ -415,6 +419,70 @@ module dev::QiaraMarginV27{
 
         (total_dep, total_bor, raw_borrow, total_rew, total_int, total_expected_interest)
     }
+
+    #[view]
+    public fun get_all_user_vaults(addr: address): vector<UserVaults>
+    acquires TokenHoldings {
+        let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
+        let uv_vect = vector::empty<UserVaults>();
+
+        // get all vault provider types
+        let vaults = VaultTypes::return_all_vault_provider_types();
+        let a = vector::length(&vaults);
+        let b = 0;
+
+        // loop through each vault provider
+        while (b < a) {
+            let vault = vector::borrow(&vaults, b);
+            let vault_str = *vault;
+
+            let tokens = vector::empty<String>();
+
+            // --- fetch user's tokens if any ---
+            if (table::contains(&tokens_holdings.holdings, addr)) {
+                let user_holdings_ref = table::borrow(&tokens_holdings.holdings, addr);
+
+                if (table::contains(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraCoinTypesV5::Market"))) {
+                    let holdings_ref = table::borrow(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraCoinTypesV5::Market"));
+
+                    if (table::contains(holdings_ref, vault_str)) {
+                        let balances = table::borrow(holdings_ref, vault_str);
+                        let len = vector::length(balances);
+                        let  j = 0;
+                        while (j < len) {
+                            let holding = vector::borrow(balances, j);
+                            vector::push_back(&mut tokens, holding.token);
+                            j = j + 1;
+                        };
+                    };
+                };
+            };
+
+            // --- build vault-specific balance list ---
+            let num_tokens = vector::length(&tokens);
+            let y = 0;
+            let v_vect = vector::empty<Balance>();
+
+            while (y < num_tokens) {
+                let token_id = *vector::borrow(&tokens, y);
+
+                // provide vault + feature params explicitly
+                let uv_ref = find_balance(tokens_holdings, addr, token_id, vault_str, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraCoinTypesV5::Market"));
+                vector::push_back(&mut v_vect, *uv_ref);
+
+                y = y + 1;
+            };
+
+            let user_vault = UserVaults { provider: vault_str, vaults: v_vect };
+            vector::push_back(&mut uv_vect, user_vault);
+
+            b = b + 1;
+        };
+
+        uv_vect
+    }
+
+
 
     #[view]
     public fun get_user_balance<T, X, Y>(addr: address): Balance acquires TokenHoldings {
@@ -574,7 +642,7 @@ fun find_vault(vault_table: &mut Vaults, vault: String): &mut Vault {
         return true
     }
 
-    public fun get_utilization_ratio(addr: address): u256 acquires FeaturesRegistry, VaultRegistry, TokenHoldings{
+    public fun get_utilization_ratio(addr: address): u256 acquires TokenHoldings{
         assert_user_registered(addr);
         let (depoUSD, borrowUSD, _, _, _, _) = get_user_total_usd(addr);
         if (depoUSD == 0) {
