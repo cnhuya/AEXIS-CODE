@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV17 {
+module dev::QiaraVaultsV18 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,8 +11,8 @@ module dev::QiaraVaultsV17 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
 
-    use dev::QiaraVerifiedTokensV13::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV26::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV14::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
+    use dev::QiaraMarginV27::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use dev::QiaraChainTypesV5::{Self as ChainTypes};
