@@ -2,7 +2,7 @@ module dev::QiaraHelperV11 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
 
-    use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use dev::QiaraCoinTypesV9::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use supra_framework::supra_coin::{Self, SupraCoin};
 
     use dev::QiaraStorageV24::{Self as storage, Access as StorageAccess};
