@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV17{
+module dev::QiaraVerifiedTokensV18{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -11,7 +11,7 @@ module dev::QiaraVerifiedTokensV17{
 
     use dev::QiaraStorageV24::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraCoinTypesV6::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use dev::QiaraCoinTypesV9::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
