@@ -1,10 +1,10 @@
 [package]
-name = "QiaraHelperV3"
+name = "QiaraHelperV11"
 version = "1.0.0"
 authors = []
 
 [addresses]
-dev = "0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd"
+dev = "0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0"
 supra_framework = "0x1"
 [dev-addresses]
 
@@ -18,22 +18,22 @@ git = "https://github.com/Entropy-Foundation/aptos-core.git"
 rev = "dev"
 subdir = "aptos-move/framework/aptos-stdlib"
 
-[dependencies.QiaraTypesV5]
+[dependencies.QiaraTypesV9]
 git = 'https://github.com/cnhuya/AEXIS-CODE.git'
 rev = 'main'
 subdir = 'Supra/Types'
 
-[dependencies.QiaraStorageV22]
+[dependencies.QiaraStorageV24]
 git = 'https://github.com/cnhuya/AEXIS-CODE.git'
 rev = 'main'
 subdir = 'Supra/Storage'
 
-[dependencies.QiaraMarketV11]
+[dependencies.QiaraMarketV21]
 git = 'https://github.com/cnhuya/AEXIS-CODE.git'
 rev = 'main'
 subdir = 'Supra/Market'
 
-[dependencies.QiaraVerifiedTokensV8]
+[dependencies.QiaraVerifiedTokensV18]
 git = 'https://github.com/cnhuya/AEXIS-CODE.git'
 rev = 'main'
 subdir = 'Supra/VerifiedTokens'
