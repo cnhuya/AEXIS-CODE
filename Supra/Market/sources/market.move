@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV20 {
+module dev::QiaraVaultsV21 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,13 +11,13 @@ module dev::QiaraVaultsV20 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
 
-    use dev::QiaraVerifiedTokensV16::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV29::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV18::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
+    use dev::QiaraMarginV30::{Self as Margin, Access as MarginAccess};
 
-    use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
-    use dev::QiaraChainTypesV5::{Self as ChainTypes};
-    use dev::QiaraVaultTypesV5::{Self as VaultTypes, Access as VaultTypesAccess, None, AlphaLend, SuiLend, Moonwell};
-    use dev::QiaraFeatureTypesV5::{Market};
+    use dev::QiaraCoinTypesV9::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use dev::QiaraChainTypesV9::{Self as ChainTypes};
+    use dev::QiaraVaultTypesV9::{Self as VaultTypes, Access as VaultTypesAccess, None, AlphaLend, SuiLend, Moonwell};
+    use dev::QiaraFeatureTypesV9::{Market};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
@@ -334,7 +334,7 @@ module dev::QiaraVaultsV20 {
     /// log event emmited in this function in backend and add it to registered events in chains.move
     /// this is needed in case validators could overfetch multiple times this event and that way unlock multiple times on other chains
     /// from locked vaults
-    public entry fun bridge<T, E, X:store, A, B>(user: &signer, destination_address: vector<u8>, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
+    public entry fun bridge<T:store, E, X:store, A, B>(user: &signer, destination_address: vector<u8>, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
         assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
        // let vault = borrow_global_mut<GlobalVault<T>>(ADMIN);
  
