@@ -1,4 +1,4 @@
-module dev::QiaraMarginV29{
+module dev::QiaraMarginV30{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,10 +7,10 @@ module dev::QiaraMarginV29{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV16::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV18::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
-    use dev::QiaraFeatureTypesV5::{Self as FeatureTypes};
-    use dev::QiaraVaultTypesV5::{Self as VaultTypes};
+    use dev::QiaraFeatureTypesV9::{Self as FeatureTypes};
+    use dev::QiaraVaultTypesV9::{Self as VaultTypes};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
@@ -34,6 +34,7 @@ module dev::QiaraMarginV29{
     }
 // === STRUCTS === //
     struct TokenHoldings has key {
+        // adress, feature?, vault?
         holdings: table::Table<address, table::Table<String, table::Table<String, vector<Balance>>>>,
         credits: table::Table<address, table::Table<String, Credit>>,
     }
@@ -178,7 +179,7 @@ module dev::QiaraMarginV29{
 
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
-            if(value > balance.borrowed){
+            if(value > balance.deposited){
                 balance.deposited = 0
             } else {
                 balance.deposited = balance.deposited - value;
@@ -329,55 +330,63 @@ module dev::QiaraMarginV29{
 
         let n = vector::length(&feature_registry);
         let i = 0;
-
         // search through features
         while (i < n) {
             let feature = vector::borrow(&feature_registry, i);
-            let vaults = FeatureTypes::return_all_feature_types();
+            let vaults = VaultTypes::return_all_vault_provider_types();
             let a = vector::length(&vaults);
             let  b = 0;
-
+           // tttta(1);
             // search through vaults
             while (b < a) {
                 let vault = vector::borrow(&vaults, b);
-
+                //tttta(101);
                 // First, collect tokens without holding references
                 let feature_str = *feature;
                 let vault_str = *vault;
 
                 let token_list = {
                     let user_holdings_ref = table::borrow(&tokens_holdings.holdings, addr);
-                    let holdings_ref = table::borrow(user_holdings_ref, feature_str);
-                    if (table::contains(holdings_ref, vault_str)) {
-                        let balances = table::borrow(holdings_ref, vault_str);
-                        let len = vector::length(balances);
-                        let  j = 0;
-                        let  tokens = vector::empty<String>();
-                        while (j < len) {
-                            let holding = vector::borrow(balances, j);
-                            vector::push_back(&mut tokens, holding.token);
-                            j = j + 1;
-                        };
-                        tokens
-                    } else {
+                    if (!table::contains(user_holdings_ref, feature_str)) {
                         vector::empty<String>()
+                    } else {
+                        let holdings_ref = table::borrow(user_holdings_ref, feature_str);
+                        if (!table::contains(holdings_ref, vault_str)) {
+                            vector::empty<String>()
+                        } else {
+                            let balances = table::borrow(holdings_ref, vault_str);
+                            let len = vector::length(balances);
+                            let tokens = vector::empty<String>();
+                            let j = 0;
+                            while (j < len) {
+                                let holding = vector::borrow(balances, j);
+                                vector::push_back(&mut tokens, holding.token);
+                                j = j + 1;
+                            };
+                            tokens
+                        }
                     }
                 };
 
                 // Process each token separately
                 let num_tokens = vector::length(&token_list);
                 let  y = 0;
-                while (y < num_tokens) {
+               // tttta(1171);
+                while (y < num_tokens) { // THIS SITN CHECKED?
+                    //tttta(11);
                     let token_id = *vector::borrow(&token_list, y);
                     let metadata = VerifiedTokens::get_coin_metadata_by_res(token_id);
                     // Scope 1: borrow balance
                     let dep_usd;
                     let bor_usd;
+                    //tttta(999);
                     let current_raw_borrow;
                     {
                         let uv = find_credit(tokens_holdings,addr, token_id);
                         let metadata = VerifiedTokens::get_coin_metadata_by_res(uv.token);
-                        dep_usd = ((uv.deposited as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)* (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
+                        let scaled = (uv.deposited as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+                        //dep_usd = (scaled*(VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
+                        dep_usd = scaled / QiaraMath::pow10_u256(VerifiedTokens::get_coin_metadata_decimals(&metadata));
                         bor_usd = ((uv.borrowed as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (uv.leverage as u256));
                         current_raw_borrow = (uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
                     };
@@ -408,7 +417,9 @@ module dev::QiaraMarginV29{
 
                    // let margin_interest = current_raw_borrow * (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata)) / 100;
 
-                    total_dep = total_dep + (dep_usd * (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
+                   // total_dep = total_dep + (dep_usd * (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
+                    //total_dep = total_dep + (dep_usd / QiaraMath::pow10_u256(VerifiedTokens::get_coin_metadata_decimals(&metadata))) ;
+                    total_dep = total_dep + dep_usd ;
                     total_bor = total_bor + bor_usd;
                     total_rew = total_rew + reward_usd;
                     total_int = total_int + interest_usd;
@@ -417,7 +428,6 @@ module dev::QiaraMarginV29{
 
                     y = y + 1;
                 };
-
                 b = b + 1;
             };
             i = i + 1;
@@ -427,97 +437,95 @@ module dev::QiaraMarginV29{
     }
 
    #[view]
-public fun get_all_user_vaults(addr: address): vector<UserVaults>acquires TokenHoldings {
-    let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
+    public fun get_all_user_vaults(addr: address): vector<UserVaults> acquires TokenHoldings {
+        let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
 
-    let uv_vect = vector::empty<UserVaults>();
+        let uv_vect = vector::empty<UserVaults>();
 
-    // Get all vault types (providers)
-    let vaults = VaultTypes::return_all_vault_provider_types();
-    let num_vaults = vector::length(&vaults);
+        // Get all vault types (providers)
+        let vaults = VaultTypes::return_all_vault_provider_types();
+        let num_vaults = vector::length(&vaults);
 
-    // --- collect all unique tokens across all vaults ---
-    let tokens = vector::empty<String>();
+        // --- collect all unique tokens across all vaults ---
+        let tokens = vector::empty<String>();
 
-    let i = 0;
-    while (i < num_vaults) {
-        let vault = *vector::borrow(&vaults, i);
+        let i = 0;
+        while (i < num_vaults) {
+            let vault = *vector::borrow(&vaults, i);
 
-        if (table::contains(&tokens_holdings.holdings, addr)) {
-            let user_holdings_ref = table::borrow(&tokens_holdings.holdings, addr);
+            if (table::contains(&tokens_holdings.holdings, addr)) {
+                let user_holdings_ref = table::borrow(&tokens_holdings.holdings, addr);
 
-            if (table::contains(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Marketfault"))) {
-                let holdings_ref = table::borrow(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Marketfault"));
+                if (table::contains(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Market"))) {
+                    let holdings_ref = table::borrow(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Market"));
 
-                if (table::contains(holdings_ref, vault)) {
-                    let balances = table::borrow(holdings_ref, vault);
-                    let len = vector::length(balances);
-                    let  j = 0;
-                    while (j < len) {
-                        let balance = vector::borrow(balances, j);
-                        let token_id = balance.token;
+                    if (table::contains(holdings_ref, vault)) {
+                        let balances = table::borrow(holdings_ref, vault);
+                        let len = vector::length(balances);
+                        let  j = 0;
+                        while (j < len) {
+                            let balance = vector::borrow(balances, j);
+                            let token_id = balance.token;
 
-                        // Push unique tokens only
-                        let  exists = false;
-                        let  k = 0;
-                        let total = vector::length(&tokens);
-                        while (k < total) {
-                            let existing = *vector::borrow(&tokens, k);
-                            if (existing == token_id) {
-                                exists = true;
-                                break;
+                            // Push unique tokens only
+                            let  exists = false;
+                            let  k = 0;
+                            let total = vector::length(&tokens);
+                            while (k < total) {
+                                let existing = *vector::borrow(&tokens, k);
+                                if (existing == token_id) {
+                                    exists = true;
+                                    break;
+                                };
+                                k = k + 1;
                             };
-                            k = k + 1;
+                            if (!exists) {
+                                vector::push_back(&mut tokens, token_id);
+                            };
+                            j = j + 1;
                         };
-                        if (!exists) {
-                            vector::push_back(&mut tokens, token_id);
-                        };
-                        j = j + 1;
                     };
                 };
             };
+            i = i + 1;
         };
-        i = i + 1;
-    };
 
-    // --- Now, for each token, gather balances per provider ---
-    let num_tokens = vector::length(&tokens);
-    let  t = 0;
-    while (t < num_tokens) {
-        let token_id = *vector::borrow(&tokens, t);
-        let  providers = vector::empty<Provider>();
+        // --- Now, for each token, gather balances per provider ---
+        let num_tokens = vector::length(&tokens);
+        let  t = 0;
+        while (t < num_tokens) {
+            let token_id = *vector::borrow(&tokens, t);
+            let  providers = vector::empty<Provider>();
 
-        let  v = 0;
-        while (v < num_vaults) {
-            let vault = *vector::borrow(&vaults, v);
+            let  v = 0;
+            while (v < num_vaults) {
+                let vault = *vector::borrow(&vaults, v);
 
-            let bal_ref_opt = find_balance(tokens_holdings, addr, token_id, vault, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Marketfault"));
+                let bal_ref_opt = find_balance(tokens_holdings, addr, token_id, vault, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Market"));
 
-                if (bal_ref_opt.deposited > 0 || bal_ref_opt.borrowed > 0) {
-                    let p = Provider {
-                        provider: vault,
-                        deposited: bal_ref_opt.deposited,
-                        borrowed: bal_ref_opt.borrowed,
+                    if (bal_ref_opt.deposited > 0 || bal_ref_opt.borrowed > 0) {
+                        let p = Provider {
+                            provider: vault,
+                            deposited: bal_ref_opt.deposited,
+                            borrowed: bal_ref_opt.borrowed,
+                        };
+                        vector::push_back(&mut providers, p);
                     };
-                    vector::push_back(&mut providers, p);
-                };
 
-            v = v + 1;
+                v = v + 1;
+            };
+
+            let user_token_vault = UserVaults {
+                token: token_id,
+                vaults: providers,
+            };
+            vector::push_back(&mut uv_vect, user_token_vault);
+
+            t = t + 1;
         };
 
-        let user_token_vault = UserVaults {
-            token: token_id,
-            vaults: providers,
-        };
-        vector::push_back(&mut uv_vect, user_token_vault);
-
-        t = t + 1;
-    };
-
-    uv_vect
-}
-
-
+        uv_vect
+    }
 
     #[view]
     public fun get_user_balance<T, X, Y>(addr: address): Balance acquires TokenHoldings {
