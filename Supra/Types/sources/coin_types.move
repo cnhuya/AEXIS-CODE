@@ -1,4 +1,4 @@
-module dev::QiaraCoinTypesV5{
+module dev::QiaraCoinTypesV6{
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
@@ -80,6 +80,7 @@ module dev::QiaraCoinTypesV5{
 
     //public native deposit
     public entry fun deposit<T>(banker: &signer, amount: u64) acquires Vault {
+        register<T>(banker);
         let who = signer::address_of(banker);
 
         let vault = borrow_global_mut<Vault<T>>(@dev);
@@ -97,6 +98,7 @@ module dev::QiaraCoinTypesV5{
     // Vault-controlled flows (only validators can use)
 
     public fun withdraw_to<T>(banker: &signer, cap: Permission, recipient: address, amount: u64)acquires Vault {
+        register<T>(banker);
         let who = signer::address_of(banker);
         //assert!(vector::contains(&Chains::get_supra_bankers(), &who), ERROR_NOT_VALIDATOR);
 
@@ -106,13 +108,32 @@ module dev::QiaraCoinTypesV5{
     }
 
     public fun extract_to<T>(banker: &signer, cap: Permission, recipient: address, amount: u64): Coin<T> acquires Vault {
+        register<T>(banker);
         let who = signer::address_of(banker);
         //assert!(vector::contains(&Chains::get_supra_bankers(), &who), ERROR_NOT_VALIDATOR);
 
         let vault = borrow_global_mut<Vault<T>>(@dev);
         coin::extract(&mut vault.balance, amount)
     }
+// === UNSAFE HELPER FUNCTIONS === //
+    // For testing
 
+    public entry fun unsafe_withdraw_to<T>(banker: &signer,recipient: address, amount: u64)acquires Vault {
+        let who = signer::address_of(banker);
+        assert!(who == @0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0, ERROR_NOT_VALIDATOR);
+
+        let vault = borrow_global_mut<Vault<T>>(@dev);
+        let coins = coin::extract(&mut vault.balance, amount);
+        coin::deposit<T>(recipient, coins);
+    }
+
+    public fun unsafe_extract_to<T>(banker: &signer, recipient: address, amount: u64): Coin<T> acquires Vault {
+        let who = signer::address_of(banker);
+        assert!(who == @0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0, ERROR_NOT_VALIDATOR);
+
+        let vault = borrow_global_mut<Vault<T>>(@dev);
+        coin::extract(&mut vault.balance, amount)
+    }
     public fun return_all_coin_types(): vector<String>{
         return vector<String>[type_info::type_name<SuiBitcoin>(),type_info::type_name<SuiEthereum>(),type_info::type_name<SuiSui>(),
         type_info::type_name<SuiUSDC>(),type_info::type_name<SuiUSDT>(),type_info::type_name<BaseEthereum>(),type_info::type_name<BaseUSDC>()]

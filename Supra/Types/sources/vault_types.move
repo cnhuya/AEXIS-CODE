@@ -1,4 +1,4 @@
-module dev::QiaraVaultTypesV5 {
+module dev::QiaraVaultTypesV6 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::signer;
@@ -7,7 +7,7 @@ module dev::QiaraVaultTypesV5 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraCoinTypesV5::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use dev::QiaraCoinTypesV6::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
 // === ACCESS === //
@@ -53,14 +53,14 @@ module dev::QiaraVaultTypesV5 {
 // === HELPER FUNCTIONS === //
 //SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC
     public entry fun change_rate(addr: &signer) acquires RateList {
-        change_rates<SuiBitcoin>(1222,give_permission(&give_access(addr)));
-        change_rates<SuiEthereum>(2147,give_permission(&give_access(addr)));
-        change_rates<SuiSui>(3578,give_permission(&give_access(addr)));
-        change_rates<SuiUSDC>(987,give_permission(&give_access(addr)));
-        change_rates<SuiUSDT>(754,give_permission(&give_access(addr)));
-        change_rates<BaseEthereum>(5774,give_permission(&give_access(addr)));
-        change_rates<BaseUSDC>(855,give_permission(&give_access(addr)));
-        change_rates<SupraCoin>(12987,give_permission(&give_access(addr)));
+        change_rates<SuiBitcoin>(32022,give_permission(&give_access(addr)));
+        change_rates<SuiEthereum>(100147,give_permission(&give_access(addr)));
+        change_rates<SuiSui>(250578,give_permission(&give_access(addr)));
+        change_rates<SuiUSDC>(50987,give_permission(&give_access(addr)));
+        change_rates<SuiUSDT>(71151,give_permission(&give_access(addr)));
+        change_rates<BaseEthereum>(99174,give_permission(&give_access(addr)));
+        change_rates<BaseUSDC>(66855,give_permission(&give_access(addr)));
+        change_rates<SupraCoin>(712987,give_permission(&give_access(addr)));
     }
 
 
@@ -78,6 +78,10 @@ module dev::QiaraVaultTypesV5 {
         }
     }
 
+fun ttta(number: u64){
+    abort(number)
+}
+
 public fun accrue_global<X>(
     lend_rate: u256,
     exp_scale: u256,
@@ -93,23 +97,25 @@ public fun accrue_global<X>(
     let elapsed = timestamp::now_seconds() - rate.last_update;
     if (elapsed == 0) return;
 
-    // Update reward index (distributes reward over all deposits)
     if (total_deposits > 0) {
         let (lend_rate_decimal, _, _) = Math::compute_rate(utilization, lend_rate, exp_scale, true, 6);
         let lend_rate_decimal = lend_rate_decimal / 10000;
-
         let reward_per_unit = (lend_rate_decimal * (elapsed as u256) / seconds_in_year) / total_deposits;
         rate.reward_index = (((rate.reward_index as u256) + reward_per_unit) as u128);
 
         let (borrow_rate_decimal, _, _) = Math::compute_rate(utilization, lend_rate, exp_scale, false, 6);
         let borrow_rate_decimal = borrow_rate_decimal / 10000;
 
-        let interest_per_unit = (borrow_rate_decimal * (elapsed as u256) / seconds_in_year) / total_borrows;
-        rate.interest_index = (((rate.interest_index as u256) + interest_per_unit) as u128);
+        // Safeguard against division by zero
+        if (total_borrows > 0) {
+            let interest_per_unit = (borrow_rate_decimal * (elapsed as u256) / seconds_in_year) / total_borrows;
+            rate.interest_index = (((rate.interest_index as u256) + interest_per_unit) as u128);
+        };
     };
 
-    rate.last_update = timestamp::now_seconds()
+    rate.last_update = timestamp::now_seconds();
 }
+
 
 
 
@@ -120,6 +126,7 @@ public fun accrue_global<X>(
         return *rate
     }
 
+    #[view]
     public fun get_vault_raw(res: String): (u64,u128,u128,u64) acquires RateList{
         let x = borrow_global_mut<RateList>(@dev);
         let rate = table::borrow_mut(&mut x.rates, res);
@@ -133,7 +140,7 @@ public fun accrue_global<X>(
         return rate.reward_index
     }
     public fun get_vault_interest_index(rate: Rate): u128{
-        return rate.reward_index
+        return rate.interest_index
     }
     public fun get_vault_last_updated(rate: Rate): u64{
         return rate.last_update
