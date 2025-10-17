@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV21 {
+module dev::QiaraVaultsV22 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,8 +11,8 @@ module dev::QiaraVaultsV21 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
 
-    use dev::QiaraVerifiedTokensV18::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV30::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV19::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
+    use dev::QiaraMarginV31::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraCoinTypesV9::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use dev::QiaraChainTypesV9::{Self as ChainTypes};
@@ -449,7 +449,8 @@ module dev::QiaraVaultsV21 {
     }
 
     // gets value by usd
-    fun getValue(resource: String, amount: u256): u256{
+    #[view]
+    public fun getValue(resource: String, amount: u256): u256{
         let metadata = VerifiedTokens::get_coin_metadata_by_res(resource);
         let (price, price_decimals, _, _) = supra_oracle_storage::get_price(VerifiedTokens::get_coin_metadata_oracle(&metadata));
        // let denom = pow10_u256(VerifiedTokens::get_coin_metadata_decimals(&metadata) + (price_decimals as u8));
@@ -457,12 +458,13 @@ module dev::QiaraVaultsV21 {
     }
 
     // converts usd back to coin value
-    fun getValueByCoin(resource: String, amount: u256): u256{
+    #[view]
+    public fun getValueByCoin(resource: String, amount: u256): u256{
         let metadata = VerifiedTokens::get_coin_metadata_by_res(resource);
         //abort(100);
         let (price, price_decimals, _, _) = supra_oracle_storage::get_price(VerifiedTokens::get_coin_metadata_oracle(&metadata));
        // let denom = pow10_u256(VerifiedTokens::get_coin_metadata_decimals(&metadata) + (price_decimals as u8));
-        return ((amount as u256) / (price as u256)) / VerifiedTokens::get_coin_metadata_denom(&metadata)
+        return (((amount as u256)* VerifiedTokens::get_coin_metadata_denom(&metadata)) / (price as u256))
     }
 
     #[view]
@@ -598,36 +600,42 @@ module dev::QiaraVaultsV21 {
 
 
     public fun accrue<T, X: store, A, B>(user: address) acquires GlobalVault, Permissions, VaultRegistry {
-       // tttta(1);
         // staci fetchovat jen jeden vault teoreticky? protoze z nej poterbuju ty rewards a interests indexy? a to pak previst na token A a B... ?
         let (lend_rate, reward_index, interest_index, last_updated) = VaultTypes::get_vault_raw(type_info::type_name<T>()); // CHECK
-        //tttta(2);
         let vault = get_vault(type_info::type_name<T>(), type_info::type_name<X>()); // CHECK
         let metadata = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>());
+     
         let utilization = get_utilization_ratio(vault.total_deposited, vault.total_borrowed);
         VaultTypes::accrue_global<T>((lend_rate as u256), (VerifiedTokens::rate_scale((VerifiedTokens::get_coin_metadata_tier(&metadata)), false) as u256), (utilization as u256), (get_balance_amount<T>() as u256), (((get_balance_amount<T>() as u128) - vault.total_deposited) as u256), VaultTypes::give_permission(&borrow_global<Permissions>(@dev).vault_types));
-        //tttta(3);
-        let scale: u128 = 1000000000000000000;
-        //ttta(7012);
+
+        let scale: u128 = 1_000_000;
         let (_,_, _, user_reward_index, user_interest_index, _) = Margin::get_user_raw_balance<T, X, Market>(user); // CHECK
-        //tttta(7);
         let (_,user_deposited, user_borrowed, user_rewards, user_interest, _) = Margin::get_user_raw_credit<T>(user);  // CHECK
-        //tttta(10);
-        // Apply rewards based on reward index delta
-        let delta_reward = reward_index - (user_reward_index as u128);
-        let user_delta_reward_value  = ((((user_deposited as u128) * delta_reward) / scale) as u256);
-        let receive_rewards_in_A_tokens = getValueByCoin(type_info::type_name<B>(), getValue(type_info::type_name<T>(), user_delta_reward_value));
-        //tttta(3);
-        Margin::add_rewards<A>(user, (receive_rewards_in_A_tokens as u64), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-        Margin::update_reward_index<T, X, Market>(user, reward_index, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-        // Apply interest based on interest index delta
-        let delta_interest = interest_index - (user_interest_index as u128);
-        let user_delta_interest_value = ((((user_borrowed as u128) * delta_interest) / scale) as u256);
-        let pay_interest_in_B_tokens = getValueByCoin(type_info::type_name<A>(), getValue(type_info::type_name<T>(), user_delta_interest_value));
-        Margin::add_interest<B>(user, (pay_interest_in_B_tokens as u64) , Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-        Margin::update_interest_index<T, X, Market>(user, interest_index, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-        
-        Margin::update_time<T, X, Market>(user, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+
+
+        // 11700
+        // 237405 - 147238 = 90167
+        if ((reward_index) > (user_reward_index as u128)) {
+            let delta_reward = reward_index - (user_reward_index as u128);
+            if((((user_deposited as u128) * delta_reward) / scale) > 0){
+                let user_delta_reward_value  = ((((user_deposited as u128) * delta_reward) / scale) as u256);
+                let receive_rewards_in_A_tokens = getValueByCoin(type_info::type_name<B>(), getValue(type_info::type_name<T>(), user_delta_reward_value));
+                Margin::add_rewards<A>(user, (receive_rewards_in_A_tokens as u64), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+                Margin::update_reward_index<T, X, Market>(user, reward_index, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+                Margin::update_time<T, X, Market>(user, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+            };
+        };
+
+        if ((interest_index) > (user_interest_index as u128)) {
+            let delta_interest = interest_index - (user_interest_index as u128);
+            if((((user_borrowed as u128) * delta_interest) / scale) > 0){
+                let user_delta_interest_value = ((((user_borrowed as u128) * delta_interest) / scale) as u256);
+                let pay_interest_in_B_tokens = getValueByCoin(type_info::type_name<A>(), getValue(type_info::type_name<T>(), user_delta_interest_value));
+                Margin::add_interest<B>(user, (pay_interest_in_B_tokens as u64) , Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+                Margin::update_interest_index<T, X, Market>(user, interest_index, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+                Margin::update_time<T, X, Market>(user, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+            };
+        }; 
     }
 
 fun find_vault(vault_table: &mut VaultRegistry, token: String, provider: String): &mut Vault {
