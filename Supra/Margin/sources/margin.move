@@ -1,4 +1,4 @@
-module dev::QiaraMarginV30{
+module dev::QiaraMarginV31{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,7 +7,7 @@ module dev::QiaraMarginV30{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV18::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV19::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
     use dev::QiaraFeatureTypesV9::{Self as FeatureTypes};
     use dev::QiaraVaultTypesV9::{Self as VaultTypes};
@@ -316,17 +316,20 @@ module dev::QiaraMarginV30{
     }
 
     #[view]
-    public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u256) acquires  TokenHoldings {
+    public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u256, u256) acquires  TokenHoldings {
         let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
         let feature_registry = FeatureTypes::return_all_feature_types();
 
         let  total_dep = 0u256;
+        let  total_margin = 0u256;
+        let  total_avaiable = 0u256;
         let  total_bor = 0u256;
         let  raw_borrow = 0u256;
         let  total_rew = 0u256;
         let  total_int = 0u256;
         let  utilization = 0u256;
         let  total_expected_interest = 0u256;
+        let total_number_of_tokens = 1u256;
 
         let n = vector::length(&feature_registry);
         let i = 0;
@@ -370,7 +373,10 @@ module dev::QiaraMarginV30{
 
                 // Process each token separately
                 let num_tokens = vector::length(&token_list);
-                let  y = 0;
+                let y = 0;
+                if(num_tokens != 0){
+                    total_number_of_tokens = (num_tokens as u256);
+                };
                // tttta(1171);
                 while (y < num_tokens) { // THIS SITN CHECKED?
                     //tttta(11);
@@ -381,14 +387,17 @@ module dev::QiaraMarginV30{
                     let bor_usd;
                     //tttta(999);
                     let current_raw_borrow;
+
+                    let price = (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+                    let denom = (VerifiedTokens::get_coin_metadata_denom(&metadata) as u256);
                     {
                         let uv = find_credit(tokens_holdings,addr, token_id);
-                        let metadata = VerifiedTokens::get_coin_metadata_by_res(uv.token);
-                        let scaled = (uv.deposited as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+                       // let metadata = VerifiedTokens::get_coin_metadata_by_res(uv.token);
+                        let scaled = (uv.deposited as u256) * price;
                         //dep_usd = (scaled*(VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
-                        dep_usd = scaled / QiaraMath::pow10_u256(VerifiedTokens::get_coin_metadata_decimals(&metadata));
-                        bor_usd = ((uv.borrowed as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (uv.leverage as u256));
-                        current_raw_borrow = (uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+                        dep_usd = scaled / denom;
+                        bor_usd = ((uv.borrowed as u256) * price / (uv.leverage as u256));
+                        current_raw_borrow = (uv.borrowed as u256)* price;
                     };
 
                     // Scope 2: borrow credit
@@ -396,8 +405,8 @@ module dev::QiaraMarginV30{
                     let interest_usd;
                     {
                         let credit = find_credit(tokens_holdings,addr, token_id);
-                        reward_usd = (credit.rewards as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
-                        interest_usd = (credit.interest as u256) * (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+                        reward_usd = ((credit.rewards as u256) * price ) / denom;
+                        interest_usd = ((credit.interest as u256) * price) / denom;
                     };
 
                     // Safe utilization calc
@@ -420,11 +429,12 @@ module dev::QiaraMarginV30{
                    // total_dep = total_dep + (dep_usd * (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
                     //total_dep = total_dep + (dep_usd / QiaraMath::pow10_u256(VerifiedTokens::get_coin_metadata_decimals(&metadata))) ;
                     total_dep = total_dep + dep_usd ;
+                    total_margin = total_margin + (dep_usd*(VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100 ;
                     total_bor = total_bor + bor_usd;
                     total_rew = total_rew + reward_usd;
                     total_int = total_int + interest_usd;
-                    total_expected_interest = total_expected_interest + margin_interest;
-                    raw_borrow = raw_borrow + current_raw_borrow;
+                    total_expected_interest = total_expected_interest + (margin_interest*dep_usd);
+                   // raw_borrow = raw_borrow + current_raw_borrow; forgot what this is for
 
                     y = y + 1;
                 };
@@ -433,7 +443,7 @@ module dev::QiaraMarginV30{
             i = i + 1;
         };
 
-        (total_dep, total_bor, raw_borrow, total_rew, total_int, total_expected_interest)
+        (total_dep, total_margin, (total_margin-total_bor), total_bor, 0 /*previously raw_borrow*/, total_rew, total_int, total_expected_interest/total_dep)
     }
 
    #[view]
@@ -456,8 +466,8 @@ module dev::QiaraMarginV30{
             if (table::contains(&tokens_holdings.holdings, addr)) {
                 let user_holdings_ref = table::borrow(&tokens_holdings.holdings, addr);
 
-                if (table::contains(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Market"))) {
-                    let holdings_ref = table::borrow(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Market"));
+                if (table::contains(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV9::Market"))) {
+                    let holdings_ref = table::borrow(user_holdings_ref, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV9::Market"));
 
                     if (table::contains(holdings_ref, vault)) {
                         let balances = table::borrow(holdings_ref, vault);
@@ -501,7 +511,7 @@ module dev::QiaraMarginV30{
             while (v < num_vaults) {
                 let vault = *vector::borrow(&vaults, v);
 
-                let bal_ref_opt = find_balance(tokens_holdings, addr, token_id, vault, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV5::Market"));
+                let bal_ref_opt = find_balance(tokens_holdings, addr, token_id, vault, utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV9::Market"));
 
                     if (bal_ref_opt.deposited > 0 || bal_ref_opt.borrowed > 0) {
                         let p = Provider {

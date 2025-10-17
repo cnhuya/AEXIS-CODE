@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraMarginV30"
+    name = "QiaraMarginV31"
     version = "2.1.1"
     authors = []
 
@@ -31,7 +31,7 @@
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
 
-    [dependencies.QiaraVerifiedTokensV18]
+    [dependencies.QiaraVerifiedTokensV19]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/VerifiedTokens'
