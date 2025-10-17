@@ -381,7 +381,7 @@ module dev::QiaraVaultsV22 {
         let vault = borrow_global_mut<GlobalVault<T>>(@dev);
 
         let valueUSD = getValue(type_info::type_name<T>(), (amount as u256));
-        let (depoUSD, borrowUSD, _, _, _, _) = Margin::get_user_total_usd(signer::address_of(user));
+        let (depoUSD, _, _, borrowUSD, _, _, _, _) = Margin::get_user_total_usd(signer::address_of(user));
 
         assert!(coin::value(&vault.balance) >= amount, ERROR_NOT_ENOUGH_LIQUIDITY);
         assert!(depoUSD >= (valueUSD+borrowUSD), ERROR_BORROW_COLLATERAL_OVERFLOW);
