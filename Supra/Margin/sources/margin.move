@@ -1,4 +1,4 @@
-module dev::QiaraMarginV31{
+module dev::QiaraMarginV32{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,7 +7,7 @@ module dev::QiaraMarginV31{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV19::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV20::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
     use dev::QiaraFeatureTypesV9::{Self as FeatureTypes};
     use dev::QiaraVaultTypesV9::{Self as VaultTypes};
@@ -396,8 +396,8 @@ module dev::QiaraMarginV31{
                         let scaled = (uv.deposited as u256) * price;
                         //dep_usd = (scaled*(VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
                         dep_usd = scaled / denom;
-                        bor_usd = ((uv.borrowed as u256) * price / (uv.leverage as u256));
-                        current_raw_borrow = (uv.borrowed as u256)* price;
+                        bor_usd = ((uv.borrowed as u256) * price / (uv.leverage as u256)  / denom);
+                        current_raw_borrow = (uv.borrowed as u256)* price  / denom;
                     };
 
                     // Scope 2: borrow credit
