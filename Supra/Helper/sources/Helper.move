@@ -1,4 +1,4 @@
-module dev::QiaraHelperV11 {
+module dev::QiaraHelperV12 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
 
@@ -8,11 +8,11 @@ module dev::QiaraHelperV11 {
     use dev::QiaraStorageV24::{Self as storage, Access as StorageAccess};
     use dev::QiaraCapabilitiesV24::{Self as capabilities, Access as CapabilitiesAccess};
     use dev::QiaraVaultTypesV9::{Self as VaultTypes};
-    use dev::QiaraVaultsV21::{Self as Market, Vault};
+    use dev::QiaraVaultsV22::{Self as Market, Vault};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
-    use dev::QiaraVerifiedTokensV18::{Self as VerifiedTokens, Metadata, Tier};
+    use dev::QiaraVerifiedTokensV19::{Self as VerifiedTokens, Metadata, Tier};
 
     struct Governance has copy, drop{
         minimum_tokens_to_propose: u64,
@@ -68,15 +68,15 @@ module dev::QiaraHelperV11 {
                 //abort((utilization) as u64); // 0
                 //abort((VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(metadata), true)) as u64); // 3000
                 let (lend_apy, _, _) = QiaraMath::compute_rate(
-                    (VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(vault_res)) as u256),
                     ((utilization+1) as u256),
+                    (VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(vault_res)) as u256),
                     ((VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(metadata), true)) as u256),
                     true,
                     5
                 );
                 let (borrow_apy, _, _) = QiaraMath::compute_rate(
-                    (VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(vault_res)) as u256),
                     ((utilization+1) as u256),
+                    (VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(vault_res)) as u256),
                     ((VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(metadata), false)) as u256),
                     false,
                     5
