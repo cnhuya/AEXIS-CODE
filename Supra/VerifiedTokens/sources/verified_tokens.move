@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV18{
+module dev::QiaraVerifiedTokensV19{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -190,9 +190,9 @@ module dev::QiaraVerifiedTokensV18{
         }
 
         public fun rate_scale(tier_id: u8, isLending: bool): u16 {
-            let x = 1000;
+            let x = 2000;
             if(isLending) { x = 0 };
-            (storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"))) - ((tier_id as u16)*100)) - x
+            ((storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"))) - ((tier_id as u16)*500)) - x)-1500
         }
 
         public fun deposit_limit(tier_id: u8): u128 acquires Tiers{
