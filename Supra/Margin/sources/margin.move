@@ -316,7 +316,7 @@ module dev::QiaraMarginV31{
     }
 
     #[view]
-    public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u256, u256) acquires  TokenHoldings {
+    public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u256,u256, u256) acquires  TokenHoldings {
         let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
         let feature_registry = FeatureTypes::return_all_feature_types();
 
@@ -697,7 +697,7 @@ fun find_vault(vault_table: &mut Vaults, vault: String): &mut Vault {
 
     public fun get_utilization_ratio(addr: address): u256 acquires TokenHoldings{
         assert_user_registered(addr);
-        let (depoUSD, borrowUSD, _, _, _, _) = get_user_total_usd(addr);
+        let (depoUSD, _, _, borrowUSD, _, _, _, _) = get_user_total_usd(addr);
         if (depoUSD == 0) {
             0
         } else {
