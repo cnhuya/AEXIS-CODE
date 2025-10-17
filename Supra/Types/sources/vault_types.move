@@ -53,14 +53,14 @@ module dev::QiaraVaultTypesV9 {
 // === HELPER FUNCTIONS === //
 //SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC
     public entry fun change_rate(addr: &signer) acquires RateList {
-        change_rates<SuiBitcoin>(32022,give_permission(&give_access(addr)));
-        change_rates<SuiEthereum>(100147,give_permission(&give_access(addr)));
-        change_rates<SuiSui>(250578,give_permission(&give_access(addr)));
-        change_rates<SuiUSDC>(50987,give_permission(&give_access(addr)));
-        change_rates<SuiUSDT>(71151,give_permission(&give_access(addr)));
-        change_rates<BaseEthereum>(99174,give_permission(&give_access(addr)));
-        change_rates<BaseUSDC>(66855,give_permission(&give_access(addr)));
-        change_rates<SupraCoin>(712987,give_permission(&give_access(addr)));
+        change_rates<SuiBitcoin>(8022,give_permission(&give_access(addr)));
+        change_rates<SuiEthereum>(17147,give_permission(&give_access(addr)));
+        change_rates<SuiSui>(22578,give_permission(&give_access(addr)));
+        change_rates<SuiUSDC>(12011,give_permission(&give_access(addr)));
+        change_rates<SuiUSDT>(13547,give_permission(&give_access(addr)));
+        change_rates<BaseEthereum>(16454,give_permission(&give_access(addr)));
+        change_rates<BaseUSDC>(12974,give_permission(&give_access(addr)));
+        change_rates<SupraCoin>(29331,give_permission(&give_access(addr)));
     }
 
 
@@ -98,22 +98,28 @@ public fun accrue_global<X>(
     if (elapsed == 0) return;
 
     if (total_deposits > 0) {
-        let (lend_rate_decimal, _, _) = Math::compute_rate(utilization, lend_rate, exp_scale, true, 6);
-        let lend_rate_decimal = lend_rate_decimal / 10000;
-        let reward_per_unit = (lend_rate_decimal * (elapsed as u256) / seconds_in_year) / total_deposits;
+
+        // CHECKNOUT LEND RATE DECIMAL? (VRACI MOC VELKY CISLO???)
+
+        // elapsed = 355 seconds
+        // lend rate decimal = 371,618,000 371 618 000
+        // total deposits = 132 304
+        let (lend_rate_decimal, _, _) = Math::compute_rate(utilization, lend_rate, exp_scale, true, 5);
+        let reward_per_unit = ((((lend_rate_decimal/1000)*1_000_000) * (elapsed as u256)) / seconds_in_year) / total_deposits;
         rate.reward_index = (((rate.reward_index as u256) + reward_per_unit) as u128);
-
-        let (borrow_rate_decimal, _, _) = Math::compute_rate(utilization, lend_rate, exp_scale, false, 6);
-        let borrow_rate_decimal = borrow_rate_decimal / 10000;
-
+        let (borrow_rate_decimal, _, _) = Math::compute_rate(utilization, lend_rate, exp_scale, false, 5);
+        //ttta((lend_rate_decimal as u64));
         // Safeguard against division by zero
         if (total_borrows > 0) {
             let interest_per_unit = (borrow_rate_decimal * (elapsed as u256) / seconds_in_year) / total_borrows;
             rate.interest_index = (((rate.interest_index as u256) + interest_per_unit) as u128);
         };
+
+   //             ttta((total_deposits as u64));
     };
 
     rate.last_update = timestamp::now_seconds();
+   // ttta(1);
 }
 
 
