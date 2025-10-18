@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV21{
+module dev::QiaraVerifiedTokensV23{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -91,20 +91,20 @@ module dev::QiaraVerifiedTokensV21{
 
 
 // === ENTRY FUNCTIONS === //
-    public fun allow_coin<T>(admin: &signer, tier_id: u8, oracleID: u32, chain: String, permission: Permission) acquires Tokens{
+    public fun allow_coin<Token>(admin: &signer, tier_id: u8, oracleID: u32, chain: String, permission: Permission) acquires Tokens{
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
         let vault_list = borrow_global_mut<Tokens>(signer::address_of(admin));
-        assert!(!vector::contains(&vault_list.list,&Metadata { tier: tier_id, tier_name: convert_tier_to_string(tier_id), resource: type_info::type_name<T>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<T>(), chain: chain }), ERROR_COIN_ALREADY_ALLOWED);
+        assert!(!vector::contains(&vault_list.list,&Metadata { tier: tier_id, tier_name: convert_tier_to_string(tier_id), resource: type_info::type_name<Token>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<Token>(), chain: chain }), ERROR_COIN_ALREADY_ALLOWED);
             
-        vector::push_back(&mut vault_list.list, Metadata { tier: tier_id, tier_name: convert_tier_to_string(tier_id), resource: type_info::type_name<T>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<T>(), chain: chain });
+        vector::push_back(&mut vault_list.list, Metadata { tier: tier_id, tier_name: convert_tier_to_string(tier_id), resource: type_info::type_name<Token>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<Token>(), chain: chain });
     }
 
-    public entry fun change_coin_oracle<T>(admin: &signer, oracleID: u32) acquires Tokens {
+    public entry fun change_coin_oracle<Token>(admin: &signer, oracleID: u32) acquires Tokens {
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
         let vault_list = borrow_global_mut<Tokens>(signer::address_of(admin));
-        let type = type_info::type_name<T>();
+        let type = type_info::type_name<Token>();
             
         let len = vector::length(&vault_list.list);
         while (len > 0) {
@@ -118,11 +118,11 @@ module dev::QiaraVerifiedTokensV21{
         abort(ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST)
     }
 
-    public entry fun change_coin_tier<T>(admin: &signer, tier: u8) acquires Tokens{
+    public entry fun change_coin_tier<Token>(admin: &signer, tier: u8) acquires Tokens{
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
         let vault_list = borrow_global_mut<Tokens>(@dev);
-        let type = type_info::type_name<T>();
+        let type = type_info::type_name<Token>();
             
         let len = vector::length(&vault_list.list);
         while(len>0){
@@ -208,38 +208,38 @@ module dev::QiaraVerifiedTokensV21{
 
     // === GET COIN DATA === //
         #[view]
-        public fun get_coin_data<T>(): CoinData {
-            let type = type_info::type_name<T>();
-            CoinData { resource: type, name: coin::name<T>(), symbol: coin::symbol<T>(), decimals: coin::decimals<T>(), supply: coin::supply<T>() }
+        public fun get_coin_data<Token>(): CoinData {
+            let type = type_info::type_name<Token>();
+            CoinData { resource: type, name: coin::name<Token>(), symbol: coin::symbol<Token>(), decimals: coin::decimals<Token>(), supply: coin::supply<Token>() }
         }
 
-        public fun get_coin_type<T>(): String {
-            let coin_data = get_coin_data<T>();
+        public fun get_coin_type<Token>(): String {
+            let coin_data = get_coin_data<Token>();
             coin_data.resource
         }
 
-        public fun get_coin_name<T>(): String {
-            let coin_data = get_coin_data<T>();
+        public fun get_coin_name<Token>(): String {
+            let coin_data = get_coin_data<Token>();
             coin_data.name
         }
 
-        public fun get_coin_symbol<T>(): String {
-            let coin_data = get_coin_data<T>();
+        public fun get_coin_symbol<Token>(): String {
+            let coin_data = get_coin_data<Token>();
             coin_data.symbol
         }
 
-        public fun get_coin_decimals<T>(): u8 {
-            let coin_data = get_coin_data<T>();
+        public fun get_coin_decimals<Token>(): u8 {
+            let coin_data = get_coin_data<Token>();
             coin_data.decimals
         }
 
-        public fun get_coin_supply<T>(): Option<u128> {
-            let coin_data = get_coin_data<T>();
+        public fun get_coin_supply<Token>(): Option<u128> {
+            let coin_data = get_coin_data<Token>();
             coin_data.supply
         }
 
-        public fun get_coin_chain<T>(): Option<u128> {
-            let coin_data = get_coin_data<T>();
+        public fun get_coin_chain<Token>(): Option<u128> {
+            let coin_data = get_coin_data<Token>();
             coin_data.supply
         }
 
@@ -252,13 +252,13 @@ module dev::QiaraVerifiedTokensV21{
         }
 
         #[view]
-        public fun get_coin_metadata<T>(): Metadata acquires Tokens {
+        public fun get_coin_metadata<Token>(): Metadata acquires Tokens {
             let vault_list = borrow_global_mut<Tokens>(@dev);
             let len = vector::length(&vault_list.list);
 
             while (len > 0) {
                 let metadat = vector::borrow(&vault_list.list, len - 1);
-                if (metadat.resource == type_info::type_name<T>()) {
+                if (metadat.resource == type_info::type_name<Token>()) {
                     let (price, price_decimals, _, _) = supra_oracle_storage::get_price(get_coin_metadata_oracle(metadat));
                     let denom = Math::pow10_u256((price_decimals as u8));
                     return Metadata { 
