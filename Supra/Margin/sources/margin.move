@@ -1,4 +1,4 @@
-module dev::QiaraMarginV33{
+module dev::QiaraMarginV34{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,7 +7,7 @@ module dev::QiaraMarginV33{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV21::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV23::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
     use dev::QiaraFeatureTypesV11::{Self as FeatureTypes};
     use dev::QiaraVaultRatesV11::{Self as VaultRates};
@@ -35,17 +35,7 @@ module dev::QiaraMarginV33{
 // === STRUCTS === //
     struct TokenHoldings has key {
         // adress, feature?, vault?
-        holdings: table::Table<address, table::Table<String, table::Table<String, vector<Balance>>>>,
-        credits: table::Table<address, table::Table<String, Credit>>,
-    }
-
-    struct Vaults has key {
-        vaults: table::Table<String, Vault>,
-    }
-
-    struct Vault has key, store, copy, drop{
-        total_deposited: u128,
-        total_borrowed: u128,
+        holdings: table::Table<address, table::Table<String, vector<Credit>>>,
     }
 
     struct Leverage has key, store, copy, drop{
@@ -60,51 +50,24 @@ module dev::QiaraMarginV33{
         rewards: u64,
         interest: u64,
         leverage: u64,
-    }
-
-    struct Balance has key, store, copy, drop {
-        token: String,
-        deposited: u64,
-        borrowed: u64,
         reward_index_snapshot: u128,
         interest_index_snapshot: u128,
         last_update: u64,
-    }
-
-    struct VaultRegistry has key {
-        vaults: table::Table<String, vector<String>>,
     }
 
     struct FeaturesRegistry has key {
         features: vector<String>,
     }
 
-    struct UserVaults has key{
-        token: String,
-        vaults: vector<Provider>,
-    }
-
-    struct Provider has key, store, copy, drop {
-        provider: String,
-        deposited: u64,
-        borrowed: u64,
-    }
 
 // === INIT === //
     fun init_module(admin: &signer){
-        if (!exists<Vaults>(@dev)) {
-            move_to(admin, Vaults { vaults: table::new<String, Vault>() });
-        };
         if (!exists<Leverage>(@dev)) {
             move_to(admin, Leverage { total_lev_usd: 0, usd_weight: 0 });
         };
 
         if (!exists<TokenHoldings>(@dev)) {
-            move_to(admin,TokenHoldings {holdings: table::new<address, table::Table<String, table::Table<String, vector<Balance>>>>(),credits: table::new<address, table::Table<String, Credit>>()});
-        };
-
-        if (!exists<VaultRegistry>(@dev)) {
-            move_to(admin,VaultRegistry {vaults: table::new<String, vector<String>>()});
+            move_to(admin,TokenHoldings {holdings: table::new<address, table::Table<String, vector<Credit>>>()});
         };
 
         if (!exists<FeaturesRegistry>(@dev)) {
@@ -130,189 +93,125 @@ module dev::QiaraMarginV33{
         abort(number);
     }
 
-    public fun update_time<T, X, Y>(addr: address, cap: Permission) acquires TokenHoldings{
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+    public fun update_time<Token, Feature>(addr: address, cap: Permission) acquires TokenHoldings{
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
         balance.last_update = timestamp::now_seconds() / 3600;
     }
 
-    public fun update_interest_index<T, X, Y>(addr: address, index: u128, cap: Permission) acquires TokenHoldings{
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+    public fun update_interest_index<Token, Feature>(addr: address, index: u128, cap: Permission) acquires TokenHoldings{
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
         balance.interest_index_snapshot = index;
     }
 
-    public fun update_reward_index<T, X, Y>(addr: address, index: u128, cap: Permission) acquires TokenHoldings{
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+    public fun update_reward_index<Token, Feature>(addr: address, index: u128, cap: Permission) acquires TokenHoldings{
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
         balance.reward_index_snapshot = index;
     }
 
-    public fun update_leverage<T>(addr: address, leverage: u64, cap: Permission) acquires TokenHoldings{
+    public fun update_leverage<Token, Feature>(addr: address, leverage: u64, cap: Permission) acquires TokenHoldings{
         {
-            let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>());
-            credit.leverage = leverage;
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
+            balance.leverage = leverage;
         }
     }
 
-    public fun add_deposit<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
+    public fun add_deposit<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         {
-           let vault = find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
-           vault.total_deposited = vault.total_deposited + (value as u128);
-        };
-        {
-            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             balance.deposited = balance.deposited + value;
-        };
-
-        {
-            let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>());
-            credit.deposited = credit.deposited + value;
         };
     }
 
-    public fun remove_deposit<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
+    public fun remove_deposit<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         {
-           
-           let vault = find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
-          // tttta((vault.total_deposited  as u64));
-           vault.total_deposited = vault.total_deposited - (value as u128);
-          // tttta(value);
-        };
-
-        {
-            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             if(value > balance.deposited){
                 balance.deposited = 0
             } else {
                 balance.deposited = balance.deposited - value;
             };
         };
-
-        {
-            let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>());
-            if(value > credit.deposited){
-                credit.deposited = 0
-            } else {
-                credit.deposited = credit.deposited - value;
-            };
-        };
     }
 
-    public fun add_borrow<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
+    public fun add_borrow<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         {
-           let vault = find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
-           vault.total_borrowed + (value as u128);
-        };
-
-        {
-            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             balance.borrowed = balance.borrowed + value;
         };
-
-        {
-            let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>());
-            credit.borrowed = credit.borrowed + value;
-        };
     }
 
-    public fun remove_borrow<T, X, Y>(addr: address, value: u64, cap: Permission) acquires TokenHoldings, Vaults{
+    public fun remove_borrow<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         {
-           let vault = find_vault(borrow_global_mut<Vaults>(@dev), type_info::type_name<T>()); 
-           vault.total_borrowed - (value as u128);
-        };
-
-        {
-            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             if(value > balance.borrowed){
                 balance.borrowed = 0
             } else {
                 balance.borrowed = balance.borrowed - value;
             };
         };
-
-        {
-            let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>());
-            if(value > credit.borrowed){
-                credit.borrowed = 0
-            } else {
-                credit.borrowed = credit.borrowed - value;
-            };
-        };
     }
 
-    public fun add_interest<T>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_interest<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         {
-            let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>());
-            credit.interest = credit.interest + value;
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
+            balance.interest = balance.interest + value;
         }
     }
 
-    public fun remove_interest<T>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_interest<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         {
-            let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>());
-            if(value > credit.interest){
-                credit.interest = 0
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
+            if(value > balance.interest){
+                balance.interest = 0
             } else {
-                credit.interest = credit.interest - value;
+                balance.interest = balance.interest - value;
             }
         }
     }
 
-    public fun add_rewards<T>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_rewards<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         {
-            let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>());
-            credit.rewards = credit.rewards + value;
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
+            balance.rewards = balance.rewards + value;
         }
     }
 
-    public fun remove_rewards<T>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_rewards<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         {
-            let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>());
-            if(value > credit.rewards){
-                credit.rewards = 0
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
+            if(value > balance.rewards){
+                balance.rewards = 0
             } else {
-                credit.rewards = credit.rewards - value;
+                balance.rewards = balance.rewards - value;
             }
         }
     }
 
 // === PUBLIC VIEWS === //
 
-    #[view]
+  /*  #[view]
     public fun get_list_of_vaults(res: String): vector<String> acquires VaultRegistry {
         return *table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, res)
-    }
+    }*/
 
     #[view]
-    public fun get_user_position_usd<T, X, Y>(addr: address): (u256, u256, u256, u256, u256, u256)acquires TokenHoldings{
+    public fun get_user_position_usd<Token, Feature>(addr: address): (u256, u256, u256, u256, u256, u256, u256, u256, u256, u256)acquires TokenHoldings{
 
         let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
-        let metadata = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>());
+        let metadata = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<Token>());
 
-        // Scope 1: use balance
-        let dep_usd;
-        let bor_usd;
-        let raw_borrow;
-        {
-            let uv = find_credit(tokens_holdings,addr, type_info::type_name<T>());
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
+        let raw_borrow = (balance.borrowed as u256);
 
-            dep_usd = (((uv.deposited as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256))* (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
-            bor_usd = ((uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256)/ (uv.leverage as u256));
-            raw_borrow = (uv.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
-        };
-
-        // Scope 2: use credit
-        let reward_usd;
-        let interest_usd;
-        {
-            let credit = find_credit(tokens_holdings,addr, type_info::type_name<T>());
-
-            reward_usd = (credit.rewards as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
-            interest_usd = (credit.interest as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
-        };
+        let dep_usd = (balance.deposited as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+        let bor_usd = (balance.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+        let reward_usd = (balance.rewards as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+        let interest_usd = (balance.interest as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
 
         let utilization = if (raw_borrow == 0) 0 else (bor_usd * 100) / raw_borrow;
         let margin_interest = raw_borrow* (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata))/ 100;
 
-        (dep_usd, bor_usd, raw_borrow, reward_usd, interest_usd, margin_interest)
+        (dep_usd, bor_usd, raw_borrow, reward_usd, (balance.reward_index_snapshot as u256), interest_usd, (balance.interest_index_snapshot as u256), margin_interest, (balance.leverage as u256),( balance.last_update as u256))
     }
 
 #[view]
@@ -377,7 +276,7 @@ public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u25
             let denom = (VerifiedTokens::get_coin_metadata_denom(&metadata) as u256);
 
             {
-                let uv = find_credit(tokens_holdings, addr, token_id);
+                let uv = find_balance(tokens_holdings, addr, token_id, feature_str);
                 let scaled = (uv.deposited as u256) * price;
                 dep_usd = scaled / denom;
                 bor_usd = ((uv.borrowed as u256) * price / (uv.leverage as u256) / denom);
@@ -387,7 +286,7 @@ public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u25
             let reward_usd;
             let interest_usd;
             {
-                let credit = find_credit(tokens_holdings, addr, token_id);
+                let credit = find_balance(tokens_holdings, addr, token_id, feature_str);
                 reward_usd = ((credit.rewards as u256) * price) / denom;
                 interest_usd = ((credit.interest as u256) * price) / denom;
             };
@@ -425,79 +324,31 @@ public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u25
 
 
     #[view]
-    public fun get_user_balance<T, X, Y>(addr: address): Balance acquires TokenHoldings {
-        return *find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>())
+    public fun get_user_balance<Token, Feature>(addr: address): Credit acquires TokenHoldings {
+        return *find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>())
     }
 
     #[view]
-    public fun get_user_raw_balance<T, X, Y>(addr: address): (String, u64, u64, u128, u128, u64) acquires TokenHoldings {
-        let balance  = *find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>(), type_info::type_name<X>(), type_info::type_name<Y>());
+    public fun get_user_raw_balance<Token, Feature>(addr: address): (String, u64, u64, u128, u128, u64) acquires TokenHoldings {
+        let balance  = *find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
         return (balance.token, balance.deposited, balance.borrowed, balance.reward_index_snapshot, balance.interest_index_snapshot, balance.last_update)
     }
 
     #[view]
-    public fun get_user_balances<X, Y>(addr: address): vector<Balance> acquires TokenHoldings {
+    public fun get_user_balances<Token, Feature>(addr: address): vector<Credit> acquires TokenHoldings {
         let th = borrow_global<TokenHoldings>(@dev);
         let inner = table::borrow(&th.holdings, addr);
-        let inner2 = table::borrow(inner, type_info::type_name<X>());
-        *table::borrow(inner2, type_info::type_name<Y>())
+        *table::borrow(inner, type_info::type_name<Feature>())
     }
-
-    #[view]
-    public fun get_user_credit<T>(addr: address): Credit acquires TokenHoldings {
-        return *find_credit(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>())
-    }
-
-    #[view]
-    public fun get_user_raw_credit<T>(addr: address): (String, u64, u64, u64, u64, u64) acquires TokenHoldings {
-        let credit  = *find_credit(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<T>());
-        return (credit.token, credit.deposited, credit.borrowed, credit.rewards, credit.interest, credit.leverage)
-    }
-
 
 // === MUT RETURNS === //
-
-fun find_credit(token_table: &mut TokenHoldings, addr: address, token: String): &mut Credit {
-    // Use scoped blocks to end borrows early when needed
-    {
-        if (!table::contains(&token_table.credits, addr)) {
-            table::add(&mut token_table.credits, addr, table::new<String, Credit>());
-        };
-    };
-
-    let user_credit_table = table::borrow_mut(&mut token_table.credits, addr);
-
-    if (!table::contains(user_credit_table, token)) {
-        table::add(
-            user_credit_table,
-            token,
-            Credit {
-                token,
-                deposited: 0,
-                borrowed: 0,
-                rewards: 0,
-                interest: 0,
-                leverage: 1,
-            },
-        );
-    };
-
-    table::borrow_mut(user_credit_table, token)
-}
-
-fun find_balance(
-    feature_table: &mut TokenHoldings,
-    addr: address,
-    token: String,
-    vault: String,
-    feature: String
-): &mut Balance {
+fun find_balance(feature_table: &mut TokenHoldings,addr: address,token: String,feature: String): &mut Credit {
     {
         if (!table::contains(&feature_table.holdings, addr)) {
             table::add(
                 &mut feature_table.holdings,
                 addr,
-                table::new<String, table::Table<String, vector<Balance>>>(),
+                table::new<String, vector<Credit>>(),
             );
         };
     };
@@ -509,46 +360,41 @@ fun find_balance(
             table::add(
                 user_holdings,
                 feature,
-                table::new<String, vector<Balance>>(),
+                vector::empty<Credit>(),
             );
         };
     };
 
-    let vault_table = table::borrow_mut(user_holdings, feature);
-
-    {
-        if (!table::contains(vault_table, vault)) {
-            table::add(vault_table, vault, vector::empty<Balance>());
-        };
-    };
-
-    let holdings = table::borrow_mut(vault_table, vault);
+    let holdings = table::borrow_mut(user_holdings, feature);
     let len = vector::length(holdings);
     let i = 0;
 
     while (i < len) {
-        let balance = vector::borrow_mut(holdings, i);
-        if (balance.token == token) {
-            return balance;
+        let credit = vector::borrow_mut(holdings, i);
+        if (credit.token == token) {
+            return credit;
         };
         i = i + 1;
     };
 
-    let new_balance = Balance {
+    let new_credit = Credit {
         token,
         deposited: 0,
         borrowed: 0,
+        rewards: 0,
+        interest: 0,
+        leverage: 0,
         reward_index_snapshot: 0,
         interest_index_snapshot: 0,
         last_update: 0,
     };
-    vector::push_back(holdings, new_balance);
+    vector::push_back(holdings, new_credit);
 
     let idx = vector::length(holdings) - 1;
     vector::borrow_mut(holdings, idx)
 }
 
-fun find_vault(vault_table: &mut Vaults, vault: String): &mut Vault {
+/*fun find_vault(vault_table: &mut Vaults, vault: String): &mut Vault {
     {
         if (!table::contains(&vault_table.vaults, vault)) {
             table::add(
@@ -563,16 +409,12 @@ fun find_vault(vault_table: &mut Vaults, vault: String): &mut Vault {
     };
 
     table::borrow_mut(&mut vault_table.vaults, vault)
-}
+}*/
 
 
 // === HELPERS === //
     public fun is_user_registered(address: address): bool {
         if (!exists<TokenHoldings>(address)) {
-            return false
-        };
-
-        if (!exists<VaultRegistry>(address)) {
             return false
         };
 
@@ -595,6 +437,5 @@ fun find_vault(vault_table: &mut Vaults, vault: String): &mut Vault {
     public fun assert_user_registered(address: address) {
         assert!(!exists<TokenHoldings>(address), ERROR_USER_NOT_REGISTERED);
         assert!(!exists<FeaturesRegistry>(address), ERROR_USER_NOT_REGISTERED);
-        assert!(!exists<VaultRegistry>(address), ERROR_USER_NOT_REGISTERED);
     }
 }
