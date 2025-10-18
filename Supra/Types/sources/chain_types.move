@@ -1,4 +1,4 @@
-module dev::QiaraChainTypesV9 {
+module dev::QiaraChainTypesV11 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
 
