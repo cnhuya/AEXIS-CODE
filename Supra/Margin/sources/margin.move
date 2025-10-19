@@ -1,4 +1,4 @@
-module dev::QiaraMarginV34{
+module dev::QiaraMarginV35{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,7 +7,7 @@ module dev::QiaraMarginV34{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV23::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV24::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
     use dev::QiaraFeatureTypesV11::{Self as FeatureTypes};
     use dev::QiaraVaultRatesV11::{Self as VaultRates};
@@ -329,9 +329,9 @@ public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u25
     }
 
     #[view]
-    public fun get_user_raw_balance<Token, Feature>(addr: address): (String, u64, u64, u128, u128, u64) acquires TokenHoldings {
+    public fun get_user_raw_balance<Token, Feature>(addr: address): (String, u64, u64, u64, u128, u64, u128, u64) acquires TokenHoldings {
         let balance  = *find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
-        return (balance.token, balance.deposited, balance.borrowed, balance.reward_index_snapshot, balance.interest_index_snapshot, balance.last_update)
+        return (balance.token, balance.deposited, balance.borrowed, balance.rewards, balance.reward_index_snapshot, balance.interest, balance.interest_index_snapshot, balance.last_update)
     }
 
     #[view]
