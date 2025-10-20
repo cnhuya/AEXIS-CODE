@@ -9,7 +9,7 @@ module dev::QiaraVerifiedTokensV25{
     use supra_framework::coin;
     use supra_framework::supra_coin::{Self, SupraCoin};
 
-    use dev::QiaraStorageV25::{Self as storage};
+    use dev::QiaraStorageV24::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 
