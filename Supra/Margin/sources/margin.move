@@ -1,4 +1,4 @@
-module dev::QiaraMarginV35{
+module dev::QiaraMarginV36{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,7 +7,7 @@ module dev::QiaraMarginV35{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV24::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV25::{Self as VerifiedTokens, Tier, CoinData, Metadata};
 
     use dev::QiaraFeatureTypesV11::{Self as FeatureTypes};
     use dev::QiaraVaultRatesV11::{Self as VaultRates};
