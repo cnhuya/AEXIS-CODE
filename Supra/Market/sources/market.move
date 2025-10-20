@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV26 {
+module dev::QiaraVaultsV27 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,8 +11,8 @@ module dev::QiaraVaultsV26 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
 
-    use dev::QiaraVerifiedTokensV24::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV35::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV25::{Self as VerifiedTokens, Tier, CoinData, Metadata, Access as VerifiedTokensAccess};
+    use dev::QiaraMarginV36::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use dev::QiaraChainTypesV11::{Self as ChainTypes};
@@ -172,12 +172,14 @@ module dev::QiaraVaultsV26 {
         init_vault<SupraCoin>(address, 3, 500, utf8(b"Supra"));
     }
 
-    public entry fun init_vault<T>(admin: &signer, tier: u8, oracleID: u32, chain: String) acquires Permissions{
+    public entry fun init_vault<T>(admin: &signer, tier: u8, oracleID: u32, chain: String) acquires Permissions, VaultRegistry{
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
         if (!exists<GlobalVault<T>>(@dev)) {
             move_to(admin, GlobalVault {tier: tier,balance: coin::zero<T>(),});
             VerifiedTokens::allow_coin<T>(admin, tier, oracleID, chain, VerifiedTokens::give_permission(&borrow_global<Permissions>(@dev).verified_tokens));
         }
+        let registry = borrow_global_mut<VaultRegistry>(@dev);
+        table::add(&mut registry, type_info::type_name<T>());
     }
     /// Deposit on behalf of `recipient`
     /// No need for recipient to have signed anything.
