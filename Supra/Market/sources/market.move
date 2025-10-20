@@ -89,7 +89,7 @@ module dev::QiaraVaultsV27 {
 
 
     struct VaultRegistry has key {
-        vaults: table::Table<String, vector<Vault>>,
+        vaults: table::Table<String, Vault>,
     }
 
     struct GlobalVault<phantom T> has key {
@@ -148,9 +148,9 @@ module dev::QiaraVaultsV27 {
     }
 
 // === FUNCTIONS === //
-    fun init_module(admin: &signer) acquires Permissions{
+    fun init_module(admin: &signer) acquires Permissions, VaultRegistry{
         if (!exists<VaultRegistry>(@dev)) {
-            move_to(admin, VaultRegistry {vaults: table::new<String, vector<Vault>>()});
+            move_to(admin, VaultRegistry {vaults: table::new<String, Vault>()});
         };
         if (!exists<Permissions>(@dev)) {
             move_to(admin, Permissions {margin: Margin::give_access(admin), vault_rates:  VaultRates::give_access(admin), storage:  storage::give_access(admin), capabilities:  capabilities::give_access(admin), verified_tokens:  VerifiedTokens::give_access(admin)});
@@ -159,7 +159,7 @@ module dev::QiaraVaultsV27 {
 
     }
 
-    public fun init_all_vaults(address: &signer) acquires Permissions{
+    public fun init_all_vaults(address: &signer) acquires Permissions, VaultRegistry{
         init_vault<BaseEthereum>(address, 1, 1, utf8(b"Base"));
         init_vault<BaseUSDC>(address, 0, 47,  utf8(b"Base"));
 
@@ -177,9 +177,13 @@ module dev::QiaraVaultsV27 {
         if (!exists<GlobalVault<T>>(@dev)) {
             move_to(admin, GlobalVault {tier: tier,balance: coin::zero<T>(),});
             VerifiedTokens::allow_coin<T>(admin, tier, oracleID, chain, VerifiedTokens::give_permission(&borrow_global<Permissions>(@dev).verified_tokens));
-        }
+        };
         let registry = borrow_global_mut<VaultRegistry>(@dev);
-        table::add(&mut registry, type_info::type_name<T>());
+            table::add(
+                &mut registry.vaults,
+                type_info::type_name<T>(),
+                Vault {token: type_info::type_name<T>() , total_deposited:0, total_borrowed:0},
+            );
     }
     /// Deposit on behalf of `recipient`
     /// No need for recipient to have signed anything.
@@ -462,50 +466,9 @@ module dev::QiaraVaultsV27 {
 
     #[view]
     public fun get_vault_raw(vaultStr: String): (String, u128, u128) acquires VaultRegistry {
-        let vault_vect = table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, vaultStr);
-
-        let i = 0;
-        let len = vector::length(vault_vect);
-
-        while (i < len) {
-            let vault_ref = vector::borrow(vault_vect, i);
-            if (vault_ref.token == vaultStr) {
-                return (vault_ref.token, vault_ref.total_deposited, vault_ref.total_borrowed)
-            };
-            i = i + 1;
-        };
-
-        abort(ERROR_NO_VAULT_FOUND)
+        let vault = table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, vaultStr);
+        (vault.token, vault.total_deposited, vault.total_borrowed)
     }
-
-
-    #[view]
-    public fun get_full_vault(vaultStr: String): (vector<String>, vector<u128>, vector<u128>) acquires VaultRegistry {
-        let vault_vect = table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, vaultStr);
-
-        let i = 0;
-        let len = vector::length(vault_vect);
-
-        let providers = vector::empty<String>();
-        let total_deposits = vector::empty<u128>();
-        let total_borrows = vector::empty<u128>();
-
-        while (i < len) {
-            let vault_ref = vector::borrow(vault_vect, i);
-
-            // push values into the output vectors
-            vector::push_back(&mut providers, vault_ref.token);
-            vector::push_back(&mut total_deposits, vault_ref.total_deposited);
-            vector::push_back(&mut total_borrows, vault_ref.total_borrowed);
-
-            i = i + 1;
-        };
-
-        // return all vectors as tuple
-        (providers, total_deposits, total_borrows)
-    }
-
-
 
     #[view]
     public fun get_vaultUSD<T>(tokenStr: String): VaultUSD acquires GlobalVault, VaultRegistry {
@@ -523,10 +486,6 @@ module dev::QiaraVaultsV27 {
         VaultUSD {tier: vault.tier, oracle_price: (price as u128), oracle_decimals: (price_decimals as u8), total_deposited: vault_total.total_deposited,balance: balance, borrowed: vault_total.total_borrowed, utilization: utilization, rewards: lend_apy, interest: borrow_apy, fee: get_withdraw_fee(utilization)}
     }
 
-    #[view]
-    public fun get_vault_providers(tokenStr: String): vector<Vault> acquires VaultRegistry {
-        return *table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, tokenStr)
-    }
 
     #[view]
     public fun get_withdraw_fee(utilization: u256): u256 {
@@ -591,36 +550,10 @@ module dev::QiaraVaultsV27 {
     }
 
     fun find_vault(vault_table: &mut VaultRegistry, token: String): &mut Vault {
-        use std::vector;
-        use std::table;
-
         if (!table::contains(&vault_table.vaults, token)) {
             abort ERROR_NO_VAULT_FOUND;
         };
 
-        let vaults = table::borrow_mut(&mut vault_table.vaults, token);
-        let len = vector::length(vaults);
-        let i = 0;
-
-        while (i < len) {
-            let vault = vector::borrow_mut(vaults, i);
-            if (vault.token == token) {
-                return vault;
-            };
-            i = i + 1;
-        };
-
-        // If not found, create and append a new vault
-        let new_vault = Vault {
-            token: token,
-            total_deposited: 0,
-            total_borrowed: 0,
-
-            // initialize other fields here
-        };
-        vector::push_back(vaults, new_vault);
-
-        // Return mutable reference to the newly added vault
-        vector::borrow_mut(vaults, len)
+        table::borrow_mut(&mut vault_table.vaults, token)
     }
 }
