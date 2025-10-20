@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV24{
+module dev::QiaraVerifiedTokensV25{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -9,7 +9,7 @@ module dev::QiaraVerifiedTokensV24{
     use supra_framework::coin;
     use supra_framework::supra_coin::{Self, SupraCoin};
 
-    use dev::QiaraStorageV24::{Self as storage};
+    use dev::QiaraStorageV25::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 
