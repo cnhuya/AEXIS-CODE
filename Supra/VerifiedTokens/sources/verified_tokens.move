@@ -9,15 +9,18 @@ module dev::QiaraVerifiedTokensV25{
     use supra_framework::coin;
     use supra_framework::supra_coin::{Self, SupraCoin};
 
-    use dev::QiaraStorageV24::{Self as storage};
+    use dev::QiaraStorageV25::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+
+    use dev::QiaraTiersV12::{Self as tier};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST: u64 = 2;
     const ERROR_TIER_ALREADY_EXISTS: u64 = 3;
     const ERROR_COIN_ALREADY_ALLOWED: u64 = 4;
+    const ERROR_TIER_NOT_FOUND: u64 = 5;
 
 // === ACCESS === //
     struct Access has store, key, drop {}
@@ -33,31 +36,59 @@ module dev::QiaraVerifiedTokensV25{
     }
 
 // === STRUCTS === //
-    struct Tiers has key {
-        table: table::Table<u8, Tier>,
-    }
-
-    struct Tier has store, key, drop {
-        apr_increase: u16, // base borrow interest
-        lend_ratio: u16,
-        minimal_w_fee: u16,
-        deposit_limit: u128,
-        borrow_limit: u128,
-    }
-
     struct Tokens has key, store, copy{
         list: vector<Metadata>,
     }
 
     struct Metadata has key, store, copy,drop{
-        tier: u8,
-        tier_name: String,
         resource: String,
-        price: u128,
-        denom: u256,
-        oracleID: u32,
+        chain: String,
+        tier:u8,
         decimals: u8,
-        chain: String
+        oracleID: u32,
+        offchainID: u32,
+        creation: u64,
+        credit: u128,
+        tokenomics: Tokenomics,
+    }
+
+    struct VMetadata has key, store, copy, drop {
+        resource: String,
+        chain: String,
+        tier:u8,
+        decimals: u8,
+        oracleID: u32,
+        offchainID: u32,
+        creation: u64,
+        credit: u128,
+        live_credit: u128,
+        price: Price,
+        market: Market,
+        tokenomics: Tokenomics,
+        full_tier: Tier,
+    }
+
+    struct Tier has key, store, copy,drop {
+        tierName: String,
+        efficiency: u64,
+        multiplyer: u64,
+    }
+
+    struct Tokenomics has key, copy, store, drop {
+        max_supply: u128,
+        circulating_supply: u128,
+        total_supply: u128,
+    }
+
+    struct Market has key, copy,store, drop {
+        mc: u128,
+        fdv: u128,
+        fdv_mc: u128,
+    }
+
+    struct Price has key, copy,store, drop {
+        price: u128,
+        denom: u128,
     }
 
     // View Struct
@@ -70,142 +101,162 @@ module dev::QiaraVerifiedTokensV25{
     }
 
 // === INIT === //
-    fun init_module(admin: &signer) acquires Tiers{
+    fun init_module(admin: &signer) acquires Tokens{
         let deploy_addr = signer::address_of(admin);
-
-        if (!exists<Tiers>(deploy_addr)) {
-            move_to(admin, Tiers { table: table::new<u8, Tier>() });
-        };
 
         if (!exists<Tokens>(deploy_addr)) {
             move_to(admin, Tokens { list: vector::empty<Metadata>() });
         };
 
-        add_tier(admin, 0, 100, 95, 100, 100_000_000, 75_000_000);
-        add_tier(admin, 1, 200, 85, 250, 50_000_000, 20_000_000);
-        add_tier(admin, 2, 375, 80, 500, 10_000_000, 7_000_000);
-        add_tier(admin, 3, 500, 70,  750, 1_000_000, 500_000);
-        add_tier(admin, 4, 750, 60, 1000, 600_000, 250_000);
-        add_tier(admin, 5, 1000, 50, 1500, 250_000, 100_000);
-    }
+    create_info<SuiBitcoin>(admin, utf8(b"Sui"), 1231006505, 1, 0, 21000000, 19_941_253, 19_941_253, false);
+    create_info<SuiEthereum>(admin, utf8(b"Sui"), 1438269983, 1, 1, 120_698_129, 120_698_129, 120_698_129, false);
+    create_info<SuiSui>(admin, utf8(b"Sui"), 1683062400, 1, 90, 0, 0, 0, true);
+    create_info<SuiUSDC>(admin, utf8(b"Sui"), 0, 1, 47, 0, 0, 0, true);
+    create_info<SuiUSDT>(admin, utf8(b"Sui"), 0, 1, 47, 0, 0, 0, true);
 
+    create_info<BaseEthereum>(admin, utf8(b"Base"), 1438269983, 1, 1, 120_698_129, 120_698_129, 120_698_129, false);
+    create_info<BaseUSDC>(admin, utf8(b"Base"), 0, 1, 47, 0, 0, 0, true);
+
+    create_info<SupraCoin>(admin, utf8(b"Supra"), 1732598400, 1, 1, 100_000_000_000, 19_713_700_000, 80_508_180_397, false);
+
+    }
 
 // === ENTRY FUNCTIONS === //
-    public fun allow_coin<Token>(admin: &signer, tier_id: u8, oracleID: u32, chain: String, permission: Permission) acquires Tokens{
+    public entry fun create_info<Token>(admin: &signer, chain: String, creation: u64, offchainID: u32, oracleID: u32, max_supply: u128, circulating_supply: u128, total_supply: u128, is_stable:bool) acquires Tokens {
+       
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
         let vault_list = borrow_global_mut<Tokens>(signer::address_of(admin));
-        assert!(!vector::contains(&vault_list.list,&Metadata { tier: tier_id, tier_name: convert_tier_to_string(tier_id), resource: type_info::type_name<Token>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<Token>(), chain: chain }), ERROR_COIN_ALREADY_ALLOWED);
+
+
+        let tokenomics = Tokenomics { max_supply: max_supply, circulating_supply: circulating_supply, total_supply: total_supply };
+
+        let calculated_credit = calculate_asset_credit(&tokenomics, oracleID);
+        let tier_id = associate_tier(calculated_credit, is_stable);
+
+        let metadata = Metadata {resource: type_info::type_name<Token>(), chain: chain, tier: tier_id,  decimals: get_coin_decimals<Token>(), oracleID: oracleID, offchainID: offchainID, creation: creation, credit: calculated_credit, tokenomics: tokenomics };
+
+        assert!(!vector::contains(&vault_list.list,&Metadata {resource: type_info::type_name<Token>(), chain: chain, tier: tier_id,  decimals: get_coin_decimals<Token>(), oracleID: oracleID, offchainID: offchainID, creation: creation, credit: calculated_credit,tokenomics: tokenomics }), ERROR_COIN_ALREADY_ALLOWED);
             
-        vector::push_back(&mut vault_list.list, Metadata { tier: tier_id, tier_name: convert_tier_to_string(tier_id), resource: type_info::type_name<Token>(), price: 0, denom: 0, oracleID: oracleID, decimals: get_coin_decimals<Token>(), chain: chain });
+        vector::push_back(&mut vault_list.list, Metadata {resource: type_info::type_name<Token>(), chain: chain, tier: tier_id,  decimals: get_coin_decimals<Token>(), oracleID: oracleID, offchainID: offchainID, creation: creation, credit: calculated_credit, tokenomics: tokenomics });
+   
+
     }
 
-    public entry fun change_coin_oracle<Token>(admin: &signer, oracleID: u32) acquires Tokens {
+    public entry fun update_tokenomics<Token>(admin: &signer, max_supply: u128, circulating_supply: u128, total_supply: u128) acquires Tokens {
+
+        let tokenomics = Tokenomics { max_supply: max_supply, circulating_supply: circulating_supply, total_supply: total_supply };
+
+
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
-        let vault_list = borrow_global_mut<Tokens>(signer::address_of(admin));
-        let type = type_info::type_name<Token>();
-            
+
+        let vault_list = borrow_global_mut<Tokens>(@dev);
         let len = vector::length(&vault_list.list);
+
         while (len > 0) {
-            let coin = vector::borrow_mut(&mut vault_list.list, len-1);
-            if (coin.resource == type) {
-                coin.oracleID = oracleID;
-                return
+            let metadat = vector::borrow_mut(&mut vault_list.list, len - 1);
+            if (metadat.resource == type_info::type_name<Token>()) {
+                metadat.tokenomics = tokenomics;
+                return;
             };
             len = len - 1;
         };
+
+        abort(ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST)
+
+    }
+
+    public entry fun update_offchainID<Token>(admin: &signer, offchainID: u32) acquires Tokens {
+       
+        assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
+
+
+        let vault_list = borrow_global_mut<Tokens>(@dev);
+        let len = vector::length(&vault_list.list);
+
+        while (len > 0) {
+            let metadat = vector::borrow_mut(&mut vault_list.list, len - 1);
+            if (metadat.resource == type_info::type_name<Token>()) {
+                metadat.offchainID = offchainID;
+                return;
+            };
+            len = len - 1;
+        };
+
         abort(ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST)
     }
 
-    public entry fun change_coin_tier<Token>(admin: &signer, tier: u8) acquires Tokens{
+    public entry fun update_oracleID<Token>(admin: &signer, oracleID: u32) acquires Tokens {
+       
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
         let vault_list = borrow_global_mut<Tokens>(@dev);
-        let type = type_info::type_name<Token>();
-            
         let len = vector::length(&vault_list.list);
-        while(len>0){
-            let coin = vector::borrow_mut(&mut vault_list.list, len-1);
-            if(coin.resource == type){
-                coin.tier = tier;
+
+        while (len > 0) {
+            let metadat = vector::borrow_mut(&mut vault_list.list, len - 1);
+            if (metadat.resource == type_info::type_name<Token>()) {
+                metadat.oracleID = oracleID;
+                return;
             };
-            len=len-1;
+            len = len - 1;
         };
+
         abort(ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST)
+
     }
 
-    public entry fun add_tier(admin: &signer, tier_id: u8, apr_increase: u16, lend_ratio: u16, minimal_w_fee: u16, deposit_limit: u128, borrow_limit: u128) acquires Tiers{
-        assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
+// === HELPER FUNCTIONS === //
 
-        let tiers = borrow_global_mut<Tiers>(signer::address_of(admin));
 
-        if (table::contains(&tiers.table, tier_id)) {
-            abort ERROR_TIER_ALREADY_EXISTS;
+    fun calculate_market(info: &Metadata): Market {
+        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(info.oracleID);
+        let denom = Math::pow10_u256((price_decimals as u8));
+        let mc = (info.tokenomics.circulating_supply as u128) * price / (denom as u128);
+        let fdv = (info.tokenomics.max_supply as u128) * price / (denom as u128);
+        let fdv_mc = if (mc > 0) { (fdv * 100) / mc } else { 0 };
+
+        Market { mc: mc, fdv: fdv, fdv_mc: fdv_mc }
+    }
+
+    fun calculate_asset_credit(tokenomics: &Tokenomics, oracleID: u32): u128 {
+        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(oracleID);
+        let denom = Math::pow10_u256((price_decimals as u8));
+        let mc = (tokenomics.circulating_supply as u128) * price / (denom as u128);
+        let fdv = (tokenomics.max_supply as u128) * price / (denom as u128);
+        let fdv_mc = if (mc > 0) { (fdv * 100) / mc } else { 0 };
+
+        mc  * (mc / fdv) * (fdv_mc/100)
+
+    }
+
+    fun associate_tier(credit: u128, is_stable: bool): u8{
+
+        if(is_stable){
+            return 0
         };
 
-        let tier = Tier { apr_increase, lend_ratio, minimal_w_fee, deposit_limit, borrow_limit };
-        table::add(&mut tiers.table, tier_id, tier);
+        if (credit >= 25_000_000){
+            return 1
+        } else if (credit >= 12_500_000){
+            return 2
+        } else if (credit >= 7_500_000){
+            return 3
+        } else if (credit >= 5_000_000){
+            return 4
+        } else if (credit >= 1_000_000){
+            return 5
+        } else {
+            abort(ERROR_TIER_NOT_FOUND)
+        }
     }
 
-    public entry fun update_tier(admin: &signer, tier_id: u8, apr_increase: u16, lend_ratio: u16, minimal_w_fee: u16, deposit_limit: u128, borrow_limit: u128) acquires Tiers {
-        assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
-        let tiers = borrow_global_mut<Tiers>(signer::address_of(admin));
 
-        if (!table::contains(&tiers.table, tier_id)) {
-            abort 11;
-        };
 
-        let tier_ref = table::borrow_mut(&mut tiers.table, tier_id);
-        tier_ref.apr_increase = apr_increase;
-        tier_ref.lend_ratio = lend_ratio;
-        tier_ref.minimal_w_fee = minimal_w_fee;
-        tier_ref.deposit_limit = deposit_limit;
-        tier_ref.borrow_limit = borrow_limit;
-    }
 
 // === VIEW FUNCTIONS === //
-    // === GET TIER DATA  === //
-        #[view]
-        public fun get_tier(tier_id: u8): Tier acquires Tiers {
-            let tiers = borrow_global<Tiers>(@dev);
-            let tier = table::borrow(&tiers.table, tier_id);
-            Tier { apr_increase: tier.apr_increase, lend_ratio: tier.lend_ratio, minimal_w_fee: tier.minimal_w_fee, deposit_limit: tier.deposit_limit, borrow_limit: tier.borrow_limit }
-        }
-
-        public fun apr_increase(tier_id: u8): u16 acquires Tiers{
-            let tier = get_tier(tier_id);
-            tier.apr_increase
-        }
-
-        public fun lend_ratio(tier_id: u8): u16 acquires Tiers{
-            let tier = get_tier(tier_id);
-            tier.lend_ratio
-        }
-
-        public fun minimal_w_fee(tier_id: u8): u16 acquires Tiers{
-            let tier = get_tier(tier_id);
-            tier.minimal_w_fee
-        }
-
-        public fun rate_scale(tier_id: u8, isLending: bool): u16 {
-            let x = 2000;
-            if(isLending) { x = 0 };
-            ((storage::expect_u16(storage::viewConstant(utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"))) - ((tier_id as u16)*500)) - x)-1500
-        }
-
-        public fun deposit_limit(tier_id: u8): u128 acquires Tiers{
-            let tier = get_tier(tier_id);
-            tier.deposit_limit
-        }
-
-        public fun borrow_limit(tier_id: u8): u128 acquires Tiers{
-            let tier = get_tier(tier_id);
-            tier.borrow_limit
-        }
-
-
     // === GET COIN DATA === //
         #[view]
         public fun get_coin_data<Token>(): CoinData {
@@ -252,24 +303,29 @@ module dev::QiaraVerifiedTokensV25{
         }
 
         #[view]
-        public fun get_coin_metadata<Token>(): Metadata acquires Tokens {
+        public fun get_coin_metadata<Token>(): VMetadata acquires Tokens {
             let vault_list = borrow_global_mut<Tokens>(@dev);
             let len = vector::length(&vault_list.list);
 
             while (len > 0) {
                 let metadat = vector::borrow(&vault_list.list, len - 1);
                 if (metadat.resource == type_info::type_name<Token>()) {
-                    let (price, price_decimals, _, _) = supra_oracle_storage::get_price(get_coin_metadata_oracle(metadat));
+                    let (price, price_decimals, _, _) = supra_oracle_storage::get_price(metadat.oracleID);
                     let denom = Math::pow10_u256((price_decimals as u8));
-                    return Metadata { 
-                        tier: metadat.tier, 
-                        tier_name: metadat.tier_name, 
-                        resource: metadat.resource, 
-                        price: price, 
-                        denom: denom, 
-                        oracleID: metadat.oracleID, 
+                    return VMetadata { 
+                        resource: metadat.resource,
+                        chain: metadat.chain,
+                        tier: metadat.tier,
                         decimals: metadat.decimals, 
-                        chain: metadat.chain
+                        oracleID: metadat.oracleID, 
+                        offchainID: metadat.offchainID,
+                        creation: metadat.creation,
+                        credit: metadat.credit,
+                        live_credit: calculate_asset_credit(&metadat.tokenomics, metadat.oracleID),
+                        price: Price { price: price, denom: (denom as u128) },
+                        market: calculate_market(metadat),
+                        tokenomics: metadat.tokenomics,
+                        full_tier: Tier { tierName: tier::convert_tier_to_string(metadat.tier), efficiency: tier::tier_efficiency(metadat.tier), multiplyer: tier::tier_multiplier(metadat.tier) },
                     };
                 };
                 len = len - 1;
@@ -279,53 +335,83 @@ module dev::QiaraVerifiedTokensV25{
         }
 
 
-        public fun get_coin_metadata_tier(metadata: &Metadata): u8 {
-            metadata.tier
-        }
-
-        public fun get_coin_metadata_tier_name(metadata: &Metadata): String {
-            metadata.tier_name
-        }
-
-        public fun get_coin_metadata_resource(metadata: &Metadata): String {
+        public fun get_coin_metadata_resource(metadata: &VMetadata): String {
             metadata.resource
         }
 
-        public fun get_coin_metadata_price(metadata: &Metadata): u128 {
-            metadata.price
+        public fun get_coin_metadata_chain(metadata: &VMetadata): String {
+            metadata.chain
         }
 
-        public fun get_coin_metadata_denom(metadata: &Metadata): u256 {
-            metadata.denom
+        public fun get_coin_metadata_tier(metadata: &VMetadata): u8 {
+            metadata.tier
         }
 
-        public fun get_coin_metadata_oracle(metadata: &Metadata): u32 {
-            metadata.oracleID
-        }
-
-        public fun get_coin_metadata_decimals(metadata: &Metadata): u8 {
+        public fun get_coin_metadata_decimals(metadata: &VMetadata): u8 {
             metadata.decimals
         }
 
+        public fun get_coin_metadata_oracleID(metadata: &VMetadata): u32 {
+            metadata.oracleID
+        }
+
+        public fun get_coin_metadata_offchainID(metadata: &VMetadata): u32 {
+            metadata.offchainID
+        }
+
+        public fun get_coin_metadata_creation(metadata: &VMetadata): u64 {
+            metadata.creation
+        }
+
+        public fun get_coin_metadata_credit(metadata: &VMetadata): u128 {
+            metadata.credit
+        }
+
+        public fun get_coin_metadata_live_credit(metadata: &VMetadata): u128 {
+            metadata.live_credit
+        }
+
+        public fun get_coin_metadata_price(metadata: &VMetadata): Price {
+            metadata.price
+        }
+
+        public fun get_coin_metadata_market(metadata: &VMetadata): Market {
+            metadata.market
+        }
+
+        public fun get_coin_metadata_tokenomics(metadata: &VMetadata): Tokenomics {
+            metadata.tokenomics
+        }
+
+        public fun get_coin_metadata_full_tier(metadata: &VMetadata): Tier {
+            metadata.full_tier
+        }
+
+
         #[view]
-        public fun get_coin_metadata_by_res(res: String): Metadata acquires Tokens {
+        public fun get_coin_metadata_by_res(res: String): VMetadata acquires Tokens {
             let vault_list = borrow_global_mut<Tokens>(@dev);
             let len = vector::length(&vault_list.list);
 
             while (len > 0) {
                 let metadat = vector::borrow(&vault_list.list, len - 1);
                 if (metadat.resource == res) {
-                    let (price, price_decimals, _, _) = supra_oracle_storage::get_price(get_coin_metadata_oracle(metadat));
+                    let (price, price_decimals, _, _) = supra_oracle_storage::get_price(metadat.oracleID);
                     let denom = Math::pow10_u256((price_decimals as u8));
-                    return Metadata { 
-                        tier: metadat.tier, 
-                        tier_name: metadat.tier_name, 
-                        resource: metadat.resource, 
-                        price: price, 
-                        denom: denom, 
-                        oracleID: metadat.oracleID, 
+                    return VMetadata { 
+                        resource: metadat.resource,
+                        chain: metadat.chain,
+                        tier: metadat.tier,
                         decimals: metadat.decimals, 
-                        chain: metadat.chain
+                        oracleID: metadat.oracleID, 
+                        offchainID: metadat.offchainID,
+                        creation: metadat.creation,
+                        credit: metadat.credit,
+                        live_credit: calculate_asset_credit(&metadat.tokenomics, metadat.oracleID),
+                        price: Price { price: price, denom: (denom as u128) },
+                        market: calculate_market(metadat),
+                        tokenomics: metadat.tokenomics,
+                        full_tier: Tier { tierName: tier::convert_tier_to_string(metadat.tier), efficiency: tier::tier_efficiency(metadat.tier), multiplyer: tier::tier_multiplier(metadat.tier) },
                     };
                 };
                 len = len - 1;
@@ -333,22 +419,4 @@ module dev::QiaraVerifiedTokensV25{
 
             abort(ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST)
         }
-// === CONVERT === //
-    public fun convert_tier_to_string(tier: u8): String{
-        if(tier == 0 ){
-            return utf8(b"Stable")
-        } else if(tier == 1 ){
-            return utf8(b"Bluechip")
-        } else if(tier == 2 ){
-            return utf8(b"Adopted")
-        } else if(tier == 3 ){
-            return utf8(b"Volatile")
-        } else if(tier == 4){
-            return utf8(b"Experimental")
-        } else if(tier == 5){
-            return utf8(b"Fragile")
-        } else{
-            return utf8(b"Unknown")
-        }
-    }
 }
