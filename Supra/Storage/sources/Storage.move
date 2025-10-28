@@ -1,4 +1,4 @@
-module dev::QiaraStorageV24 {
+module dev::QiaraStorageV25 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -102,11 +102,41 @@ module dev::QiaraStorageV24 {
         register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"TREASURY_FEE"), 1_000, false, &give_permission(&give_access(admin))); // 0,001% a month
         register_constant<bool>(admin, utf8(b"QiaraToken"), utf8(b"TRANSFERABLE"), false, true, &give_permission(&give_access(admin)));
         register_constant<bool>(admin, utf8(b"QiaraToken"), utf8(b"PAUSED"), false, true, &give_permission(&give_access(admin)));
+        register_constant<address>(admin, utf8(b"QiaraToken"), utf8(b"TREASURY_RECEIPENT"), @0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd, true, &give_permission(&give_access(admin)));
+
         register_constant<u16>(admin, utf8(b"QiaraVerifiedTokens"), utf8(b"SCALE"), 7500, true, &give_permission(&give_access(admin)));
+
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T0_X"), 100, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T1_X"), 200, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T2_X"), 300, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T3_X"), 500, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T4_X"), 1000, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T5_X"), 1500, true, &give_permission(&give_access(admin)));
+
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T0_EFF"), 9500, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T1_EFF"), 8500, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T2_EFF"), 7000, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T3_EFF"), 5000, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T4_EFF"), 2500, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T5_EFF"), 1000, true, &give_permission(&give_access(admin)));
+
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"DEPOSIT_LIMIT"), 1_000_000, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"BORROW_LIMIT"), 500_000, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"W_FEE"), 5, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"W_CAP"), 500, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"PERCENTAGE_SCALE"), 5000, true, &give_permission(&give_access(admin)));
+
+
+        register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"LEVERAGE"), 1000, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"MAX_POSITION"), 1_000_000, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"PROFIT_FEE"), 10, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"PERCENTAGE_SCALE"), 75000, true, &give_permission(&give_access(admin)));
+
+
         register_constant<u64>(admin, utf8(b"QiaraMargin"), utf8(b"BASE_UTIL_FEE"), 1_000_000, true, &give_permission(&give_access(admin)));
         register_constant<u64>(admin, utf8(b"QiaraMargin"), utf8(b"EXP_SCALE"), 50_000_000, true, &give_permission(&give_access(admin)));
         register_constant<u64>(admin, utf8(b"QiaraMargin"), utf8(b"EXP_AGGRESION"), 10, true, &give_permission(&give_access(admin)));
-        register_constant<address>(admin, utf8(b"QiaraToken"), utf8(b"TREASURY_RECEIPENT"), @0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd, true, &give_permission(&give_access(admin)));
+       
         register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOKENS_TO_PROPOSE"), 100_000_000, true, &give_permission(&give_access(admin))); // 100
         register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"BURN_TAX"), 1_000_000, true, &give_permission(&give_access(admin))); // 1
         register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOTAL_VOTES_PERCENTAGE_SUPPLY"), 1_000_000, true, &give_permission(&give_access(admin))); // 1%
