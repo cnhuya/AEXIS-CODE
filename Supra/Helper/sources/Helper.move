@@ -1,18 +1,18 @@
-module dev::QiaraHelperV12 {
+module dev::QiaraHelperV18 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
 
-    use dev::QiaraCoinTypesV9::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use supra_framework::supra_coin::{Self, SupraCoin};
 
-    use dev::QiaraStorageV24::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV24::{Self as capabilities, Access as CapabilitiesAccess};
-    use dev::QiaraVaultTypesV9::{Self as VaultTypes};
-    use dev::QiaraVaultsV22::{Self as Market, Vault};
+    use dev::QiaraStorageV29::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV29::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraVaultRatesV11::{Self as VaultRates};
+    use dev::QiaraVaultsV28::{Self as Market, Vault};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
-    use dev::QiaraVerifiedTokensV19::{Self as VerifiedTokens, Metadata, Tier};
+    use dev::QiaraVerifiedTokensV40::{Self as VerifiedTokens, VMetadata, Tier};
 
     struct Governance has copy, drop{
         minimum_tokens_to_propose: u64,
@@ -24,8 +24,8 @@ module dev::QiaraHelperV12 {
 
     struct Vaults has drop{
         tier: Tier,
-        metadata: Metadata,
-        vaults: vector<FullVault>,
+        metadata: VMetadata,
+        vault: FullVault,
     }
 
 
@@ -33,7 +33,7 @@ module dev::QiaraHelperV12 {
         provider: String,
         total_deposited: u128,
         total_borrowed: u128,
-        utilization: u64,
+        utilization: u256,
         lend_rate: u256,
         borrow_rate: u256
     }
@@ -47,44 +47,38 @@ module dev::QiaraHelperV12 {
         let i = 0;
         while (i < len) {
             let metadata = vector::borrow(&tokens, i);
-
+            let metadata_ = VerifiedTokens::get_coin_metadata_by_metadata(metadata);
             // get vault identifier
-            let vault_res = VerifiedTokens::get_coin_metadata_resource(metadata);
+            let vault_res = VerifiedTokens::get_coin_metadata_resource(&metadata_);
 
             // fetch vault totals
-            let (providers, total_deposits, total_borrows) = Market::get_full_vault(vault_res);
-
-            // collect all FullVaults for this metadata
-            let vaults_ = vector::empty<FullVault>();
-
-            let j = 0;
-            let vault_count = vector::length(&providers);
-            while (j < vault_count) {
-                let provider = *vector::borrow(&providers, j);
-                let deposited = *vector::borrow(&total_deposits, j);
-                let borrowed = *vector::borrow(&total_borrows, j);
+                let (provider, deposited, borrowed) = Market::get_vault_raw(vault_res);
                 let utilization = Market::get_utilization_ratio(deposited, borrowed);
-                //abort(VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(vault_res)) as u64); // 5774
-                //abort((utilization) as u64); // 0
-                //abort((VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(metadata), true)) as u64); // 3000
+
+
                 let (lend_apy, _, _) = QiaraMath::compute_rate(
-                    ((utilization+1) as u256),
-                    (VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(vault_res)) as u256),
-                    ((VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(metadata), true)) as u256),
+                    utilization,
+                    (VerifiedTokens::get_coin_metadata_market_rate(&metadata_) as u256),
+                    (VerifiedTokens::get_coin_metadata_rate_scale(&metadata_, true) as u256), // pridat check jestli to je borrow nebo lend
                     true,
                     5
                 );
+
                 let (borrow_apy, _, _) = QiaraMath::compute_rate(
-                    ((utilization+1) as u256),
-                    (VaultTypes::get_vault_lend_rate(VaultTypes::get_vault_rate(vault_res)) as u256),
-                    ((VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(metadata), false)) as u256),
+                    utilization,
+                    (VerifiedTokens::get_coin_metadata_market_rate(&metadata_) as u256),
+                    (VerifiedTokens::get_coin_metadata_rate_scale(&metadata_, false) as u256), // pridat check jestli to je borrow nebo lend
                     false,
                     5
                 );
-            //  abort(01);
-                vector::push_back(
-                    &mut vaults_,
-                    FullVault {
+
+            // push Vaults entry with all providers for this token
+            vector::push_back(
+                &mut vect,
+                Vaults {
+                    tier: VerifiedTokens::get_coin_metadata_full_tier(&metadata_),
+                    metadata: metadata_,
+                    vault:                     FullVault {
                         provider: provider,
                         total_deposited: deposited,
                         total_borrowed: borrowed,
@@ -92,18 +86,6 @@ module dev::QiaraHelperV12 {
                         lend_rate: lend_apy,
                         borrow_rate: borrow_apy
                     }
-                );
-            // abort(001);
-                j = j + 1;
-            };
-
-            // push Vaults entry with all providers for this token
-            vector::push_back(
-                &mut vect,
-                Vaults {
-                    tier: VerifiedTokens::get_tier(VerifiedTokens::get_coin_metadata_tier(metadata)),
-                    metadata: VerifiedTokens::get_coin_metadata_by_res(vault_res),
-                    vaults: vaults_
                 }
             );
 
