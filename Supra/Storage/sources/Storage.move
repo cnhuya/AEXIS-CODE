@@ -1,4 +1,4 @@
-module dev::QiaraStorageV26 {
+module dev::QiaraStorageV27 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -131,7 +131,7 @@ module dev::QiaraStorageV26 {
         register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"MARKET_PERCENTAGE_SCALE"), 5000, true, &give_permission(&give_access(admin)));
 
         register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"NEW_MULTILIER_HANDICAP"), 200, true, &give_permission(&give_access(admin)));
-        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"NEW_EFFICIENCY_HANDICAP"), 5000, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"NEW_EFFICIENCY_HANDICAP"), 200, true, &give_permission(&give_access(admin)));
         register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"NEW_PENALTY_TIME"), 604_800, true, &give_permission(&give_access(admin)));
 
         register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"LEVERAGE"), 1000, true, &give_permission(&give_access(admin)));
