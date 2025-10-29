@@ -1,4 +1,4 @@
-module dev::QiaraHelperV18 {
+module dev::QiaraHelperV19 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
 
@@ -8,11 +8,11 @@ module dev::QiaraHelperV18 {
     use dev::QiaraStorageV29::{Self as storage, Access as StorageAccess};
     use dev::QiaraCapabilitiesV29::{Self as capabilities, Access as CapabilitiesAccess};
     use dev::QiaraVaultRatesV11::{Self as VaultRates};
-    use dev::QiaraVaultsV28::{Self as Market, Vault};
+    use dev::QiaraVaultsV29::{Self as Market, Vault};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
-    use dev::QiaraVerifiedTokensV40::{Self as VerifiedTokens, VMetadata, Tier};
+    use dev::QiaraVerifiedTokensV41::{Self as VerifiedTokens, VMetadata, Tier};
 
     struct Governance has copy, drop{
         minimum_tokens_to_propose: u64,
