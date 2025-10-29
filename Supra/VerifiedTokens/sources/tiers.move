@@ -46,15 +46,15 @@ module dev::QiaraTiersV27{
     fun build_tiers(): vector<Tier>{
         
         let tier0 = Tier {
-            tierID: 256,
-            tierName: convert_tier_to_string(256),
+            tierID: 255,
+            tierName: convert_tier_to_string(255),
             efficiency: storage::expect_u16(storage::viewConstant(utf8(b"QiaraTiers"), utf8(b"T0_EFF"))),
             multiplier: storage::expect_u16(storage::viewConstant(utf8(b"QiaraTiers"), utf8(b"T0_X"))),
         };
 
         let tier00 = Tier {
-            tierID: 255,
-            tierName: convert_tier_to_string(255),
+            tierID: 254,
+            tierName: convert_tier_to_string(254),
             efficiency: storage::expect_u16(storage::viewConstant(utf8(b"QiaraTiers"), utf8(b"T00_EFF"))),
             multiplier: storage::expect_u16(storage::viewConstant(utf8(b"QiaraTiers"), utf8(b"T00_X"))),
         };
@@ -214,9 +214,9 @@ module dev::QiaraTiersV27{
 
 // === CONVERT === //
     public fun convert_tier_to_string(tier: u8): String{
-        if(tier == 256 ){
+        if(tier == 255 ){
             return utf8(b"Stable")
-        } else if(tier == 255 ){
+        } else if(tier == 254 ){
             return utf8(b"Alt-Stable")
         } else if(tier == 1 ){
             return utf8(b"Bluechip")

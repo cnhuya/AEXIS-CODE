@@ -122,10 +122,10 @@ module dev::QiaraVerifiedTokensV41{
     create_info<SuiEthereum>(admin, utf8(b"Sui"), 1438269983, 1, 1, 120_698_129, 120_698_129, 120_698_129, 1);
     create_info<SuiSui>(admin, utf8(b"Sui"), 1683062400, 1, 90, 10_000_000_000, 3_625_742_933, 10_000_000_000, 1);
     
-    create_info<SuiUSDC>(admin, utf8(b"Sui"), 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 256);
-    create_info<SuiUSDT>(admin, utf8(b"Sui"), 0, 1, 47, 185_977_352_465, 185_977_352_465, 185_977_352_465, 256);
+    create_info<SuiUSDC>(admin, utf8(b"Sui"), 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);
+    create_info<SuiUSDT>(admin, utf8(b"Sui"), 0, 1, 47, 185_977_352_465, 185_977_352_465, 185_977_352_465, 255);
     create_info<BaseEthereum>(admin, utf8(b"Base"), 1438269983, 1, 1, 120_698_129, 120_698_129, 120_698_129, 1);
-    create_info<BaseUSDC>(admin, utf8(b"Base"), 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 256);
+    create_info<BaseUSDC>(admin, utf8(b"Base"), 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);
     //tttta(11111111);
    // create_info<SupraCoin>(admin, utf8(b"Supra"), 1732598400, 1, 500, 100_000_000_000, 19_713_700_000, 80_508_180_397, false);
    // tttta(11111111);
@@ -268,12 +268,12 @@ fun calculate_asset_credit(
 
     fun associate_tier(credit: u256, stable: u8): u8{
 
-        if(stable == 256){
-            return 256
-        };
-
         if(stable == 255){
             return 255
+        };
+
+        if(stable == 254){
+            return 254
         };
 
         if (credit >= 25_000_000_000_000){
