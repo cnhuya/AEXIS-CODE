@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV39{
+module dev::QiaraVerifiedTokensV40{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -10,12 +10,12 @@ module dev::QiaraVerifiedTokensV39{
     use supra_framework::supra_coin::{Self, SupraCoin};
     use std::timestamp;
 
-    use dev::QiaraStorageV28::{Self as storage};
+    use dev::QiaraStorageV29::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 
-    use dev::QiaraTiersV25::{Self as tier};
-    use dev::QiaraFeeVaultV5::{Self as fee};
+    use dev::QiaraTiersV26::{Self as tier};
+    use dev::QiaraFeeVaultV6::{Self as fee};
 
 
 // === ERRORS === //
@@ -486,7 +486,20 @@ fun calculate_asset_credit(
             metadata.full_tier.multiplier
         }
 
+        public fun get_coin_metadata_rate_scale(metadata: &VMetadata, isLending: bool): u64 {
+            let x = 0;
+            if(isLending) { x = 200 };
 
+            if(metadata.tier == 1){
+                return storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MARKET_PERCENTAGE_SCALE"))) - x
+            };
+    
+           storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MARKET_PERCENTAGE_SCALE"))) - (metadata.tier*500) - x
+        }
+
+        public fun get_coin_metadata_min_lend_apr(metadata: &VMetadata): u64 {
+            storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MIN_LEND_APR_FACTOR"))) + (metadata.tier.multiplier * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MIN_LEND_APR_FACTOR"))))/1000
+        }
 
         #[view]
         public fun get_coin_metadata_by_res(res: String): VMetadata acquires Tokens {
