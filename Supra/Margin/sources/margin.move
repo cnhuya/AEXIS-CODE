@@ -1,4 +1,4 @@
-module dev::QiaraMarginV36{
+module dev::QiaraMarginV39{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,10 +7,11 @@ module dev::QiaraMarginV36{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV25::{Self as VerifiedTokens, Tier, CoinData, Metadata};
+    use dev::QiaraVerifiedTokensV40::{Self as VerifiedTokens};
+    use dev::QiaraFeeVaultV6::{Self as Fee};
 
     use dev::QiaraFeatureTypesV11::{Self as FeatureTypes};
-    use dev::QiaraVaultRatesV11::{Self as VaultRates};
+    use dev::QiaraCoinTypesV11::{Self as CoinTypes};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
@@ -209,104 +210,84 @@ module dev::QiaraMarginV36{
         let interest_usd = (balance.interest as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
 
         let utilization = if (raw_borrow == 0) 0 else (bor_usd * 100) / raw_borrow;
-        let margin_interest = raw_borrow* (utilization * (VerifiedTokens::apr_increase(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata))/ 100;
+        let margin_interest = raw_borrow* (utilization * (VerifiedTokens::get_coin_metadata_min_lend_apr(&metadata) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata))/ 100;
 
         (dep_usd, bor_usd, raw_borrow, reward_usd, (balance.reward_index_snapshot as u256), interest_usd, (balance.interest_index_snapshot as u256), margin_interest, (balance.leverage as u256),( balance.last_update as u256))
     }
 
 #[view]
-public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u256, u256, u256) acquires TokenHoldings {
+public fun get_user_total_usd(addr: address): (
+    u256, u256, u256, u256, u256, u256, u256, u256
+) acquires TokenHoldings {
     let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
     let feature_registry = FeatureTypes::return_all_feature_types();
 
-    let total_dep = 0u256;
-    let total_margin = 0u256;
-    let total_avaiable = 0u256;
-    let total_bor = 0u256;
-    let raw_borrow = 0u256;
-    let total_rew = 0u256;
-    let total_int = 0u256;
-    let utilization = 0u256;
-    let total_expected_interest = 0u256;
-    let total_number_of_tokens = 1u256;
+    let  total_dep = 0u256;
+    let  total_margin = 0u256;
+    let total_available = 0u256;
+    let  total_bor = 0u256;
+    let  total_rew = 0u256;
+    let  total_int = 0u256;
+    let  total_expected_interest = 0u256;
 
     let n = vector::length(&feature_registry);
-    let i = 0;
+    let  i = 0;
 
-    // iterate through all features
     while (i < n) {
-        let feature = vector::borrow(&feature_registry, i);
-        let feature_str = *feature;
+        let feature = *vector::borrow(&feature_registry, i);
 
-        // === simplified: no vaults ===
         if (!table::contains(&tokens_holdings.holdings, addr)) {
             i = i + 1;
             continue;
         };
 
-        let user_holdings_ref = table::borrow(&tokens_holdings.holdings, addr);
-        if (!table::contains(user_holdings_ref, feature_str)) {
+        let user_holdings_ref = table::borrow_mut(&mut tokens_holdings.holdings, addr);
+        if (!table::contains(user_holdings_ref, feature)) {
             i = i + 1;
             continue;
         };
 
-        // Directly get the table of tokens for this feature
-        let holdings_ref = table::borrow(user_holdings_ref, feature_str);
-
-        // Assume we have a way to know token IDs under this feature (depends on your struct)
-    
-        let token_list = vector::empty<String>();
-        // You can manually populate this if needed by how tokens are tracked in your Move module
+        let holdings_ref = table::borrow_mut(user_holdings_ref, feature);
+        let token_list = CoinTypes::return_all_coin_types();
 
         let num_tokens = vector::length(&token_list);
-        let y = 0;
-        if (num_tokens != 0) {
-            total_number_of_tokens = (num_tokens as u256);
-        };
+        let  y = 0;
 
         while (y < num_tokens) {
             let token_id = *vector::borrow(&token_list, y);
             let metadata = VerifiedTokens::get_coin_metadata_by_res(token_id);
 
-            let dep_usd;
-            let bor_usd;
-            let current_raw_borrow;
-
             let price = (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
             let denom = (VerifiedTokens::get_coin_metadata_denom(&metadata) as u256);
 
-            {
-                let uv = find_balance(tokens_holdings, addr, token_id, feature_str);
-                let scaled = (uv.deposited as u256) * price;
-                dep_usd = scaled / denom;
-                bor_usd = ((uv.borrowed as u256) * price / (uv.leverage as u256) / denom);
-                current_raw_borrow = (uv.borrowed as u256) * price / denom;
+            // skip if denom is 0
+            if (denom == 0) {
+                y = y + 1;
+                continue;
             };
 
-            let reward_usd;
-            let interest_usd;
-            {
-                let credit = find_balance(tokens_holdings, addr, token_id, feature_str);
-                reward_usd = ((credit.rewards as u256) * price) / denom;
-                interest_usd = ((credit.interest as u256) * price) / denom;
-            };
+            let uv = find_balance(tokens_holdings, addr, token_id, feature);
+            let leverage = if (uv.leverage == 0) 1 else uv.leverage;
 
-            if (current_raw_borrow == 0) {
-                utilization = 0;
-            } else {
-                utilization = (bor_usd * 100) / current_raw_borrow;
-            };
+            let dep_usd = (uv.deposited as u256) * price / denom;
+            let bor_usd = (uv.borrowed as u256) * price / (leverage as u256) / denom;
+            let current_raw_borrow = (uv.borrowed as u256) * price / denom;
+            let reward_usd = (uv.rewards as u256) * price / denom;
+            let interest_usd = (uv.interest as u256) * price / denom;
+
+            let utilization = if (current_raw_borrow == 0) 0
+                else (bor_usd * 100) / current_raw_borrow;
 
             let (margin_interest, _, _) = QiaraMath::compute_rate(
-                (utilization as u256),
-                (VaultRates::get_vault_lend_rate(VaultRates::get_vault_rate(token_id)) as u256),
-                (VerifiedTokens::rate_scale(VerifiedTokens::get_coin_metadata_tier(&metadata), false) as u256),
+                utilization,
+                (VerifiedTokens::get_coin_metadata_market_rate(&metadata) as u256),
+                (VerifiedTokens::get_coin_metadata_rate_scale(&metadata, false) as u256), // pridat check jestli to je borrow nebo lend
                 false,
                 5
             );
 
             total_dep = total_dep + dep_usd;
-            total_margin = total_margin + (dep_usd * (VerifiedTokens::lend_ratio(VerifiedTokens::get_coin_metadata_tier(&metadata)) as u256)) / 100;
+            total_margin = total_margin + (dep_usd * ((VerifiedTokens::get_coin_metadata_tier_efficiency(&metadata)) as u256)) / 100;
             total_bor = total_bor + bor_usd;
             total_rew = total_rew + reward_usd;
             total_int = total_int + interest_usd;
@@ -318,8 +299,20 @@ public fun get_user_total_usd(addr: address): (u256, u256, u256, u256, u256, u25
         i = i + 1;
     };
 
-    (total_dep, total_margin, (total_margin - total_bor), total_bor, 0, total_rew, total_int, total_expected_interest / total_dep)
+    let avg_interest = if (total_dep == 0) 0 else total_expected_interest / total_dep;
+
+    (
+        total_dep,
+        total_margin,
+        if (total_margin > total_bor) { total_margin - total_bor } else {0},
+        total_bor,
+        total_available,
+        total_rew,
+        total_int,
+        avg_interest
+    )
 }
+
 
 
 
@@ -383,7 +376,7 @@ fun find_balance(feature_table: &mut TokenHoldings,addr: address,token: String,f
         borrowed: 0,
         rewards: 0,
         interest: 0,
-        leverage: 0,
+        leverage: 1,
         reward_index_snapshot: 0,
         interest_index_snapshot: 0,
         last_update: 0,
