@@ -13,6 +13,8 @@ module dev::QiaraVerifiedTokensV40{
     use dev::QiaraStorageV29::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use dev::QiaraVaultRatesV11::{Self as VaultRates};
+
 
     use dev::QiaraTiersV26::{Self as tier};
     use dev::QiaraFeeVaultV6::{Self as fee};
@@ -486,6 +488,7 @@ fun calculate_asset_credit(
             metadata.full_tier.multiplier
         }
 
+    // OFF STRUCTS HELPERS
         public fun get_coin_metadata_rate_scale(metadata: &VMetadata, isLending: bool): u64 {
             let x = 0;
             if(isLending) { x = 200 };
@@ -499,6 +502,14 @@ fun calculate_asset_credit(
 
         public fun get_coin_metadata_min_lend_apr(metadata: &VMetadata): u64 {
             storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MIN_LEND_APR_FACTOR"))) + (metadata.full_tier.multiplier * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MIN_LEND_APR_FACTOR"))))/1000
+        }
+
+        public fun get_coin_metadata_market_rate(metadata: &VMetadata): u64 {
+            
+            let min_rate = get_coin_metadata_min_lend_apr(metadata);
+            let rate_scale = (VaultRates::get_vault_lend_rate(VaultRates::get_vault_rate(metadata.resource)) as u64);
+            
+            min_rate + rate_scale
         }
 
         #[view]
