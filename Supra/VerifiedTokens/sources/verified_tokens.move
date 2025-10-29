@@ -489,6 +489,19 @@ fun calculate_asset_credit(
         }
 
     // OFF STRUCTS HELPERS
+        #[view]
+        public fun t_helper<Token>(): (u64, u64, u64,u64,u64,u64,u64,u64) acquires Tokens {
+            let metadata = get_coin_metadata<Token>();
+            (
+                get_coin_metadata_rate_scale(&metadata, false),
+                get_coin_metadata_rate_scale(&metadata, true),
+                get_coin_metadata_min_lend_apr(&metadata),
+                get_coin_metadata_market_rate(&metadata),
+                get_coin_metadata_market_w_fee(&metadata),
+                0,0,0
+            )
+        }
+
         public fun get_coin_metadata_rate_scale(metadata: &VMetadata, isLending: bool): u64 {
             let x = 0;
             if(isLending) { x = 200 };
@@ -510,6 +523,12 @@ fun calculate_asset_credit(
             let rate_scale = (VaultRates::get_vault_lend_rate(VaultRates::get_vault_rate(metadata.resource)) as u64);
             
             min_rate + rate_scale
+        }
+
+        public fun get_coin_metadata_market_w_fee(metadata: &VMetadata): u64 {
+            
+            (metadata.full_tier.multiplier * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"W_FEE")))) / (storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_MULTIPLIER_HANDICAP")))/100)
+        
         }
 
         #[view]
