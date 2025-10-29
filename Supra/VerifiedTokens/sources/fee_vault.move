@@ -1,4 +1,4 @@
-module dev::QiaraFeeVaultV4{
+module dev::QiaraFeeVaultV5{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -29,7 +29,6 @@ module dev::QiaraFeeVaultV4{
 
 // === STRUCTS === //
    
-
     struct Vault<phantom T> has key {
         balance: coin::Coin<T>,
     }

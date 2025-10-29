@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV38{
+module dev::QiaraVerifiedTokensV39{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -14,9 +14,8 @@ module dev::QiaraVerifiedTokensV38{
     use dev::QiaraMathV9::{Self as Math};
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 
-    use dev::QiaraTiersV24::{Self as tier};
-
-    use dev::QiaraFeeVaultV4::{Self as fee};
+    use dev::QiaraTiersV25::{Self as tier};
+    use dev::QiaraFeeVaultV5::{Self as fee};
 
 
 // === ERRORS === //
@@ -78,7 +77,7 @@ module dev::QiaraVerifiedTokensV38{
     struct Tier has key, store, copy,drop {
         tierName: String,
         efficiency: u64,
-        multiplyer: u64,
+        multiplier: u64,
     }
 
     struct Tokenomics has key, copy, store, drop {
@@ -359,10 +358,10 @@ fun calculate_asset_credit(
                     if(metadat.penalty_expiry > timestamp::now_seconds()){
                         tier = Tier { tierName: tier::convert_tier_to_string(metadat.tier), 
                         efficiency: ((tier::tier_efficiency(metadat.tier)*100) / storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_EFFICIENCY_HANDICAP")))),
-                        multiplyer: (tier::tier_multiplier(metadat.tier) * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_MULTIPLIER_HANDICAP")))/100 )
+                        multiplier: (tier::tier_multiplier(metadat.tier) * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_MULTIPLIER_HANDICAP")))/100 )
                         } ;
                     } else {
-                        tier = Tier { tierName: tier::convert_tier_to_string(metadat.tier), efficiency: tier::tier_efficiency(metadat.tier), multiplyer: tier::tier_multiplier(metadat.tier) };
+                        tier = Tier { tierName: tier::convert_tier_to_string(metadat.tier), efficiency: tier::tier_efficiency(metadat.tier), multiplier: tier::tier_multiplier(metadat.tier) };
                     };
 
 
@@ -422,22 +421,71 @@ fun calculate_asset_credit(
             metadata.credit
         }
 
-
-        public fun get_coin_metadata_price(metadata: &VMetadata): Price {
+    // PRICE
+        public fun get_coin_metadata_full_price(metadata: &VMetadata): Price {
             metadata.price
         }
 
+        public fun get_coin_metadata_price(metadata: &VMetadata): u256 {
+            (metadata.price.price as u256)
+        }
+
+        public fun get_coin_metadata_denom(metadata: &VMetadata): u256 {
+            (metadata.price.denom as u256)
+        }
+
+    // MARKET
         public fun get_coin_metadata_market(metadata: &VMetadata): Market {
             metadata.market
         }
 
+        public fun get_coin_metadata_fdv(metadata: &VMetadata): u128 {
+            metadata.market.fdv
+        }
+
+        public fun get_coin_metadata_mc(metadata: &VMetadata): u128 {
+            metadata.market.mc
+        }
+
+        public fun get_coin_metadata_fdv_mc(metadata: &VMetadata): u128 {
+            metadata.market.fdv_mc
+        }
+
+    // TOKENOMICS
         public fun get_coin_metadata_tokenomics(metadata: &VMetadata): Tokenomics {
             metadata.tokenomics
         }
 
+        public fun get_coin_metadata_circulating_supply(metadata: &VMetadata): u128 {
+            metadata.tokenomics.circulating_supply
+        }
+
+        public fun get_coin_metadata_max_supply(metadata: &VMetadata): u128 {
+            metadata.tokenomics.max_supply
+        }
+
+        public fun get_coin_metadata_total_supply(metadata: &VMetadata): u128 {
+            metadata.tokenomics.total_supply
+        }
+
+
+    // TIER
         public fun get_coin_metadata_full_tier(metadata: &VMetadata): Tier {
             metadata.full_tier
         }
+
+        public fun get_coin_metadata_tier_name(metadata: &VMetadata): String {
+            metadata.full_tier.tierName
+        }
+
+        public fun get_coin_metadata_tier_efficiency(metadata: &VMetadata): u64 {
+            metadata.full_tier.efficiency
+        }
+
+        public fun get_coin_metadata_full_multiplier(metadata: &VMetadata): u64 {
+            metadata.full_tier.multiplier
+        }
+
 
 
         #[view]
@@ -455,10 +503,10 @@ fun calculate_asset_credit(
                     if(metadat.penalty_expiry > timestamp::now_seconds()){
                         tier = Tier { tierName: tier::convert_tier_to_string(metadat.tier), 
                         efficiency: ((tier::tier_efficiency(metadat.tier)*100) / storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_EFFICIENCY_HANDICAP")))),
-                        multiplyer: (tier::tier_multiplier(metadat.tier) * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_MULTIPLIER_HANDICAP")))/100 )
+                        multiplier: (tier::tier_multiplier(metadat.tier) * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_MULTIPLIER_HANDICAP")))/100 )
                         } ;
                     } else {
-                        tier = Tier { tierName: tier::convert_tier_to_string(metadat.tier), efficiency: tier::tier_efficiency(metadat.tier), multiplyer: tier::tier_multiplier(metadat.tier) };
+                        tier = Tier { tierName: tier::convert_tier_to_string(metadat.tier), efficiency: tier::tier_efficiency(metadat.tier), multiplier: tier::tier_multiplier(metadat.tier) };
                     };
 
                     return VMetadata { 
