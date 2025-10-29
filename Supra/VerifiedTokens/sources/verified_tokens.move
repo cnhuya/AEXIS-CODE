@@ -276,18 +276,17 @@ fun calculate_asset_credit(
             return 00
         };
 
-
-        if (credit >= 25_000_000_000){
+        if (credit >= 25_000_000_000_000){
             return 1
-        } else if (credit >= 7_500_000_000){
+        } else if (credit >= 7_500_000_000_000){
             return 2
-        } else if (credit >= 2_500_000_000){
+        } else if (credit >= 2_500_000_000_000){
             return 3
-        } else if (credit >= 1_000_000_000){
+        } else if (credit >= 1_000_000_000_000){
             return 4
-        } else if (credit >= 500_000_000){
+        } else if (credit >= 500_000_000_000){
             return 5
-        } else if (credit >= 250_000_000){
+        } else if (credit >= 250_000_000_000){
             return 6
         } else {
             return 7
