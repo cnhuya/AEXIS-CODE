@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV40{
+module dev::QiaraVerifiedTokensV41{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -16,8 +16,8 @@ module dev::QiaraVerifiedTokensV40{
     use dev::QiaraVaultRatesV11::{Self as VaultRates};
 
 
-    use dev::QiaraTiersV26::{Self as tier};
-    use dev::QiaraFeeVaultV6::{Self as fee};
+    use dev::QiaraTiersV27::{Self as tier};
+    use dev::QiaraFeeVaultV7::{Self as fee};
 
 
 // === ERRORS === //
@@ -122,10 +122,10 @@ module dev::QiaraVerifiedTokensV40{
     create_info<SuiEthereum>(admin, utf8(b"Sui"), 1438269983, 1, 1, 120_698_129, 120_698_129, 120_698_129, 1);
     create_info<SuiSui>(admin, utf8(b"Sui"), 1683062400, 1, 90, 10_000_000_000, 3_625_742_933, 10_000_000_000, 1);
     
-    create_info<SuiUSDC>(admin, utf8(b"Sui"), 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 0);
-    create_info<SuiUSDT>(admin, utf8(b"Sui"), 0, 1, 47, 185_977_352_465, 185_977_352_465, 185_977_352_465, 0);
+    create_info<SuiUSDC>(admin, utf8(b"Sui"), 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 256);
+    create_info<SuiUSDT>(admin, utf8(b"Sui"), 0, 1, 47, 185_977_352_465, 185_977_352_465, 185_977_352_465, 256);
     create_info<BaseEthereum>(admin, utf8(b"Base"), 1438269983, 1, 1, 120_698_129, 120_698_129, 120_698_129, 1);
-    create_info<BaseUSDC>(admin, utf8(b"Base"), 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 0);
+    create_info<BaseUSDC>(admin, utf8(b"Base"), 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 256);
     //tttta(11111111);
    // create_info<SupraCoin>(admin, utf8(b"Supra"), 1732598400, 1, 500, 100_000_000_000, 19_713_700_000, 80_508_180_397, false);
    // tttta(11111111);
@@ -268,12 +268,12 @@ fun calculate_asset_credit(
 
     fun associate_tier(credit: u256, stable: u8): u8{
 
-        if(stable == 0){
-            return 0
+        if(stable == 256){
+            return 256
         };
 
-        if(stable == 00){
-            return 00
+        if(stable == 255){
+            return 255
         };
 
         if (credit >= 25_000_000_000_000){

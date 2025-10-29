@@ -1,4 +1,4 @@
-module dev::QiaraTiersV26{
+module dev::QiaraTiersV27{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -46,15 +46,15 @@ module dev::QiaraTiersV26{
     fun build_tiers(): vector<Tier>{
         
         let tier0 = Tier {
-            tierID: 0,
-            tierName: convert_tier_to_string(0),
+            tierID: 256,
+            tierName: convert_tier_to_string(256),
             efficiency: storage::expect_u16(storage::viewConstant(utf8(b"QiaraTiers"), utf8(b"T0_EFF"))),
             multiplier: storage::expect_u16(storage::viewConstant(utf8(b"QiaraTiers"), utf8(b"T0_X"))),
         };
 
         let tier00 = Tier {
-            tierID: 00,
-            tierName: convert_tier_to_string(00),
+            tierID: 255,
+            tierName: convert_tier_to_string(255),
             efficiency: storage::expect_u16(storage::viewConstant(utf8(b"QiaraTiers"), utf8(b"T00_EFF"))),
             multiplier: storage::expect_u16(storage::viewConstant(utf8(b"QiaraTiers"), utf8(b"T00_X"))),
         };
@@ -214,9 +214,9 @@ module dev::QiaraTiersV26{
 
 // === CONVERT === //
     public fun convert_tier_to_string(tier: u8): String{
-        if(tier == 0 ){
+        if(tier == 256 ){
             return utf8(b"Stable")
-        } else if(tier == 00 ){
+        } else if(tier == 255 ){
             return utf8(b"Alt-Stable")
         } else if(tier == 1 ){
             return utf8(b"Bluechip")
