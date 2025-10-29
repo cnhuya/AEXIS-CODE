@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV36{
+module dev::QiaraVerifiedTokensV38{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -10,11 +10,14 @@ module dev::QiaraVerifiedTokensV36{
     use supra_framework::supra_coin::{Self, SupraCoin};
     use std::timestamp;
 
-    use dev::QiaraStorageV27::{Self as storage};
+    use dev::QiaraStorageV28::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 
-    use dev::QiaraTiersV22::{Self as tier};
+    use dev::QiaraTiersV24::{Self as tier};
+
+    use dev::QiaraFeeVaultV4::{Self as fee};
+
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -149,6 +152,7 @@ module dev::QiaraVerifiedTokensV36{
 
         assert!(!vector::contains(&vault_list.list,&metadata), ERROR_COIN_ALREADY_ALLOWED);
         vector::push_back(&mut vault_list.list, metadata);
+        fee::init_fee_vault<Token>(admin);
         //tttta((tier_id as u64)); 0x1
     }
 
@@ -354,7 +358,7 @@ fun calculate_asset_credit(
 
                     if(metadat.penalty_expiry > timestamp::now_seconds()){
                         tier = Tier { tierName: tier::convert_tier_to_string(metadat.tier), 
-                        efficiency: ((tier::tier_efficiency(metadat.tier)*100) / storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_EFFICIENCY_HANDICAP")))/100),
+                        efficiency: ((tier::tier_efficiency(metadat.tier)*100) / storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_EFFICIENCY_HANDICAP")))),
                         multiplyer: (tier::tier_multiplier(metadat.tier) * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_MULTIPLIER_HANDICAP")))/100 )
                         } ;
                     } else {
@@ -450,7 +454,7 @@ fun calculate_asset_credit(
 
                     if(metadat.penalty_expiry > timestamp::now_seconds()){
                         tier = Tier { tierName: tier::convert_tier_to_string(metadat.tier), 
-                        efficiency: ((tier::tier_efficiency(metadat.tier)*100) / storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_EFFICIENCY_HANDICAP")))/100),
+                        efficiency: ((tier::tier_efficiency(metadat.tier)*100) / storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_EFFICIENCY_HANDICAP")))),
                         multiplyer: (tier::tier_multiplier(metadat.tier) * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_MULTIPLIER_HANDICAP")))/100 )
                         } ;
                     } else {
