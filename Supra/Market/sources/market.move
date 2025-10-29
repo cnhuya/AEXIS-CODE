@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV28 {
+module dev::QiaraVaultsV29 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,8 +11,10 @@ module dev::QiaraVaultsV28 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
 
-    use dev::QiaraVerifiedTokensV40::{Self as VerifiedTokens, Tier, CoinData, VMetadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV39::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV41::{Self as VerifiedTokens, Tier, CoinData, VMetadata, Access as VerifiedTokensAccess};
+    use dev::QiaraMarginV40::{Self as Margin, Access as MarginAccess};
+
+    use dev::QiaraFeeVaultV7::{Self as fee};
 
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use dev::QiaraChainTypesV11::{Self as ChainTypes};
@@ -326,6 +328,14 @@ module dev::QiaraVaultsV28 {
 
         let coins = coin::extract(&mut vault.balance, amount);
         coin::deposit(signer::address_of(user), coins);
+
+        //100 000 000 = 1 size
+        // 1000 * 100 000 000 = 100 000 000 000
+        // 1000 * 100 000 000 = 100 000 000 000
+        // 0.01% fee
+        // 1000
+        let fee_amount = VerifiedTokens::get_coin_metadata_market_w_fee(&VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<Token>())) * (amount as u64) / 1000000;
+        fee::pay_fee<Token>(user, coin::withdraw<Token>(user, fee_amount), utf8(b"Withdraw Fee"));
 
         Margin::remove_deposit<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev),  type_info::type_name<Token>()); 
