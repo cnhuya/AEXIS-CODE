@@ -287,7 +287,7 @@ public fun get_user_total_usd(addr: address): (
             );
 
             total_dep = total_dep + dep_usd;
-            total_margin = total_margin + (dep_usd * ((VerifiedTokens::get_coin_metadata_tier_efficiency(&metadata)) as u256)) / 100;
+            total_margin = total_margin + (dep_usd * (((VerifiedTokens::get_coin_metadata_tier_efficiency(&metadata)) as u256)) / 10000);
             total_bor = total_bor + bor_usd;
             total_rew = total_rew + reward_usd;
             total_int = total_int + interest_usd;
