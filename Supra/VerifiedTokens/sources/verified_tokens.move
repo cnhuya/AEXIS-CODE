@@ -518,7 +518,7 @@ fun calculate_asset_credit(
 
         public fun get_coin_metadata_rate_scale(metadata: &VMetadata, isLending: bool): u64 {
             let x = 0;
-            if(isLending) { x = 200 };
+            if(!isLending) { x = 200 };
 
             if(metadata.tier == 1){
                 return storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MARKET_PERCENTAGE_SCALE"))) - x
