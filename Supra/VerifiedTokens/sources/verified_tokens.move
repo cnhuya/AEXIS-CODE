@@ -343,6 +343,21 @@ fun calculate_asset_credit(
             let vault_list = borrow_global<Tokens>(@dev);
             vault_list.list
         }
+    
+
+        public fun get_coin_metadata_by_metadata(metadata: &Metadata): VMetadata acquires Tokens {
+            let vault_list = borrow_global_mut<Tokens>(@dev);
+            let len = vector::length(&vault_list.list);
+            let i = 0;
+            while (i < len) {
+                let metadat = vector::borrow(&vault_list.list, i);
+                if (metadat.resource == metadata.resource) {
+                    return get_coin_metadata_by_res(metadat.resource);
+                };
+                i = i + 1;
+            };
+            abort(ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST)
+        }
 
         #[view]
         public fun get_coin_metadata<Token>(): VMetadata acquires Tokens {
