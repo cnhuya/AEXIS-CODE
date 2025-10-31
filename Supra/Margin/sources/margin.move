@@ -1,4 +1,4 @@
-module dev::QiaraMarginV40{
+module dev::QiaraMarginV41{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -48,6 +48,7 @@ module dev::QiaraMarginV40{
         token: String,
         deposited: u64,
         borrowed: u64,
+        locked: u64,
         rewards: u64,
         interest: u64,
         leverage: u64,
@@ -134,6 +135,24 @@ module dev::QiaraMarginV40{
         };
     }
 
+    public fun add_lock<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+        {
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
+            balance.locked = balance.locked + value;
+        };
+    }
+
+    public fun remove_lock<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+        {
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
+            if(value > balance.locked){
+                balance.locked = 0
+            } else {
+                balance.locked = balance.locked - value;
+            };
+        };
+    }
+
     public fun add_borrow<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
@@ -151,6 +170,7 @@ module dev::QiaraMarginV40{
             };
         };
     }
+
 
     public fun add_interest<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
         {
@@ -374,6 +394,7 @@ fun find_balance(feature_table: &mut TokenHoldings,addr: address,token: String,f
         token,
         deposited: 0,
         borrowed: 0,
+        locked: 0,
         rewards: 0,
         interest: 0,
         leverage: 1,
