@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV29 {
+module dev::QiaraVaultsV30 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -12,7 +12,7 @@ module dev::QiaraVaultsV29 {
     use supra_framework::event;
 
     use dev::QiaraVerifiedTokensV41::{Self as VerifiedTokens, Tier, CoinData, VMetadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV40::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraMarginV41::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraFeeVaultV7::{Self as fee};
 
@@ -43,6 +43,7 @@ module dev::QiaraVaultsV29 {
     const ERROR_CANT_ACRUE_THIS_VAULT: u64 = 12;
     const ERROR_NO_VAULT_FOUND: u64 = 13;
     const ERROR_NO_VAULT_FOUND_FULL_CYCLE: u64 = 14;
+    const ERROR_UNLOCK_BIGGER_THAN_LOCK: u64 = 14;
 
 
     const ERROR_A: u64 = 101;
@@ -96,6 +97,7 @@ module dev::QiaraVaultsV29 {
 
     struct GlobalVault<phantom T> has key {
         balance: coin::Coin<T>,
+        locked: u128,
     }
 
     struct VaultUSD has store, copy, drop {
@@ -176,7 +178,7 @@ module dev::QiaraVaultsV29 {
     public entry fun init_vault<T>(admin: &signer) acquires VaultRegistry{
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
         if (!exists<GlobalVault<T>>(@dev)) {
-            move_to(admin, GlobalVault {balance: coin::zero<T>(),});
+            move_to(admin, GlobalVault {balance: coin::zero<T>(), locked: 0});
         };
         let registry = borrow_global_mut<VaultRegistry>(@dev);
             table::add(
@@ -292,6 +294,48 @@ module dev::QiaraVaultsV29 {
     }
 
 
+
+    public entry fun lock<Token, TokenReward, TokenInterest>(user: &signer, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
+        assert!(exists<GlobalVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
+        let vault = borrow_global_mut<GlobalVault<Token>>(@dev);
+        let coins = coin::withdraw<Token>(user, amount);
+        coin::merge(&mut vault.balance, coins);
+
+        vault.locked = vault.locked + (amount as u128);
+        Margin::add_lock<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+
+        accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
+        event::emit(VaultEvent { 
+            type: utf8(b"Lock"),
+            amount, 
+            address: signer::address_of(user), 
+            token: type_info::type_name<Token>(),
+            time: timestamp::now_seconds(),
+        });
+    }
+
+    public entry fun unlock<Token, TokenReward, TokenInterest>(user: &signer, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
+        assert!(exists<GlobalVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
+        let vault = borrow_global_mut<GlobalVault<Token>>(@dev);
+
+        assert!((amount as u128) <= (coin::value(&vault.balance) as u128), ERROR_NOT_ENOUGH_LIQUIDITY);
+        assert!(vault.locked -(amount as u128) <= vault.locked, ERROR_UNLOCK_BIGGER_THAN_LOCK);
+
+        let coins = coin::withdraw<Token>(user, amount);
+        coin::merge(&mut vault.balance, coins);
+
+        vault.locked = vault.locked - (amount as u128);
+        Margin::remove_lock<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+
+        accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
+        event::emit(VaultEvent { 
+            type: utf8(b"Unlock"),
+            amount, 
+            address: signer::address_of(user), 
+            token: type_info::type_name<Token>(),
+            time: timestamp::now_seconds(),
+        });
+    }
 
     /// log event emmited in this function in backend and add it to registered events in chains.move
     /// this is needed in case validators could overfetch multiple times this event and that way unlock multiple times on other chains
