@@ -1,4 +1,4 @@
-module dev::QiaraMarginV41{
+module dev::QiaraMarginV42{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -216,7 +216,7 @@ module dev::QiaraMarginV41{
     }*/
 
     #[view]
-    public fun get_user_position_usd<Token, Feature>(addr: address): (u256, u256, u256, u256, u256, u256, u256, u256, u256, u256)acquires TokenHoldings{
+    public fun get_user_position_usd<Token, Feature>(addr: address): (u256, u256, u256, u256, u256, u256, u256, u256, u256, u256,u256)acquires TokenHoldings{
 
         let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
         let metadata = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<Token>());
@@ -229,19 +229,21 @@ module dev::QiaraMarginV41{
         let reward_usd = (balance.rewards as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
         let interest_usd = (balance.interest as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
 
+
         let utilization = if (raw_borrow == 0) 0 else (bor_usd * 100) / raw_borrow;
         let margin_interest = raw_borrow* (utilization * (VerifiedTokens::get_coin_metadata_min_lend_apr(&metadata) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata))/ 100;
 
-        (dep_usd, bor_usd, raw_borrow, reward_usd, (balance.reward_index_snapshot as u256), interest_usd, (balance.interest_index_snapshot as u256), margin_interest, (balance.leverage as u256),( balance.last_update as u256))
+        (dep_usd, bor_usd, raw_borrow, reward_usd, (balance.locked as u256), (balance.reward_index_snapshot as u256), interest_usd, (balance.interest_index_snapshot as u256), margin_interest, (balance.leverage as u256),( balance.last_update as u256))
     }
 
 #[view]
 public fun get_user_total_usd(addr: address): (
-    u256, u256, u256, u256, u256, u256, u256, u256
+    u256, u256, u256, u256, u256, u256, u256, u256, u256
 ) acquires TokenHoldings {
     let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
     let feature_registry = FeatureTypes::return_all_feature_types();
 
+    let  total_lock = 0u256;
     let  total_dep = 0u256;
     let  total_margin = 0u256;
     let total_available = 0u256;
@@ -294,6 +296,8 @@ public fun get_user_total_usd(addr: address): (
             let current_raw_borrow = (uv.borrowed as u256) * price / denom;
             let reward_usd = (uv.rewards as u256) * price / denom;
             let interest_usd = (uv.interest as u256) * price / denom;
+            let lock_usd = (uv.locked as u256);
+
 
             let utilization = if (current_raw_borrow == 0) 0
                 else (bor_usd * 100) / current_raw_borrow;
@@ -306,6 +310,7 @@ public fun get_user_total_usd(addr: address): (
                 5
             );
 
+            total_lock = total_lock + lock_usd;
             total_dep = total_dep + dep_usd;
             total_margin = total_margin + (dep_usd * (((VerifiedTokens::get_coin_metadata_tier_efficiency(&metadata)) as u256)) / 10000);
             total_bor = total_bor + bor_usd;
@@ -320,6 +325,7 @@ public fun get_user_total_usd(addr: address): (
     };
 
     let avg_interest = if (total_dep == 0) 0 else total_expected_interest / total_dep;
+    //let deducted_margin = ((total_margin - total_lock) as u256);
 
     (
         total_dep,
@@ -329,7 +335,8 @@ public fun get_user_total_usd(addr: address): (
         total_available,
         total_rew,
         total_int,
-        avg_interest
+        avg_interest,
+        total_lock
     )
 }
 
@@ -440,11 +447,11 @@ fun find_balance(feature_table: &mut TokenHoldings,addr: address,token: String,f
 
     public fun get_utilization_ratio(addr: address): u256 acquires TokenHoldings{
         assert_user_registered(addr);
-        let (depoUSD, _, _, borrowUSD, _, _, _, _) = get_user_total_usd(addr);
-        if (depoUSD == 0) {
+        let (_, marginUSD, _, borrowUSD, _, _, _, _, _, ) = get_user_total_usd(addr);
+        if (marginUSD == 0) {
             0
         } else {
-            ((borrowUSD * 100) / depoUSD as u256)
+            ((borrowUSD * 100) / marginUSD as u256)
         }
     }
 
