@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV32 {
+module dev::QiaraVaultsV33 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -12,7 +12,7 @@ module dev::QiaraVaultsV32 {
     use supra_framework::event;
 
     use dev::QiaraVerifiedTokensV41::{Self as VerifiedTokens, Tier, CoinData, VMetadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV42::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraMarginV43::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraFeeVaultV7::{Self as fee};
 
