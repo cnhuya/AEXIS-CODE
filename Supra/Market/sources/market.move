@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV31 {
+module dev::QiaraVaultsV32 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -79,6 +79,7 @@ module dev::QiaraVaultsV31 {
         token: String,
         total_deposited: u128,
         total_borrowed: u128,
+        locked: u128,
     }
 
 
@@ -98,7 +99,6 @@ module dev::QiaraVaultsV31 {
 
     struct GlobalVault<phantom T> has key {
         balance: coin::Coin<T>,
-        locked: u128,
     }
 
     struct VaultUSD has store, copy, drop {
@@ -179,13 +179,13 @@ module dev::QiaraVaultsV31 {
     public entry fun init_vault<T>(admin: &signer) acquires VaultRegistry{
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
         if (!exists<GlobalVault<T>>(@dev)) {
-            move_to(admin, GlobalVault {balance: coin::zero<T>(), locked: 0});
+            move_to(admin, GlobalVault {balance: coin::zero<T>()});
         };
         let registry = borrow_global_mut<VaultRegistry>(@dev);
             table::add(
                 &mut registry.vaults,
                 type_info::type_name<T>(),
-                Vault {token: type_info::type_name<T>() , total_deposited:0, total_borrowed:0},
+                Vault {token: type_info::type_name<T>() , total_deposited:0, total_borrowed:0, locked: 0},
             );
     }
     /// Deposit on behalf of `recipient`
@@ -300,12 +300,14 @@ module dev::QiaraVaultsV31 {
         assert!(exists<GlobalVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global_mut<GlobalVault<Token>>(@dev);
 
-        vault.locked = vault.locked + (amount as u128);
         Margin::add_lock<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
 
         let (_, _, marginUSD, _, _, _, _, _, _) = Margin::get_user_total_usd(signer::address_of(user));
 
         assert!(marginUSD >= (amount as u256), ERROR_NOT_ENOUGH_MARGIN);
+
+        let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev),  type_info::type_name<Token>()); 
+        provider_vault.locked = provider_vault.locked + (amount as u128);
 
         accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
         event::emit(VaultEvent { 
@@ -319,11 +321,11 @@ module dev::QiaraVaultsV31 {
 
     public entry fun unlock<Token, TokenReward, TokenInterest>(user: &signer, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
         assert!(exists<GlobalVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
-        let vault = borrow_global_mut<GlobalVault<Token>>(@dev);
+        let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev),  type_info::type_name<Token>()); 
 
-        assert!(vault.locked -(amount as u128) <= vault.locked, ERROR_UNLOCK_BIGGER_THAN_LOCK);
+        assert!(provider_vault.locked - (amount as u128) <= provider_vault.locked, ERROR_UNLOCK_BIGGER_THAN_LOCK);
 
-        vault.locked = vault.locked - (amount as u128);
+        provider_vault.locked = provider_vault.locked - (amount as u128);
         Margin::remove_lock<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
 
         accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
@@ -492,12 +494,6 @@ module dev::QiaraVaultsV31 {
     }
 
 
-    #[view]
-    public fun get_lock_amount<T>(): u128 acquires GlobalVault {
-        assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
-        let vault = borrow_global<GlobalVault<T>>(@dev);
-        vault.locked
-    }
 
     #[view]
     public fun get_balance_amount<T>(): u64 acquires GlobalVault {
@@ -524,9 +520,9 @@ module dev::QiaraVaultsV31 {
     }
 
     #[view]
-    public fun get_vault_raw(vaultStr: String): (String, u128, u128) acquires VaultRegistry {
+    public fun get_vault_raw(vaultStr: String): (String, u128, u128,u128) acquires VaultRegistry {
         let vault = table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, vaultStr);
-        (vault.token, vault.total_deposited, vault.total_borrowed)
+        (vault.token, vault.total_deposited, vault.total_borrowed, vault.locked)
     }
 
     #[view]
