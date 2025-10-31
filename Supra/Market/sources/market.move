@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV30 {
+module dev::QiaraVaultsV31 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -12,7 +12,7 @@ module dev::QiaraVaultsV30 {
     use supra_framework::event;
 
     use dev::QiaraVerifiedTokensV41::{Self as VerifiedTokens, Tier, CoinData, VMetadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV41::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraMarginV42::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraFeeVaultV7::{Self as fee};
 
@@ -43,7 +43,8 @@ module dev::QiaraVaultsV30 {
     const ERROR_CANT_ACRUE_THIS_VAULT: u64 = 12;
     const ERROR_NO_VAULT_FOUND: u64 = 13;
     const ERROR_NO_VAULT_FOUND_FULL_CYCLE: u64 = 14;
-    const ERROR_UNLOCK_BIGGER_THAN_LOCK: u64 = 14;
+    const ERROR_UNLOCK_BIGGER_THAN_LOCK: u64 = 15;
+    const ERROR_NOT_ENOUGH_MARGIN: u64 = 16;
 
 
     const ERROR_A: u64 = 101;
@@ -294,15 +295,17 @@ module dev::QiaraVaultsV30 {
     }
 
 
-
+    // lock margined $ value
     public entry fun lock<Token, TokenReward, TokenInterest>(user: &signer, amount: u64) acquires GlobalVault, Permissions, VaultRegistry {
         assert!(exists<GlobalVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global_mut<GlobalVault<Token>>(@dev);
-        let coins = coin::withdraw<Token>(user, amount);
-        coin::merge(&mut vault.balance, coins);
 
         vault.locked = vault.locked + (amount as u128);
         Margin::add_lock<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+
+        let (_, _, marginUSD, _, _, _, _, _, _) = Margin::get_user_total_usd(signer::address_of(user));
+
+        assert!(marginUSD >= (amount as u256), ERROR_NOT_ENOUGH_MARGIN);
 
         accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
         event::emit(VaultEvent { 
@@ -318,11 +321,7 @@ module dev::QiaraVaultsV30 {
         assert!(exists<GlobalVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global_mut<GlobalVault<Token>>(@dev);
 
-        assert!((amount as u128) <= (coin::value(&vault.balance) as u128), ERROR_NOT_ENOUGH_LIQUIDITY);
         assert!(vault.locked -(amount as u128) <= vault.locked, ERROR_UNLOCK_BIGGER_THAN_LOCK);
-
-        let coins = coin::withdraw<Token>(user, amount);
-        coin::merge(&mut vault.balance, coins);
 
         vault.locked = vault.locked - (amount as u128);
         Margin::remove_lock<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
@@ -395,7 +394,7 @@ module dev::QiaraVaultsV30 {
         let vault = borrow_global_mut<GlobalVault<Token>>(@dev);
 
         let valueUSD = getValue(type_info::type_name<Token>(), (amount as u256));
-        let (depoUSD, _, _, borrowUSD, _, _, _, _) = Margin::get_user_total_usd(signer::address_of(user));
+        let (depoUSD, _, _, borrowUSD, _, _, _, _, _) = Margin::get_user_total_usd(signer::address_of(user));
 
         assert!(coin::value(&vault.balance) >= amount, ERROR_NOT_ENOUGH_LIQUIDITY);
         assert!(depoUSD >= (valueUSD+borrowUSD), ERROR_BORROW_COLLATERAL_OVERFLOW);
@@ -492,6 +491,13 @@ module dev::QiaraVaultsV30 {
         }
     }
 
+
+    #[view]
+    public fun get_lock_amount<T>(): u128 acquires GlobalVault {
+        assert!(exists<GlobalVault<T>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
+        let vault = borrow_global<GlobalVault<T>>(@dev);
+        vault.locked
+    }
 
     #[view]
     public fun get_balance_amount<T>(): u64 acquires GlobalVault {
