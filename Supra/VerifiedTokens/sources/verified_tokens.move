@@ -325,7 +325,7 @@ fun calculate_asset_credit(
             coin_data.decimals
         }
 
-        public fun get_coin_denom<Token>(): u8 {
+        public fun get_coin_denom<Token>(): u256 {
             let coin_data = get_coin_data<Token>();
             Math::pow10_u256((coin_data.decimals as u8))
         }
