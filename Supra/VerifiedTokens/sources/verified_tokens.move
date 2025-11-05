@@ -325,6 +325,11 @@ fun calculate_asset_credit(
             coin_data.decimals
         }
 
+        public fun get_coin_denom<Token>(): u8 {
+            let coin_data = get_coin_data<Token>();
+            Math::pow10_u256((coin_data.decimals as u8))
+        }
+
         public fun get_coin_supply<Token>(): Option<u128> {
             let coin_data = get_coin_data<Token>();
             coin_data.supply
@@ -521,6 +526,14 @@ fun calculate_asset_credit(
             if(!isLending) { x = 200 };
 
             if(metadata.tier == 1){
+                return storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MARKET_PERCENTAGE_SCALE"))) - x
+            };
+
+            if(metadata.tier == 255){
+                return storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MARKET_PERCENTAGE_SCALE"))) - x
+            };
+
+            if(metadata.tier == 254){
                 return storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MARKET_PERCENTAGE_SCALE"))) - x
             };
     
