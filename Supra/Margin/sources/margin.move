@@ -325,12 +325,12 @@ public fun get_user_total_usd(addr: address): (
     };
 
     let avg_interest = if (total_dep == 0) 0 else total_expected_interest / total_dep;
-    //let deducted_margin = ((total_margin - total_lock) as u256);
+    let deducted_margin = if (total_margin > total_lock) { (total_margin - total_lock as u256) } else {0};
 
     (
         total_dep,
-        total_margin,
-        if (total_margin > total_bor) { total_margin - total_bor } else {0},
+        deducted_margin,
+        if (deducted_margin > total_bor) { deducted_margin - total_bor } else {0},
         total_bor,
         total_available,
         total_rew,
