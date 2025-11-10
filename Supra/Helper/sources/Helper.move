@@ -1,4 +1,4 @@
-module dev::QiaraHelperV19 {
+module dev::QiaraHelperV24 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
 
@@ -8,7 +8,7 @@ module dev::QiaraHelperV19 {
     use dev::QiaraStorageV29::{Self as storage, Access as StorageAccess};
     use dev::QiaraCapabilitiesV29::{Self as capabilities, Access as CapabilitiesAccess};
     use dev::QiaraVaultRatesV11::{Self as VaultRates};
-    use dev::QiaraVaultsV29::{Self as Market, Vault};
+    use dev::QiaraVaultsV34::{Self as Market, Vault};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
@@ -35,7 +35,8 @@ module dev::QiaraHelperV19 {
         total_borrowed: u128,
         utilization: u256,
         lend_rate: u256,
-        borrow_rate: u256
+        borrow_rate: u256,
+        locked: u256,
     }
 
     #[view]
@@ -52,7 +53,7 @@ module dev::QiaraHelperV19 {
             let vault_res = VerifiedTokens::get_coin_metadata_resource(&metadata_);
 
             // fetch vault totals
-                let (provider, deposited, borrowed) = Market::get_vault_raw(vault_res);
+                let (provider, deposited, borrowed, locked) = Market::get_vault_raw(vault_res);
                 let utilization = Market::get_utilization_ratio(deposited, borrowed);
 
 
@@ -84,7 +85,8 @@ module dev::QiaraHelperV19 {
                         total_borrowed: borrowed,
                         utilization: utilization,
                         lend_rate: lend_apy,
-                        borrow_rate: borrow_apy
+                        borrow_rate: borrow_apy,
+                        locked: (locked as u256)
                     }
                 }
             );
