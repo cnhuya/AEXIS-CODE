@@ -174,6 +174,7 @@ module dev::QiaraMarginV44{
 
     public fun add_interest<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
+            tttta(14);
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             balance.interest = balance.interest + value;
         }
@@ -192,6 +193,7 @@ module dev::QiaraMarginV44{
 
     public fun add_rewards<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
+                        tttta(84877);
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             balance.rewards = balance.rewards + value;
         }
