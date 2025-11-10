@@ -1,4 +1,4 @@
-module dev::QiaraMarginV43{
+module dev::QiaraMarginV44{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -46,14 +46,14 @@ module dev::QiaraMarginV43{
 
     struct Credit has key, store, copy, drop{
         token: String,
-        deposited: u64,
-        borrowed: u64,
-        locked: u64,
-        rewards: u64,
-        interest: u64,
+        deposited: u256,
+        borrowed: u256,
+        locked: u256,
+        rewards: u256,
+        interest: u256,
         leverage: u64,
-        reward_index_snapshot: u128,
-        interest_index_snapshot: u128,
+        reward_index_snapshot: u256,
+        interest_index_snapshot: u256,
         last_update: u64,
     }
 
@@ -100,12 +100,12 @@ module dev::QiaraMarginV43{
         balance.last_update = timestamp::now_seconds() / 3600;
     }
 
-    public fun update_interest_index<Token, Feature>(addr: address, index: u128, cap: Permission) acquires TokenHoldings{
+    public fun update_interest_index<Token, Feature>(addr: address, index: u256, cap: Permission) acquires TokenHoldings{
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
         balance.interest_index_snapshot = index;
     }
 
-    public fun update_reward_index<Token, Feature>(addr: address, index: u128, cap: Permission) acquires TokenHoldings{
+    public fun update_reward_index<Token, Feature>(addr: address, index: u256, cap: Permission) acquires TokenHoldings{
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
         balance.reward_index_snapshot = index;
     }
@@ -117,14 +117,14 @@ module dev::QiaraMarginV43{
         }
     }
 
-    public fun add_deposit<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_deposit<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             balance.deposited = balance.deposited + value;
         };
     }
 
-    public fun remove_deposit<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_deposit<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             if(value > balance.deposited){
@@ -135,14 +135,14 @@ module dev::QiaraMarginV43{
         };
     }
 
-    public fun add_lock<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_lock<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             balance.locked = balance.locked + value;
         };
     }
 
-    public fun remove_lock<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_lock<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             if(value > balance.locked){
@@ -153,14 +153,14 @@ module dev::QiaraMarginV43{
         };
     }
 
-    public fun add_borrow<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_borrow<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             balance.borrowed = balance.borrowed + value;
         };
     }
 
-    public fun remove_borrow<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_borrow<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             if(value > balance.borrowed){
@@ -172,14 +172,14 @@ module dev::QiaraMarginV43{
     }
 
 
-    public fun add_interest<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_interest<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             balance.interest = balance.interest + value;
         }
     }
 
-    public fun remove_interest<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_interest<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             if(value > balance.interest){
@@ -190,14 +190,14 @@ module dev::QiaraMarginV43{
         }
     }
 
-    public fun add_rewards<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_rewards<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             balance.rewards = balance.rewards + value;
         }
     }
 
-    public fun remove_rewards<Token, Feature>(addr: address, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_rewards<Token, Feature>(addr: address, value: u256, cap: Permission) acquires TokenHoldings{
         {
             let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
             if(value > balance.rewards){
@@ -222,18 +222,18 @@ module dev::QiaraMarginV43{
         let metadata = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<Token>());
 
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
-        let raw_borrow = (balance.borrowed as u256);
+        let raw_borrow = balance.borrowed ;
 
-        let dep_usd = (balance.deposited as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
-        let bor_usd = (balance.borrowed as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
-        let reward_usd = (balance.rewards as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
-        let interest_usd = (balance.interest as u256)* (VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+        let dep_usd = balance.deposited*(VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+        let bor_usd = balance.borrowed*(VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+        let reward_usd = balance.rewards*(VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
+        let interest_usd = balance.interest*(VerifiedTokens::get_coin_metadata_price(&metadata) as u256);
 
 
         let utilization = if (raw_borrow == 0) 0 else (bor_usd * 100) / raw_borrow;
         let margin_interest = raw_borrow* (utilization * (VerifiedTokens::get_coin_metadata_min_lend_apr(&metadata) as u256))/ (VerifiedTokens::get_coin_metadata_denom(&metadata))/ 100;
 
-        (dep_usd, bor_usd, raw_borrow, reward_usd, (balance.locked as u256), (balance.reward_index_snapshot as u256), interest_usd, (balance.interest_index_snapshot as u256), margin_interest, (balance.leverage as u256),( balance.last_update as u256))
+        (dep_usd, bor_usd, raw_borrow, reward_usd, balance.locked , balance.reward_index_snapshot, interest_usd, balance.interest_index_snapshot, margin_interest, (balance.leverage as u256),( balance.last_update as u256))
     }
 
 #[view]
@@ -291,12 +291,12 @@ public fun get_user_total_usd(addr: address): (
             let uv = find_balance(tokens_holdings, addr, token_id, feature);
             let leverage = if (uv.leverage == 0) 1 else uv.leverage;
 
-            let dep_usd = (uv.deposited as u256) * price / denom;
-            let bor_usd = (uv.borrowed as u256) * price / (leverage as u256) / denom;
-            let current_raw_borrow = (uv.borrowed as u256) * price / denom;
-            let reward_usd = (uv.rewards as u256) * price / denom;
-            let interest_usd = (uv.interest as u256) * price / denom;
-            let lock_usd = (uv.locked as u256);
+            let dep_usd = uv.deposited * price / denom;
+            let bor_usd = uv.borrowed  * price / (leverage as u256) / denom;
+            let current_raw_borrow = uv.borrowed  * price / denom;
+            let reward_usd = uv.rewards  * price / denom;
+            let interest_usd = uv.interest  * price / denom;
+            let lock_usd = uv.locked ;
 
 
             let utilization = if (current_raw_borrow == 0) 0
@@ -349,7 +349,7 @@ public fun get_user_total_usd(addr: address): (
     }
 
     #[view]
-    public fun get_user_raw_balance<Token, Feature>(addr: address): (String, u64, u64, u64, u128, u64, u128, u64) acquires TokenHoldings {
+    public fun get_user_raw_balance<Token, Feature>(addr: address): (String, u256, u256, u256, u256, u256, u256, u64) acquires TokenHoldings {
         let balance  = *find_balance(borrow_global_mut<TokenHoldings>(@dev),addr, type_info::type_name<Token>(), type_info::type_name<Feature>());
         return (balance.token, balance.deposited, balance.borrowed, balance.rewards, balance.reward_index_snapshot, balance.interest, balance.interest_index_snapshot, balance.last_update)
     }
