@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV33 {
+module dev::QiaraVaultsV34 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -12,7 +12,7 @@ module dev::QiaraVaultsV33 {
     use supra_framework::event;
 
     use dev::QiaraVerifiedTokensV41::{Self as VerifiedTokens, Tier, CoinData, VMetadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV43::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraMarginV44::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraFeeVaultV7::{Self as fee};
 
@@ -77,16 +77,16 @@ module dev::QiaraVaultsV33 {
    // Maybe in the future remove this, and move total borrowed into global vault? idk tho how would it do because of the phantom type tag
     struct Vault has key, store, copy, drop{
         token: String,
-        total_deposited: u128,
-        total_borrowed: u128,
-        locked: u128,
+        total_deposited: u256,
+        total_borrowed: u256,
+        locked: u256,
     }
 
 
     struct FullVault has key, store, copy, drop{
         token: String,
-        total_deposited: u128,
-        total_borrowed: u128,
+        total_deposited: u256,
+        total_borrowed: u256,
         utilization: u64,
         lend_rate: u64,
         borrow_rate: u64
@@ -105,9 +105,9 @@ module dev::QiaraVaultsV33 {
         tier: u8,
         oracle_price: u128,
         oracle_decimals: u8,
-        total_deposited: u128,
+        total_deposited: u256,
         balance: u64,
-        borrowed: u128,
+        borrowed: u256,
         utilization: u256,
         rewards: u256,
         interest: u256,
@@ -201,10 +201,10 @@ module dev::QiaraVaultsV33 {
         coin::merge(&mut vault.balance, coins);
 
         VaultRates::change_rates<Token>(lend_rate, VaultRates::give_permission(&borrow_global<Permissions>(@dev).vault_rates));
-        Margin::add_deposit<Token, Market>(recipient, amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::add_deposit<Token, Market>(recipient, (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
 
         let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<Token>()); 
-        provider_vault.total_deposited = provider_vault.total_deposited + (amount as u128);
+        provider_vault.total_deposited = provider_vault.total_deposited + (amount as u256);
 
         event::emit(BridgedDepositEvent {
             validator: signer::address_of(user),
@@ -225,9 +225,9 @@ module dev::QiaraVaultsV33 {
         assert!(exists<GlobalVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         // Step 1: withdraw tokens of type T from user
-        Margin::remove_deposit<Token, Market>(recipient, amount_in, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::remove_deposit<Token, Market>(recipient, (amount_in as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         let provider_vault_from = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<Token>()); 
-        provider_vault_from.total_deposited = provider_vault_from.total_deposited - (amount_in as u128);
+        provider_vault_from.total_deposited = provider_vault_from.total_deposited - (amount_in as u256);
 
 
         // Step 2: calculate output amount in Y (simple price * ratio example)
@@ -240,9 +240,9 @@ module dev::QiaraVaultsV33 {
         let amount_out = ((amount_in as u256) * price_in) / price_out;
 
         // Step 3: update margin/tracking if necessary
-        Margin::add_deposit<TokenTo, Market>(recipient, (amount_out as u64), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::add_deposit<TokenTo, Market>(recipient, (amount_out as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         let provider_vault_to = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<TokenTo>()); 
-        provider_vault_to.total_deposited = provider_vault_to.total_deposited + (amount_out as u128);
+        provider_vault_to.total_deposited = provider_vault_to.total_deposited + (amount_out as u256);
 
 
         accrue<Token, TokenReward, TokenInterest>(recipient);
@@ -252,9 +252,9 @@ module dev::QiaraVaultsV33 {
         assert!(exists<GlobalVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         // Step 1: withdraw tokens of type T from user
-        Margin::remove_deposit<Token, Market>(signer::address_of(user), amount_in, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::remove_deposit<Token, Market>(signer::address_of(user), (amount_in as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         let provider_vault_from = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<Token>()); 
-        provider_vault_from.total_deposited = provider_vault_from.total_deposited - (amount_in as u128);
+        provider_vault_from.total_deposited = provider_vault_from.total_deposited - (amount_in as u256);
 
 
         // Step 2: calculate output amount in Y (simple price * ratio example)
@@ -267,9 +267,9 @@ module dev::QiaraVaultsV33 {
         let amount_out = ((amount_in as u256) * price_in) / price_out;
 
         // Step 3: update margin/tracking if necessary
-        Margin::add_deposit<Token, Market>(signer::address_of(user), (amount_out as u64), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::add_deposit<Token, Market>(signer::address_of(user), (amount_out as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         let provider_vault_to = find_vault(borrow_global_mut<VaultRegistry>(@dev), type_info::type_name<TokenTo>()); 
-        provider_vault_to.total_deposited = provider_vault_to.total_deposited + (amount_out as u128);
+        provider_vault_to.total_deposited = provider_vault_to.total_deposited + (amount_out as u256);
 
         accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
     }
@@ -279,9 +279,9 @@ module dev::QiaraVaultsV33 {
         let vault = borrow_global_mut<GlobalVault<Token>>(@dev);
         let coins = coin::withdraw<Token>(user, amount);
         coin::merge(&mut vault.balance, coins);
-        Margin::add_deposit<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::add_deposit<Token, Market>(signer::address_of(user), (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev),  type_info::type_name<Token>()); 
-        provider_vault.total_deposited = provider_vault.total_deposited + (amount as u128);
+        provider_vault.total_deposited = provider_vault.total_deposited + (amount as u256);
 
         accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
         VaultRates::change_rates<Token>(rate, VaultRates::give_permission(&borrow_global<Permissions>(@dev).vault_rates));
@@ -300,14 +300,14 @@ module dev::QiaraVaultsV33 {
         assert!(exists<GlobalVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         let vault = borrow_global_mut<GlobalVault<Token>>(@dev);
 
-        Margin::add_lock<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::add_lock<Token, Market>(signer::address_of(user), (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
 
         let (_, _, marginUSD, _, _, _, _, _, _) = Margin::get_user_total_usd(signer::address_of(user));
 
         assert!(marginUSD >= (amount as u256), ERROR_NOT_ENOUGH_MARGIN);
 
         let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev),  type_info::type_name<Token>()); 
-        provider_vault.locked = provider_vault.locked + (amount as u128);
+        provider_vault.locked = provider_vault.locked + (amount as u256);
 
         accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
         event::emit(VaultEvent { 
@@ -323,10 +323,10 @@ module dev::QiaraVaultsV33 {
         assert!(exists<GlobalVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev),  type_info::type_name<Token>()); 
 
-        assert!(provider_vault.locked - (amount as u128) <= provider_vault.locked, ERROR_UNLOCK_BIGGER_THAN_LOCK);
+        assert!(provider_vault.locked - (amount as u256) <= provider_vault.locked, ERROR_UNLOCK_BIGGER_THAN_LOCK);
 
-        provider_vault.locked = provider_vault.locked - (amount as u128);
-        Margin::remove_lock<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        provider_vault.locked = provider_vault.locked - (amount as u256);
+        Margin::remove_lock<Token, Market>(signer::address_of(user), (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
 
         accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
         event::emit(VaultEvent { 
@@ -382,9 +382,9 @@ module dev::QiaraVaultsV33 {
         let fee_amount = VerifiedTokens::get_coin_metadata_market_w_fee(&VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<Token>())) * (amount as u64) / 1000000;
         fee::pay_fee<Token>(user, coin::withdraw<Token>(user, fee_amount), utf8(b"Withdraw Fee"));
 
-        Margin::remove_deposit<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::remove_deposit<Token, Market>(signer::address_of(user), (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev),  type_info::type_name<Token>()); 
-        provider_vault.total_deposited = provider_vault.total_deposited - (amount as u128);
+        provider_vault.total_deposited = provider_vault.total_deposited - (amount as u256);
 
         accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
         event::emit(VaultEvent { type: utf8(b"Withdraw"), amount, address: signer::address_of(user), token: type_info::type_name<Token>(), time: timestamp::now_seconds() });
@@ -404,9 +404,9 @@ module dev::QiaraVaultsV33 {
         let coins = coin::extract(&mut vault.balance, amount);
         coin::deposit(signer::address_of(user), coins);
 
-        Margin::add_borrow<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::add_borrow<Token, Market>(signer::address_of(user), (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev),  type_info::type_name<Token>()); 
-        provider_vault.total_borrowed = provider_vault.total_borrowed + (amount as u128);
+        provider_vault.total_borrowed = provider_vault.total_borrowed + (amount as u256);
 
         accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
         event::emit(VaultEvent { type: utf8(b"Borrow"), amount, address: signer::address_of(user), token: type_info::type_name<Token>(), time: timestamp::now_seconds() });
@@ -421,9 +421,9 @@ module dev::QiaraVaultsV33 {
         let coins = coin::withdraw<Token>(user, amount);
         coin::merge(&mut vault.balance, coins);
 
-        Margin::remove_borrow<Token, Market>(signer::address_of(user), amount, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::remove_borrow<Token, Market>(signer::address_of(user), (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         let provider_vault = find_vault(borrow_global_mut<VaultRegistry>(@dev),  type_info::type_name<Token>()); 
-        provider_vault.total_borrowed = provider_vault.total_borrowed - (amount as u128);
+        provider_vault.total_borrowed = provider_vault.total_borrowed - (amount as u256);
 
         accrue<Token, TokenReward, TokenInterest>(signer::address_of(user));
         event::emit(VaultEvent { type: utf8(b"Repay"), amount, address: signer::address_of(user), token: type_info::type_name<Token>(), time: timestamp::now_seconds() });
@@ -441,8 +441,8 @@ module dev::QiaraVaultsV33 {
         let reward_amount = user_rewards;
         let interest_amount = user_interest;
 
-        Margin::remove_interest<Token, Market>(signer::address_of(user), (interest_amount as u64), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-        Margin::remove_rewards<Token, Market>(signer::address_of(user), (reward_amount as u64), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::remove_interest<Token, Market>(signer::address_of(user), (interest_amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::remove_rewards<Token, Market>(signer::address_of(user), (reward_amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
 
         let global_vault = borrow_global_mut<GlobalVault<Token>>(@dev);
 
@@ -484,12 +484,12 @@ module dev::QiaraVaultsV33 {
     }
 
     #[view]
-    public fun get_utilization_ratio(deposited: u128, borrowed: u128): u256 {
+    public fun get_utilization_ratio(deposited: u256, borrowed: u256): u256 {
         //abort(147);
         if (deposited == 0 || borrowed == 0) {
             0
         } else {
-            (((borrowed * 100_000_000) / deposited) as u256)
+            ((borrowed * 100_000_000) / deposited)
         }
     }
 
@@ -520,7 +520,7 @@ module dev::QiaraVaultsV33 {
     }
 
     #[view]
-    public fun get_vault_raw(vaultStr: String): (String, u128, u128,u128) acquires VaultRegistry {
+    public fun get_vault_raw(vaultStr: String): (String, u256, u256,u256) acquires VaultRegistry {
         let vault = table::borrow(&borrow_global<VaultRegistry>(@dev).vaults, vaultStr);
         (vault.token, vault.total_deposited, vault.total_borrowed, vault.locked)
     }
@@ -599,8 +599,8 @@ module dev::QiaraVaultsV33 {
             if((((user_deposited as u128) * delta_reward) / scale) > 0){
                 let user_delta_reward_value  = ((((user_deposited as u128) * delta_reward) / scale) as u256);
                 let receive_rewards_in_A_tokens = getValueByCoin(type_info::type_name<TokenReward>(), getValue(type_info::type_name<Token>(), user_delta_reward_value));
-                Margin::add_rewards<TokenReward, Market>(user, (receive_rewards_in_A_tokens as u64), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-                Margin::update_reward_index<TokenReward, Market>(user, reward_index, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+                Margin::add_rewards<TokenReward, Market>(user, (receive_rewards_in_A_tokens as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+                Margin::update_reward_index<TokenReward, Market>(user, (reward_index as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
                 Margin::update_time<TokenReward, Market>(user, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
             };
         };
@@ -612,8 +612,8 @@ module dev::QiaraVaultsV33 {
                 let user_delta_interest_value = ((((user_borrowed as u128) * delta_interest) / scale) as u256);
                 //tttta((user_borrowed as u64));
                 let pay_interest_in_B_tokens = getValueByCoin(type_info::type_name<TokenInterest>(), getValue(type_info::type_name<Token>(), user_delta_interest_value));
-                Margin::add_interest<TokenInterest, Market>(user, (pay_interest_in_B_tokens as u64) , Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-                Margin::update_interest_index<TokenInterest, Market>(user, interest_index, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+                Margin::add_interest<TokenInterest, Market>(user, (pay_interest_in_B_tokens as u256) , Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+                Margin::update_interest_index<TokenInterest, Market>(user, (interest_index as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
                 Margin::update_time<TokenInterest, Market>(user, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
             };
         }; 
