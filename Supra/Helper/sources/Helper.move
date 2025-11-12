@@ -31,8 +31,8 @@ module dev::QiaraHelperV25 {
 
     struct FullVault has key, store, copy, drop{
         provider: String,
-        total_deposited: u128,
-        total_borrowed: u128,
+        total_deposited: u256,
+        total_borrowed: u256,
         utilization: u256,
         lend_rate: u256,
         borrow_rate: u256,
