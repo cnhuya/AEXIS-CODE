@@ -135,6 +135,7 @@ module dev::QiaraCoinTypesV11{
         coin::extract(&mut vault.balance, amount)
     }
 */
+    #[view]
     public fun return_all_coin_types(): vector<String>{
         return vector<String>[type_info::type_name<SuiBitcoin>(),type_info::type_name<SuiEthereum>(),type_info::type_name<SuiSui>(),
         type_info::type_name<SuiUSDC>(),type_info::type_name<SuiUSDT>(),type_info::type_name<BaseEthereum>(),type_info::type_name<BaseUSDC>()]
