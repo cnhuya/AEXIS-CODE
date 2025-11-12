@@ -1,18 +1,18 @@
-module dev::QiaraHelperV24 {
+module dev::QiaraHelperV25 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
 
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use supra_framework::supra_coin::{Self, SupraCoin};
 
-    use dev::QiaraStorageV29::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV29::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraStorageV30::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV30::{Self as capabilities, Access as CapabilitiesAccess};
     use dev::QiaraVaultRatesV11::{Self as VaultRates};
-    use dev::QiaraVaultsV34::{Self as Market, Vault};
+    use dev::QiaraVaultsV36::{Self as Market, Vault};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
-    use dev::QiaraVerifiedTokensV41::{Self as VerifiedTokens, VMetadata, Tier};
+    use dev::QiaraVerifiedTokensV42::{Self as VerifiedTokens, VMetadata, Tier};
 
     struct Governance has copy, drop{
         minimum_tokens_to_propose: u64,

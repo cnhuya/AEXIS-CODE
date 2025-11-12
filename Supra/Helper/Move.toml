@@ -1,5 +1,5 @@
 [package]
-name = "QiaraHelperV24"
+name = "QiaraHelperV25"
 version = "1.0.0"
 authors = []
 
@@ -23,17 +23,17 @@ git = 'https://github.com/cnhuya/AEXIS-CODE.git'
 rev = 'main'
 subdir = 'Supra/Types'
 
-[dependencies.QiaraStorageV29]
+[dependencies.QiaraStorageV30]
 git = 'https://github.com/cnhuya/AEXIS-CODE.git'
 rev = 'main'
 subdir = 'Supra/Storage'
 
-[dependencies.QiaraMarketV34]
+[dependencies.QiaraMarketV36]
 git = 'https://github.com/cnhuya/AEXIS-CODE.git'
 rev = 'main'
 subdir = 'Supra/Market'
 
-[dependencies.QiaraVerifiedTokensV41]
+[dependencies.QiaraVerifiedTokensV42]
 git = 'https://github.com/cnhuya/AEXIS-CODE.git'
 rev = 'main'
 subdir = 'Supra/VerifiedTokens'
