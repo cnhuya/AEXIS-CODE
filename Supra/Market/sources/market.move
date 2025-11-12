@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV34 {
+module dev::QiaraVaultsV35 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -23,8 +23,8 @@ module dev::QiaraVaultsV34 {
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
-    use dev::QiaraStorageV29::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV29::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraStorageV30::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV30::{Self as capabilities, Access as CapabilitiesAccess};
 
 
 // === ERRORS === //
