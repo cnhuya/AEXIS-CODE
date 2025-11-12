@@ -1,4 +1,4 @@
-module dev::QiaraPerpsV28{
+module dev::QiaraPerpsV31{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -6,8 +6,8 @@ module dev::QiaraPerpsV28{
     use std::table;
     use std::timestamp;
     use supra_framework::event;
-    use dev::QiaraMarginV44::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraVerifiedTokensV41::{Self as VerifiedTokens};
+    use dev::QiaraMarginV45::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV42::{Self as VerifiedTokens};
     use dev::QiaraFeatureTypesV11::{Self as FeatureTypes, Perpetuals};
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui};
     use dev::QiaraMathV9::{Self as QiaraMath};
@@ -103,6 +103,21 @@ module dev::QiaraPerpsV28{
         time: u64
     }
 
+    #[event]
+    struct TradeReg has copy, drop, store {
+        trader: address,
+        is_long: bool,
+        size: u256,
+        leverage:u64,
+        used_margin: u256,
+        asset: String,
+        type: String,
+        entry_price: u256,
+        desired_price: u256,
+        fee: u256,
+        time: u64,
+        success: bool,
+    }
 
 /// === INIT ===
     fun init_module(admin: &signer) acquires Markets, AssetBook{
@@ -114,6 +129,11 @@ module dev::QiaraPerpsV28{
         if (!exists<AssetBook>(@dev)) {
             move_to(admin, AssetBook { book: table::new<String, Asset>()});
         };
+
+        if (!exists<Permissions>(@dev)) {
+            move_to(admin, Permissions { margin: Margin::give_access(admin),});
+        };
+
 
         create_market<SuiBitcoin>(admin);
         create_market<SuiEthereum>(admin);
@@ -164,78 +184,83 @@ module dev::QiaraPerpsV28{
     }
 
 
-public entry fun trade<T: store, A,B>(address: address, size:u256, leverage: u64, limit: u256, side: String, type: String) acquires UserBook, AssetBook, Permissions {
-    let position = find_position<T>(address,  borrow_global_mut<UserBook<T>>(@dev));
-    let asset_book = borrow_global_mut<AssetBook>(@dev);
-    let price = VerifiedTokens::get_coin_metadata_price(&VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>()));
-    assert!(leverage >= 100, ERROR_LEVERAGE_TOO_LOW);
-    let is_long: bool = false;
+    public entry fun trade<T: store, A,B>(address: address, size:u256, leverage: u64, limit: u256, side: String, type: String) acquires UserBook, AssetBook, Permissions {
+        let position = find_position<T>(address,  borrow_global_mut<UserBook<T>>(@dev));
+        let asset_book = borrow_global_mut<AssetBook>(@dev);
+        let price = VerifiedTokens::get_coin_metadata_price(&VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>()));
+        assert!(leverage >= 100, ERROR_LEVERAGE_TOO_LOW);
+        let is_long: bool = false;
 
-    if(type == utf8(b"market")){
-        if(side == utf8(b"long")){
-            is_long = true;
-        } else if(side == utf8(b"short")){
-            is_long = false;
-        };
-        let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, is_long, (price as u128), address);
-        handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
-    } else if(type == utf8(b"limit")){
-        if(side == utf8(b"long") && (limit <= price)){
+        if(type == utf8(b"market")){
+            if(side == utf8(b"long")){
+                is_long = true;
+            } else if(side == utf8(b"short")){
+                is_long = false;
+            };
             let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, is_long, (price as u128), address);
             handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
-        } else if(side == utf8(b"short") && (limit >= price)){
-            let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, is_long, (price as u128), address);
-            handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+        } else if (type == utf8(b"limit")) {
+            if ((side == utf8(b"long")) && (limit >= price)) {
+                let (size_diff_usd, is_profit) = calculate_position(asset_book, position, size, leverage, true, (price as u128), address);
+                handle_pnl<T, A, B>(size_diff_usd, is_profit, address);
+            } else if ((side == utf8(b"short")) && (limit <= price)) {
+                let (size_diff_usd, is_profit) = calculate_position(asset_book, position, size, leverage, false, (price as u128), address);
+                handle_pnl<T, A, B>(size_diff_usd, is_profit, address);
+            };
+        } else if(type == utf8(b"other")){
+            if(side == utf8(b"flip") && (position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size*2, leverage, false, (price as u128), address);
+                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+            } else if(side == utf8(b"flip") && (!position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size*2, leverage, true, (price as u128), address);
+                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+            } else if(side == utf8(b"close") && (!position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, true, (price as u128), address);
+                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+            } else if(side == utf8(b"close") && (position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, false, (price as u128), address);
+                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+            } else if(side == utf8(b"double") && (position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, true, (price as u128), address);
+                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+            } else if(side == utf8(b"double") && (!position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, false, (price as u128), address);
+                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+            };
         };
-    } else if(type == utf8(b"other")){
-        if(side == utf8(b"flip") && (position.is_long)){
-            let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size*2, leverage, false, (price as u128), address);
-            handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
-        } else if(side == utf8(b"flip") && (!position.is_long)){
-            let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size*2, leverage, true, (price as u128), address);
-            handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
-        } else if(side == utf8(b"close") && (!position.is_long)){
-            let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, true, (price as u128), address);
-            handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
-        } else if(side == utf8(b"close") && (position.is_long)){
-            let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, false, (price as u128), address);
-            handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
-        } else if(side == utf8(b"double") && (position.is_long)){
-            let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, true, (price as u128), address);
-            handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
-        } else if(side == utf8(b"double") && (!position.is_long)){
-            let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, false, (price as u128), address);
-            handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
-        };
-    };
-}
+    }
 
 
 
 /// === HELPER FUNCTIONS ===
 fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquires Permissions {
     if (pnl == 0) { 
-        ttta(2); // No PnL case
         return; 
     };
     
-   // ttta(3); // Before profit check
     if (is_profit) {
-     //   ttta(4); // Profit branch
         let reward = getValueByCoin<T, A>(pnl);
-   //     ttta(5); // After getValueByCoin
         Margin::add_rewards<T, Perpetuals>(user, reward, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-        ttta(6); // After add_rewards
+       // ttta(6);
     } else {
-        ttta(7); // Loss branch  
+      //  ttta(7);
         let interest = getValueByCoin<T, B>(pnl);
-        ttta(8); // After getValueByCoin
-        Margin::add_interest<T, Perpetuals>(user, interest, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-        ttta(9); // After add_interest
+       // ttta(8);
+        
+        // Debug: Check if permissions exist
+        let permissions = borrow_global<Permissions>(@dev);
+       // ttta(888); // Should reach here
+        
+        // Debug: Check the margin permission
+        let cap = Margin::give_permission(&permissions.margin);
+       // ttta(889); // Should reach here
+        
+        // Try the call
+        Margin::add_interest<T, Perpetuals>(user, interest, cap);
+        //ttta(9);
     };
-    ttta(10); // End of function
+    //ttta(10);
 }
-
 
    // converts usd back to coin value
     fun getValueByCoin<T,B>(amount_in: u256): u256{
