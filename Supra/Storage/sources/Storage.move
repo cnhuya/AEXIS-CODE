@@ -1,4 +1,4 @@
-module dev::QiaraStorageV29 {
+module dev::QiaraStorageV30 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -150,6 +150,8 @@ module dev::QiaraStorageV29 {
         register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOTAL_VOTES_PERCENTAGE_SUPPLY"), 1_000_000, true, &give_permission(&give_access(admin))); // 1%
         register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_QUARUM_FOR_PROPOSAL_TO_PASS"), 500, true, &give_permission(&give_access(admin))); // 50.0%
         
+        register_constant<u64>(admin, utf8(b"QiaraAuto"), utf8(b"MAX_DURATION"), 604_800, true, &give_permission(&give_access(admin)));
+
     }
 
 
