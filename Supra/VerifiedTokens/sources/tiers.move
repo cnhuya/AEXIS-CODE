@@ -1,4 +1,4 @@
-module dev::QiaraTiersV27{
+module dev::QiaraTiersV28{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -6,7 +6,7 @@ module dev::QiaraTiersV27{
     use std::table;
     use supra_oracle::supra_oracle_storage;
     use dev::QiaraMathV9::{Self as QiaraMath};
-    use dev::QiaraStorageV29::{Self as storage};
+    use dev::QiaraStorageV30::{Self as storage};
 
 
 // === ERRORS === //
