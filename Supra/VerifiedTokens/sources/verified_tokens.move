@@ -16,8 +16,8 @@ module dev::QiaraVerifiedTokensV42{
     use dev::QiaraVaultRatesV11::{Self as VaultRates};
 
 
-    use dev::QiaraTiersV27::{Self as tier};
-    use dev::QiaraFeeVaultV7::{Self as fee};
+    use dev::QiaraTiersV28::{Self as tier};
+    use dev::QiaraFeeVaultV8::{Self as fee};
 
 
 // === ERRORS === //
