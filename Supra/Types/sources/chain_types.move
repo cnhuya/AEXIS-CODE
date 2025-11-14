@@ -8,6 +8,7 @@ module dev::QiaraChainTypesV11 {
     struct Base has store, key { }
 
 // === HELPER FUNCTIONS === //
+    #[view]
     public fun return_all_chain_types(): vector<String>{
         return vector<String>[type_info::type_name<Supra>(),type_info::type_name<Sui>(),type_info::type_name<Base>()]
     }
