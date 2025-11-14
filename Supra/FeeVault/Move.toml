@@ -1,0 +1,30 @@
+    [package]
+    name = "QiaraFeeVaultV2"
+    version = "2.1.1"
+    authors = []
+
+    [addresses]
+    dev = "0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0"
+    supra_framework = "0x1"
+    std = "0x1"
+    aptos_std = "0x1"
+    Extensions = "0x1"
+    [dev-addresses]
+
+    [dependencies.SupraFramework]
+    git = "https://github.com/Entropy-Foundation/aptos-core.git"
+    rev = "dev"
+    subdir = "aptos-move/framework/supra-framework"
+
+    [dependencies.core]
+    git = "https://github.com/Entropy-Foundation/dora-interface.git"
+    rev = "master"
+    subdir = "supra/testnet/core"
+
+    [dependencies.AptosStdlib]
+    git = "https://github.com/Entropy-Foundation/aptos-core.git"
+    rev = "dev"
+    subdir = "aptos-move/framework/aptos-stdlib"
+
+
+    [dev-dependencies]

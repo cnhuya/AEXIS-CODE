@@ -1,5 +1,6 @@
 module dev::QiaraMathV9 {
 
+    #[view]
     public fun pow10_u256(n: u8): u256 {
         let p = 1;
         let i = 0;
@@ -26,7 +27,7 @@ module dev::QiaraMathV9 {
         result
     }
 
-
+// supra move tool view --function-id 0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraMathV9::compute_profit_fee --args u256:100 u256:7500 u8:3
 #[view]
 public fun compute_profit_fee(leverage: u256, base_scale: u256, decimals: u8): (u256, u256, u256) {
     let scale = pow10_u256(decimals);
@@ -116,7 +117,9 @@ public fun compute_exp_scale(leverage: u256, base_rate: u256, base_scale: u256, 
 */
 
 //supra move tool view --function-id 0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::QiaraMathV11::compute_rate --args u256:5000 u256:12500 u256:2000 bool:true u8:3
+//OLD?
 
+//supra move tool view --function-id 0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraMathV9::compute_rate --args u256:5000 u256:12500 u256:2000 bool:true u8:3
     /// Excel formula:
     ///   rate + rate * ((exp(utilization/exp_scale) - 1) / (exp_scale/2))
     /// Inputs:

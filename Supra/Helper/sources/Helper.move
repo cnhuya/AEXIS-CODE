@@ -1,4 +1,4 @@
-module dev::QiaraHelperV25 {
+module dev::QiaraHelperV26 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
 
@@ -28,6 +28,12 @@ module dev::QiaraHelperV25 {
         vault: FullVault,
     }
 
+    struct Asset has key,store,drop,copy{
+        resource: String,
+        chain: String,
+        price: u256,
+        denom: u256,
+    }
 
     struct FullVault has key, store, copy, drop{
         provider: String,
@@ -37,6 +43,29 @@ module dev::QiaraHelperV25 {
         lend_rate: u256,
         borrow_rate: u256,
         locked: u256,
+    }
+
+
+    #[view]
+    public fun viewAssets(): vector<Asset>{
+        let assets = CoinTypes::return_all_coin_types();
+        let len = vector::length(&assets);
+        let vect = vector::empty<Asset>();
+
+        let i = 0;
+        while (i < len) {
+            let asset = vector::borrow(&assets, i);
+            let metadata = VerifiedTokens::get_coin_metadata_by_res(*asset);
+            let ast = Asset{
+                resource: *asset,
+                chain: VerifiedTokens::get_coin_metadata_chain(&metadata),
+                price: VerifiedTokens::get_coin_metadata_price(&metadata),
+                denom: VerifiedTokens::get_coin_metadata_denom(&metadata),       
+            };
+            vector::push_back(&mut vect, ast);
+            i = i + 1;
+        };
+        vect
     }
 
     #[view]
