@@ -1,4 +1,4 @@
-module dev::QiaraMarginV45{
+module dev::QiaraMarginV46{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -240,7 +240,7 @@ module dev::QiaraMarginV45{
 
 #[view]
 public fun get_user_total_usd(addr: address): (
-    u256, u256, u256, u256, u256, u256, u256, u256, u256
+    u256, u256, u256, u256, u256, u256, u256, u256, u256, vector<Credit>
 ) acquires TokenHoldings {
     let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
     let feature_registry = FeatureTypes::return_all_feature_types();
@@ -253,6 +253,7 @@ public fun get_user_total_usd(addr: address): (
     let  total_rew = 0u256;
     let  total_int = 0u256;
     let  total_expected_interest = 0u256;
+    let vect = vector::empty<Credit>();
 
     let n = vector::length(&feature_registry);
     let  i = 0;
@@ -292,7 +293,7 @@ public fun get_user_total_usd(addr: address): (
 
             let uv = find_balance(tokens_holdings, addr, token_id, feature);
             let leverage = if (uv.leverage == 0) 1 else uv.leverage;
-
+            vector::push_back(&mut vect, *uv);
             let dep_usd = uv.deposited * price / denom;
             let bor_usd = uv.borrowed  * price / (leverage as u256) / denom;
             let current_raw_borrow = uv.borrowed  * price / denom;
@@ -338,7 +339,8 @@ public fun get_user_total_usd(addr: address): (
         total_rew,
         total_int,
         avg_interest,
-        total_lock
+        total_lock,
+        vect
     )
 }
 
@@ -449,7 +451,7 @@ fun find_balance(feature_table: &mut TokenHoldings,addr: address,token: String,f
 
     public fun get_utilization_ratio(addr: address): u256 acquires TokenHoldings{
         assert_user_registered(addr);
-        let (_, marginUSD, _, borrowUSD, _, _, _, _, _, ) = get_user_total_usd(addr);
+        let (_, marginUSD, _, borrowUSD, _, _, _, _, _, _,) = get_user_total_usd(addr);
         if (marginUSD == 0) {
             0
         } else {
