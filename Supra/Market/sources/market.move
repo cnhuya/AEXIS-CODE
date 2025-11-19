@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV36 {
+module dev::QiaraVaultsV37 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -12,7 +12,7 @@ module dev::QiaraVaultsV36 {
     use supra_framework::event;
 
     use dev::QiaraVerifiedTokensV42::{Self as VerifiedTokens, Tier, CoinData, VMetadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV45::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraMarginV46::{Self as Margin, Access as MarginAccess};
 
     use dev::QiaraFeeVaultV8::{Self as fee};
 
@@ -302,7 +302,7 @@ module dev::QiaraVaultsV36 {
 
         Margin::add_lock<Token, Market>(signer::address_of(user), (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
 
-        let (_, _, marginUSD, _, _, _, _, _, _) = Margin::get_user_total_usd(signer::address_of(user));
+        let (_, _, marginUSD, _, _, _, _, _, _, _) = Margin::get_user_total_usd(signer::address_of(user));
 
         assert!(marginUSD >= (amount as u256), ERROR_NOT_ENOUGH_MARGIN);
 
@@ -396,7 +396,7 @@ module dev::QiaraVaultsV36 {
         let vault = borrow_global_mut<GlobalVault<Token>>(@dev);
 
         let valueUSD = getValue(type_info::type_name<Token>(), (amount as u256));
-        let (depoUSD, _, _, borrowUSD, _, _, _, _, _) = Margin::get_user_total_usd(signer::address_of(user));
+        let (depoUSD, _, _, borrowUSD, _, _, _, _, _, _) = Margin::get_user_total_usd(signer::address_of(user));
 
         assert!(coin::value(&vault.balance) >= amount, ERROR_NOT_ENOUGH_LIQUIDITY);
         assert!(depoUSD >= (valueUSD+borrowUSD), ERROR_BORROW_COLLATERAL_OVERFLOW);
