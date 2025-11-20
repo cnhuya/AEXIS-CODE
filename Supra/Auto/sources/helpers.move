@@ -1,12 +1,12 @@
-module dev::QiaraAutoHelpers {
+module dev::QiaraAutoHelpersV1 {
     use supra_framework::event;
     use std::timestamp;
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
-    use dev::QiaraPerpsV31::{Self as Perps};
-    use dev::QiaraVaultsV36::{Self as Vaults};
-    use dev::QiaraAutoRegistry::{Self as Auto_Registry};
+    use dev::QiaraPerpsV32::{Self as Perps};
+    use dev::QiaraVaultsV37::{Self as Vaults};
+    use dev::QiaraAutoRegistryV1::{Self as Auto_Registry};
     use std::table::{Self, Table};
 
     use dev::QiaraVerifiedTokensV42::{Self as VerifiedTokens, Tier, CoinData, VMetadata, Access as VerifiedTokensAccess};

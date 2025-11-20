@@ -1,5 +1,5 @@
 [package]
-name = "QiaraAuto"
+name = "QiaraAutoV1"
 version = "1.0.0"
 authors = []
 
@@ -23,12 +23,12 @@ git = 'https://github.com/cnhuya/AEXIS-CODE.git'
 rev = 'main'
 subdir = 'Supra/Storage'
 
-[dependencies.QiaraMarketV36]
+[dependencies.QiaraMarketV37]
 git = 'https://github.com/cnhuya/AEXIS-CODE.git'
 rev = 'main'
 subdir = 'Supra/Market'
 
-[dependencies.QiaraPerpsV31]
+[dependencies.QiaraPerpsV32]
 git = 'https://github.com/cnhuya/AEXIS-CODE.git'
 rev = 'main'
 subdir = 'Supra/Perpetuals'

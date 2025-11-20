@@ -1,4 +1,4 @@
-module dev::QiaraAutoRegistry {
+module dev::QiaraAutoRegistryV1 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::timestamp;
