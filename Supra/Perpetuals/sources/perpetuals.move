@@ -1,4 +1,4 @@
-module dev::QiaraPerpsV31{
+module dev::QiaraPerpsV32{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -6,7 +6,7 @@ module dev::QiaraPerpsV31{
     use std::table;
     use std::timestamp;
     use supra_framework::event;
-    use dev::QiaraMarginV45::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraMarginV46::{Self as Margin, Access as MarginAccess};
     use dev::QiaraVerifiedTokensV42::{Self as VerifiedTokens};
     use dev::QiaraFeatureTypesV11::{Self as FeatureTypes, Perpetuals};
     use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui};
