@@ -13,7 +13,7 @@ module dev::QiaraAny {
         Any { type: type_info::type_name<T>(), data: value }
     }
 
-    public fun make_any<T>(value: T): Any {
+    public fun make_any<T: drop>(value: T): Any {
         constructor_any<T>(bc::to_bytes(&value))
     }
 
