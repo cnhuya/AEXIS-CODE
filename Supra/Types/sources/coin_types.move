@@ -7,6 +7,9 @@ module dev::QiaraCoinTypesV12{
     use std::type_info::{Self, TypeInfo};
     use supra_framework::supra_coin::{Self, SupraCoin};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
+    use std::option::{Option};
+    
+    use dev::QiaraMathV9::{Self as Math};
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
     const ERROR_NOT_VALIDATOR: u64 = 1;
@@ -24,6 +27,7 @@ module dev::QiaraCoinTypesV12{
         Permission {}
     }
 // === STRUCTS === //
+
     struct SuiBitcoin has drop, store, key {}
     struct SuiSui has drop, store, key {}
     struct SuiEthereum has drop, store, key {}
@@ -38,6 +42,16 @@ module dev::QiaraCoinTypesV12{
         mint_cap: MintCapability<CoinType>,
         freeze_cap: FreezeCapability<CoinType>,
     }
+
+    // View Struct
+    struct CoinData has store, key, drop {
+        resource: String,
+        name: String,
+        symbol: String,
+        decimals: u8,
+        supply: Option<u128>, 
+    }
+
 // i.e Bitcoin -> SuiBitcoin, BaseBitcoin... any bridged bitcoin... (for METADATA properties such as tokenomics etc, which determines the tier of the asset)
     struct RouterBook has key{
         book: Map<String, vector<String>>
@@ -185,5 +199,43 @@ module dev::QiaraCoinTypesV12{
         };
          abort ERROR_UNKNOWN_ERROR
     }
+ // === GET COIN DATA === //
+        #[view]
+        public fun get_coin_data<Token>(): CoinData {
+            let type = type_info::type_name<Token>();
+            CoinData { resource: type, name: coin::name<Token>(), symbol: coin::symbol<Token>(), decimals: coin::decimals<Token>(), supply: coin::supply<Token>() }
+        }
+
+        public fun get_coin_type<Token>(): String {
+            let coin_data = get_coin_data<Token>();
+            coin_data.resource
+        }
+
+        public fun get_coin_name<Token>(): String {
+            let coin_data = get_coin_data<Token>();
+            coin_data.name
+        }
+
+        public fun get_coin_symbol<Token>(): String {
+            let coin_data = get_coin_data<Token>();
+            coin_data.symbol
+        }
+
+        public fun get_coin_decimals<Token>(): u8 {
+            let coin_data = get_coin_data<Token>();
+            coin_data.decimals
+        }
+
+        public fun get_coin_denom<Token>(): u256 {
+            let coin_data = get_coin_data<Token>();
+            Math::pow10_u256((coin_data.decimals as u8))
+        }
+
+        public fun get_coin_supply<Token>(): Option<u128> {
+            let coin_data = get_coin_data<Token>();
+            coin_data.supply
+        }
+
+
 
 }
