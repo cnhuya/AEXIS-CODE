@@ -4,9 +4,7 @@ module dev::QiaraVerifiedTokensV43{
     use std::vector;
     use std::type_info::{Self, TypeInfo};
     use std::table;
-    use std::option::{Option};
     use supra_oracle::supra_oracle_storage;
-    use supra_framework::coin;
     use supra_framework::supra_coin::{Self, SupraCoin};
     use std::timestamp;
 
@@ -97,14 +95,6 @@ module dev::QiaraVerifiedTokensV43{
         denom: u128,
     }
 
-    // View Struct
-    struct CoinData has store, key, drop {
-        resource: String,
-        name: String,
-        symbol: String,
-        decimals: u8,
-        supply: Option<u128>, 
-    }
 
 // === INIT === //
     fun init_module(admin: &signer) acquires Tokens{
@@ -115,15 +105,15 @@ module dev::QiaraVerifiedTokensV43{
         };
     create_info<USDC>(admin, 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);
     create_info<USDT>(admin, 0, 1, 47, 185_977_352_465, 185_977_352_465, 185_977_352_465, 255);
-    create_info<Bitcoin>(admin, 1_231_006_505, 1, 0, 21_000_000, 19_941_253, 19_941_253, 1);
-    create_info<Ethereum>(admin, 1_438_269_983, 1, 1, 120_698_129, 120_698_129, 120_698_129, 1);
-    create_info<Solana>(admin, 1_584_316_800, 1, 10, 614_655_961, 559_139_255, 614_655_961, 1);
-    create_info<Sui>(admin, 1_683_062_400, 1, 90, 10_000_000_000, 3_680_742_933, 10_000_000_000, 1);
-    create_info<Injective>(admin, 1_636_416_000, 1, 121, 100_000_000, 100_000_000, 100_000_000, 1);
-    create_info<Deepbook>(admin, 1_683_072_000, 1, 491, 10_000_000_000, 4_368_147_611, 10_000_000_000, 1);
+  //  create_info<Bitcoin>(admin, 1_231_006_505, 1, 0, 21_000_000, 19_941_253, 19_941_253, 1);
+  //  create_info<Ethereum>(admin, 1_438_269_983, 1, 1, 120_698_129, 120_698_129, 120_698_129, 1);
+   // create_info<Solana>(admin, 1_584_316_800, 1, 10, 614_655_961, 559_139_255, 614_655_961, 1);
+   // create_info<Sui>(admin, 1_683_062_400, 1, 90, 10_000_000_000, 3_680_742_933, 10_000_000_000, 1);
+   // create_info<Injective>(admin, 1_636_416_000, 1, 121, 100_000_000, 100_000_000, 100_000_000, 1);
+   // create_info<Deepbook>(admin, 1_683_072_000, 1, 491, 10_000_000_000, 4_368_147_611, 10_000_000_000, 1);
     //create_info<Aerodrome>(admin, utf8(b"Base"), 1_691_539_200, 1, 1, 1_788_875_569, 906_091_886, 1_788_875_569, 1);
-    create_info<Virtuals>(admin, 1_614_556_800, 1, 524, 1_000_000_000, 656_082_020, 1_000_000_000, 255);
-    create_info<Supra>(admin, 1_732_598_400, 1, 500, 100_000_000_000, 21_000_700_000, 80_600_180_397, 1);
+    //create_info<Virtuals>(admin, 1_614_556_800, 1, 524, 1_000_000_000, 656_082_020, 1_000_000_000, 255);
+   // create_info<Supra>(admin, 1_732_598_400, 1, 500, 100_000_000_000, 21_000_700_000, 80_600_180_397, 1);
     }
 
 // === ENTRY FUNCTIONS === //
@@ -144,7 +134,7 @@ module dev::QiaraVerifiedTokensV43{
         //tttta(999999);
         let tier_id = associate_tier(calculated_credit, stable);
         //tttta((tier_id as u64)); 0x1
-        let metadata = Metadata {resource: type_info::type_name<Token>(), tier: tier_id,  decimals: get_coin_decimals<Token>(), oracleID: oracleID, offchainID: offchainID, creation: creation, listed:timestamp::now_seconds(), penalty_expiry: timestamp::now_seconds() + storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_PENALTY_TIME"))), credit: calculated_credit, tokenomics: tokenomics };
+        let metadata = Metadata {resource: type_info::type_name<Token>(), tier: tier_id,  decimals: 8, oracleID: oracleID, offchainID: offchainID, creation: creation, listed:timestamp::now_seconds(), penalty_expiry: timestamp::now_seconds() + storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_PENALTY_TIME"))), credit: calculated_credit, tokenomics: tokenomics };
 
         assert!(!vector::contains(&vault_list.list,&metadata), ERROR_COIN_ALREADY_ALLOWED);
         vector::push_back(&mut vault_list.list, metadata);
@@ -228,37 +218,31 @@ module dev::QiaraVerifiedTokensV43{
         Market { mc: mc, fdv: fdv, fdv_mc: fdv_mc }
     }
 
-fun calculate_asset_credit(
-    tokenomics: &Tokenomics,
-    creation: u64,
-    oracleID: u32
-): (u256, u256, u256, u256, u256) {
+    fun calculate_asset_credit(tokenomics: &Tokenomics,creation: u64,oracleID: u32): (u256, u256, u256, u256, u256) {
+        let now = timestamp::now_seconds();
+        let months: u64 = 0;
+
+        if (now > creation && now - creation >= 2629743) {
+            months = (now - creation) / 2629743;
+        };
+
+        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(oracleID);
+        let denom_u256 = Math::pow10_u256((price_decimals as u8));
 
 
-    let now = timestamp::now_seconds();
-    let months: u64 = 0;
+        let denom = (denom_u256 as u256);
 
-    if (now > creation && now - creation >= 2629743) {
-        months = (now - creation) / 2629743;
-    };
+        let mc: u256 = (tokenomics.circulating_supply as u256) * (price as u256) / denom;
+        let fdv: u256 = (tokenomics.max_supply as u256) * (price as u256) / denom;
+        //tttta((mc as u64)) 0x1c64b47;
+        let months_u128 = (months as u256);
+        let x: u256 = ((mc + mc) + (mc*(months_u128/2))) - (fdv / 2);
 
-    let (price, price_decimals, _, _) = supra_oracle_storage::get_price(oracleID);
-    let denom_u256 = Math::pow10_u256((price_decimals as u8));
-
-
-    let denom = (denom_u256 as u256);
-
-    let mc: u256 = (tokenomics.circulating_supply as u256) * (price as u256) / denom;
-    let fdv: u256 = (tokenomics.max_supply as u256) * (price as u256) / denom;
-    //tttta((mc as u64)) 0x1c64b47;
-    let months_u128 = (months as u256);
-    let x: u256 = ((mc + mc) + (mc*(months_u128/2))) - (fdv / 2);
-
-    //tttta((months_u128 as u64)); //0x2
-    let result: u256 = (mc + x) * (months_u128 / 2);
-    //tttta((result as u64)); 0x1f9feb1242010
-    (x, mc, fdv, (creation as u256), x)
-}
+        //tttta((months_u128 as u64)); //0x2
+        let result: u256 = (mc + x) * (months_u128 / 2);
+        //tttta((result as u64)); 0x1f9feb1242010
+        (x, mc, fdv, (creation as u256), x)
+    }
 
 
     fun associate_tier(credit: u256, stable: u8): u8{
@@ -288,49 +272,7 @@ fun calculate_asset_credit(
         }
     }
 
-
-
-
-
 // === VIEW FUNCTIONS === //
-    // === GET COIN DATA === //
-        #[view]
-        public fun get_coin_data<Token>(): CoinData {
-            let type = type_info::type_name<Token>();
-            CoinData { resource: type, name: coin::name<Token>(), symbol: coin::symbol<Token>(), decimals: coin::decimals<Token>(), supply: coin::supply<Token>() }
-        }
-
-        public fun get_coin_type<Token>(): String {
-            let coin_data = get_coin_data<Token>();
-            coin_data.resource
-        }
-
-        public fun get_coin_name<Token>(): String {
-            let coin_data = get_coin_data<Token>();
-            coin_data.name
-        }
-
-        public fun get_coin_symbol<Token>(): String {
-            let coin_data = get_coin_data<Token>();
-            coin_data.symbol
-        }
-
-        public fun get_coin_decimals<Token>(): u8 {
-            let coin_data = get_coin_data<Token>();
-            coin_data.decimals
-        }
-
-        public fun get_coin_denom<Token>(): u256 {
-            let coin_data = get_coin_data<Token>();
-            Math::pow10_u256((coin_data.decimals as u8))
-        }
-
-        public fun get_coin_supply<Token>(): Option<u128> {
-            let coin_data = get_coin_data<Token>();
-            coin_data.supply
-        }
-
-
     // === GET COIN METADATA === //
 
         #[view]
@@ -339,7 +281,6 @@ fun calculate_asset_credit(
             vault_list.list
         }
     
-
         public fun get_coin_metadata_by_metadata(metadata: &Metadata): VMetadata acquires Tokens {
             let vault_list = borrow_global_mut<Tokens>(@dev);
             let len = vector::length(&vault_list.list);
