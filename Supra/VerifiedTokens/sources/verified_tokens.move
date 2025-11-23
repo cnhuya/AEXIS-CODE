@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV42{
+module dev::QiaraVerifiedTokensV43{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -12,12 +12,12 @@ module dev::QiaraVerifiedTokensV42{
 
     use dev::QiaraStorageV30::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
-    use dev::QiaraVaultRatesV11::{Self as VaultRates};
+    use dev::PerpTypesV12::{Self as PerpTypes, Bitcoin, Ethereum, Solana, Sui, Deepbook, Injective, Aerodrome, Virtuals, Supra, USDT, USDC};
+    use dev::QiaraVaultRatesV12::{Self as VaultRates};
 
 
-    use dev::QiaraTiersV28::{Self as tier};
-    use dev::QiaraFeeVaultV8::{Self as fee};
+    use dev::QiaraTiersV43::{Self as tier};
+    use dev::QiaraFeeVaultV9::{Self as fee};
 
 
 // === ERRORS === //
@@ -47,7 +47,6 @@ module dev::QiaraVerifiedTokensV42{
 
     struct Metadata has key, store, copy,drop{
         resource: String,
-        chain: String,
         tier:u8,
         decimals: u8,
         oracleID: u32,
@@ -61,7 +60,6 @@ module dev::QiaraVerifiedTokensV42{
 
     struct VMetadata has key, store, copy, drop {
         resource: String,
-        chain: String,
         tier:u8,
         decimals: u8,
         oracleID: u32,
@@ -115,20 +113,17 @@ module dev::QiaraVerifiedTokensV42{
         if (!exists<Tokens>(deploy_addr)) {
             move_to(admin, Tokens { list: vector::empty<Metadata>() });
         };
-    //tttta(11111111);
-    create_info<SupraCoin>(admin, utf8(b"Supra"), 1732598400, 1, 500, 100_000_000_000, 19_713_700_000, 80_508_180_397, 1);
-    //tttta(11111111);
-    create_info<SuiBitcoin>(admin, utf8(b"Sui"), 1231006505, 1, 0, 21000000, 19_941_253, 19_941_253, 1);
-    create_info<SuiEthereum>(admin, utf8(b"Sui"), 1438269983, 1, 1, 120_698_129, 120_698_129, 120_698_129, 1);
-    create_info<SuiSui>(admin, utf8(b"Sui"), 1683062400, 1, 90, 10_000_000_000, 3_625_742_933, 10_000_000_000, 1);
-    
-    create_info<SuiUSDC>(admin, utf8(b"Sui"), 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);
-    create_info<SuiUSDT>(admin, utf8(b"Sui"), 0, 1, 47, 185_977_352_465, 185_977_352_465, 185_977_352_465, 255);
-    create_info<BaseEthereum>(admin, utf8(b"Base"), 1438269983, 1, 1, 120_698_129, 120_698_129, 120_698_129, 1);
-    create_info<BaseUSDC>(admin, utf8(b"Base"), 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);
-    //tttta(11111111);
-   // create_info<SupraCoin>(admin, utf8(b"Supra"), 1732598400, 1, 500, 100_000_000_000, 19_713_700_000, 80_508_180_397, false);
-   // tttta(11111111);
+    create_info<USDC>(admin, 0, 1, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);
+    create_info<USDT>(admin, 0, 1, 47, 185_977_352_465, 185_977_352_465, 185_977_352_465, 255);
+    create_info<Bitcoin>(admin, 1_231_006_505, 1, 0, 21_000_000, 19_941_253, 19_941_253, 1);
+    create_info<Ethereum>(admin, 1_438_269_983, 1, 1, 120_698_129, 120_698_129, 120_698_129, 1);
+    create_info<Solana>(admin, 1_584_316_800, 1, 10, 614_655_961, 559_139_255, 614_655_961, 1);
+    create_info<Sui>(admin, 1_683_062_400, 1, 90, 10_000_000_000, 3_680_742_933, 10_000_000_000, 1);
+    create_info<Injective>(admin, 1_636_416_000, 1, 121, 100_000_000, 100_000_000, 100_000_000, 1);
+    create_info<Deepbook>(admin, 1_683_072_000, 1, 491, 10_000_000_000, 4_368_147_611, 10_000_000_000, 1);
+    //create_info<Aerodrome>(admin, utf8(b"Base"), 1_691_539_200, 1, 1, 1_788_875_569, 906_091_886, 1_788_875_569, 1);
+    create_info<Virtuals>(admin, 1_614_556_800, 1, 524, 1_000_000_000, 656_082_020, 1_000_000_000, 255);
+    create_info<Supra>(admin, 1_732_598_400, 1, 500, 100_000_000_000, 21_000_700_000, 80_600_180_397, 1);
     }
 
 // === ENTRY FUNCTIONS === //
@@ -137,7 +132,7 @@ module dev::QiaraVerifiedTokensV42{
         abort(id);
     }
 
-    public entry fun create_info<Token>(admin: &signer, chain: String, creation: u64, offchainID: u32, oracleID: u32, max_supply: u128, circulating_supply: u128, total_supply: u128, stable:u8) acquires Tokens {
+    public entry fun create_info<Token>(admin: &signer, creation: u64, offchainID: u32, oracleID: u32, max_supply: u128, circulating_supply: u128, total_supply: u128, stable:u8) acquires Tokens {
        
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
@@ -149,7 +144,7 @@ module dev::QiaraVerifiedTokensV42{
         //tttta(999999);
         let tier_id = associate_tier(calculated_credit, stable);
         //tttta((tier_id as u64)); 0x1
-        let metadata = Metadata {resource: type_info::type_name<Token>(), chain: chain, tier: tier_id,  decimals: get_coin_decimals<Token>(), oracleID: oracleID, offchainID: offchainID, creation: creation, listed:timestamp::now_seconds(), penalty_expiry: timestamp::now_seconds() + storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_PENALTY_TIME"))), credit: calculated_credit, tokenomics: tokenomics };
+        let metadata = Metadata {resource: type_info::type_name<Token>(), tier: tier_id,  decimals: get_coin_decimals<Token>(), oracleID: oracleID, offchainID: offchainID, creation: creation, listed:timestamp::now_seconds(), penalty_expiry: timestamp::now_seconds() + storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_PENALTY_TIME"))), credit: calculated_credit, tokenomics: tokenomics };
 
         assert!(!vector::contains(&vault_list.list,&metadata), ERROR_COIN_ALREADY_ALLOWED);
         vector::push_back(&mut vault_list.list, metadata);
@@ -335,10 +330,6 @@ fun calculate_asset_credit(
             coin_data.supply
         }
 
-        public fun get_coin_chain<Token>(): Option<u128> {
-            let coin_data = get_coin_data<Token>();
-            coin_data.supply
-        }
 
     // === GET COIN METADATA === //
 
@@ -388,7 +379,6 @@ fun calculate_asset_credit(
 
                     return VMetadata { 
                         resource: metadat.resource,
-                        chain: metadat.chain,
                         tier: metadat.tier,
                         decimals: metadat.decimals, 
                         oracleID: metadat.oracleID, 
@@ -412,10 +402,6 @@ fun calculate_asset_credit(
 
         public fun get_coin_metadata_resource(metadata: &VMetadata): String {
             metadata.resource
-        }
-
-        public fun get_coin_metadata_chain(metadata: &VMetadata): String {
-            metadata.chain
         }
 
         public fun get_coin_metadata_tier(metadata: &VMetadata): u8 {
@@ -581,7 +567,6 @@ fun calculate_asset_credit(
 
                     return VMetadata { 
                         resource: metadat.resource,
-                        chain: metadat.chain,
                         tier: metadat.tier,
                         decimals: metadat.decimals, 
                         oracleID: metadat.oracleID, 
