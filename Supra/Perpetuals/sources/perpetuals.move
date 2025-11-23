@@ -1,4 +1,4 @@
-module dev::QiaraPerpsV32{
+module dev::QiaraPerpsV34{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -6,10 +6,10 @@ module dev::QiaraPerpsV32{
     use std::table;
     use std::timestamp;
     use supra_framework::event;
-    use dev::QiaraMarginV46::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraVerifiedTokensV42::{Self as VerifiedTokens};
-    use dev::QiaraFeatureTypesV11::{Self as FeatureTypes, Perpetuals};
-    use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui};
+    use dev::QiaraMarginV48::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV44::{Self as VerifiedTokens};
+    use dev::QiaraFeatureTypesV14::{Self as FeatureTypes, Perpetuals};
+    use dev::QiaraPerpTypesV14::{Self as PerpTypes, Bitcoin, Ethereum, Solana, Sui, Deepbook, Injective, Virtuals, Supra};
     use dev::QiaraMathV9::{Self as QiaraMath};
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -134,10 +134,14 @@ module dev::QiaraPerpsV32{
             move_to(admin, Permissions { margin: Margin::give_access(admin),});
         };
 
-
-        create_market<SuiBitcoin>(admin);
-        create_market<SuiEthereum>(admin);
-        create_market<SuiSui>(admin);
+        create_market<Bitcoin>(admin);
+        create_market<Ethereum>(admin);
+        create_market<Solana>(admin);
+        create_market<Sui>(admin);
+        create_market<Injective>(admin);
+        create_market<Virtuals>(admin);
+        create_market<Deepbook>(admin);
+        create_market<Supra>(admin);
     }
 
 
@@ -581,6 +585,8 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
 
     #[view]
     public fun get_all_positions(address: address): vector<ViewPosition> acquires UserBook {
-        vector[get_view_position<SuiBitcoin>(address),get_view_position<SuiSui>(address),get_view_position<SuiEthereum>(address)]
+        vector[get_view_position<Bitcoin>(address),get_view_position<Ethereum>(address),get_view_position<Solana>(address)
+        get_view_position<Sui>(address),get_view_position<Injective>(address),get_view_position<Deepbook>(address)
+        get_view_position<Virtuals>(address),get_view_position<Supra>(address)]
     }
 }
