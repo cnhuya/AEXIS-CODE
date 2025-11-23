@@ -1,4 +1,4 @@
-module dev::QiaraVerifiedTokensV43{
+module dev::QiaraVerifiedTokensV44{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -10,12 +10,12 @@ module dev::QiaraVerifiedTokensV43{
 
     use dev::QiaraStorageV30::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
-    use dev::PerpTypesV12::{Self as PerpTypes, Bitcoin, Ethereum, Solana, Sui, Deepbook, Injective, Aerodrome, Virtuals, Supra, USDT, USDC};
-    use dev::QiaraVaultRatesV12::{Self as VaultRates};
+    use dev::QiaraPerpTypesV13::{Self as PerpTypes, Bitcoin, Ethereum, Solana, Sui, Deepbook, Injective, Aerodrome, Virtuals, Supra, USDT, USDC};
+    use dev::QiaraVaultRatesV13::{Self as VaultRates};
 
 
-    use dev::QiaraTiersV43::{Self as tier};
-    use dev::QiaraFeeVaultV9::{Self as fee};
+    use dev::QiaraTiersV44::{Self as tier};
+    use dev::QiaraFeeVaultV10::{Self as fee};
 
 
 // === ERRORS === //

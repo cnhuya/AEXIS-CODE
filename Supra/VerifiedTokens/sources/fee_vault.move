@@ -1,4 +1,4 @@
-module dev::QiaraFeeVaultV9{
+module dev::QiaraFeeVaultV10{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
