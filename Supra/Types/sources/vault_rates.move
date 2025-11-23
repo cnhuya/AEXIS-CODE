@@ -7,7 +7,7 @@ module dev::QiaraVaultRatesV13 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraCoinTypesV12::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use dev::QiaraCoinTypesV13::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
 // === ACCESS === //
