@@ -10,8 +10,8 @@ module dev::QiaraVerifiedTokensV44{
 
     use dev::QiaraStorageV30::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraPerpTypesV13::{Self as PerpTypes, Bitcoin, Ethereum, Solana, Sui, Deepbook, Injective, Aerodrome, Virtuals, Supra, USDT, USDC};
-    use dev::QiaraVaultRatesV13::{Self as VaultRates};
+    use dev::QiaraPerpTypesV14::{Self as PerpTypes, Bitcoin, Ethereum, Solana, Sui, Deepbook, Injective, Aerodrome, Virtuals, Supra, USDT, USDC};
+    use dev::QiaraVaultRatesV14::{Self as VaultRates};
 
 
     use dev::QiaraTiersV44::{Self as tier};
