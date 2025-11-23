@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV37 {
+module dev::QiaraVaultsV38 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,15 +11,15 @@ module dev::QiaraVaultsV37 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use supra_framework::event;
 
-    use dev::QiaraVerifiedTokensV42::{Self as VerifiedTokens, Tier, CoinData, VMetadata, Access as VerifiedTokensAccess};
-    use dev::QiaraMarginV46::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraVerifiedTokensV44::{Self as VerifiedTokens, Tier, VMetadata, Access as VerifiedTokensAccess};
+    use dev::QiaraMarginV48::{Self as Margin, Access as MarginAccess};
 
-    use dev::QiaraFeeVaultV8::{Self as fee};
+    use dev::QiaraFeeVaultV10::{Self as fee};
 
-    use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
-    use dev::QiaraChainTypesV11::{Self as ChainTypes};
-    use dev::QiaraVaultRatesV11::{Self as VaultRates, Access as VaultRatesAccess};
-    use dev::QiaraFeatureTypesV11::{Market};
+    use dev::QiaraCoinTypesV14::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC, CoinData};
+    use dev::QiaraChainTypesV14::{Self as ChainTypes};
+    use dev::QiaraVaultRatesV14::{Self as VaultRates, Access as VaultRatesAccess};
+    use dev::QiaraFeatureTypesV14::{Market};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
@@ -506,7 +506,7 @@ module dev::QiaraVaultsV37 {
     public fun get_complete_vault<T, X:store>(tokenStr: String,): CompleteVault acquires GlobalVault, VaultRegistry {
         let vault = get_vaultUSD<T>(tokenStr);
         let metadata = VerifiedTokens::get_coin_metadata_by_res(tokenStr);
-        CompleteVault { vault: vault, coin: VerifiedTokens::get_coin_data<T>(), w_fee: VerifiedTokens::get_coin_metadata_market_w_fee(&metadata), Metadata: metadata  }
+        CompleteVault { vault: vault, coin: CoinTypes::get_coin_data<T>(), w_fee: VerifiedTokens::get_coin_metadata_market_w_fee(&metadata), Metadata: metadata  }
     }
 
     #[view]
