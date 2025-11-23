@@ -1,4 +1,4 @@
-module dev::QiaraMarginV46{
+module dev::QiaraMarginV47{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -7,11 +7,12 @@ module dev::QiaraMarginV46{
     use std::timestamp;
     use supra_oracle::supra_oracle_storage;
 
-    use dev::QiaraVerifiedTokensV42::{Self as VerifiedTokens};
-    use dev::QiaraFeeVaultV8::{Self as Fee};
+    use dev::QiaraVerifiedTokensV44::{Self as VerifiedTokens};
+    use dev::QiaraFeeVaultV10::{Self as Fee};
 
-    use dev::QiaraFeatureTypesV11::{Self as FeatureTypes};
-    use dev::QiaraCoinTypesV11::{Self as CoinTypes};
+    use dev::QiaraFeatureTypesV14::{Self as FeatureTypes};
+    use dev::QiaraCoinTypesV14::{Self as CoinTypes};
+    use dev::QiaraPerpTypesV14::{Self as PerpTypes};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
@@ -273,7 +274,13 @@ public fun get_user_total_usd(addr: address): (
         };
 
         let holdings_ref = table::borrow_mut(user_holdings_ref, feature);
-        let token_list = CoinTypes::return_all_coin_types();
+        let token_list: vector<String> = vector::empty<String>();
+
+        if(feature == utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV12::Market")){
+            token_list = CoinTypes::return_all_coin_types();
+        } else if (feature == utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::QiaraFeatureTypesV12::Perpetuals")){
+            token_list = PerpTypes::return_all_perp_types();
+        };
 
         let num_tokens = vector::length(&token_list);
         let  y = 0;
