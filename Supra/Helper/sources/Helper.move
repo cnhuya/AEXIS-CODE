@@ -1,18 +1,18 @@
-module dev::QiaraHelperV26 {
+module dev::QiaraHelperV28 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
 
-    use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use dev::QiaraCoinTypesV14::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
     use supra_framework::supra_coin::{Self, SupraCoin};
 
     use dev::QiaraStorageV30::{Self as storage, Access as StorageAccess};
     use dev::QiaraCapabilitiesV30::{Self as capabilities, Access as CapabilitiesAccess};
-    use dev::QiaraVaultRatesV11::{Self as VaultRates};
-    use dev::QiaraVaultsV36::{Self as Market, Vault};
+    use dev::QiaraVaultRatesV14::{Self as VaultRates};
+    use dev::QiaraVaultsV38::{Self as Market, Vault};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
-    use dev::QiaraVerifiedTokensV42::{Self as VerifiedTokens, VMetadata, Tier};
+    use dev::QiaraVerifiedTokensV44::{Self as VerifiedTokens, VMetadata, Tier};
 
     struct Governance has copy, drop{
         minimum_tokens_to_propose: u64,
@@ -30,7 +30,6 @@ module dev::QiaraHelperV26 {
 
     struct Asset has key,store,drop,copy{
         resource: String,
-        chain: String,
         price: u256,
         denom: u256,
     }
@@ -58,7 +57,6 @@ module dev::QiaraHelperV26 {
             let metadata = VerifiedTokens::get_coin_metadata_by_res(*asset);
             let ast = Asset{
                 resource: *asset,
-                chain: VerifiedTokens::get_coin_metadata_chain(&metadata),
                 price: VerifiedTokens::get_coin_metadata_price(&metadata),
                 denom: VerifiedTokens::get_coin_metadata_denom(&metadata),       
             };
