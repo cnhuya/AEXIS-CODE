@@ -585,8 +585,8 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
 
     #[view]
     public fun get_all_positions(address: address): vector<ViewPosition> acquires UserBook {
-        vector[get_view_position<Bitcoin>(address),get_view_position<Ethereum>(address),get_view_position<Solana>(address)
-        get_view_position<Sui>(address),get_view_position<Injective>(address),get_view_position<Deepbook>(address)
+        vector[get_view_position<Bitcoin>(address),get_view_position<Ethereum>(address),get_view_position<Solana>(address),
+        get_view_position<Sui>(address),get_view_position<Injective>(address),get_view_position<Deepbook>(address),
         get_view_position<Virtuals>(address),get_view_position<Supra>(address)]
     }
 }
