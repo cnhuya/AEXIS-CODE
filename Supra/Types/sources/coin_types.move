@@ -1,4 +1,4 @@
-module dev::QiaraCoinTypesV12{
+module dev::QiaraCoinTypesV13{
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
@@ -8,7 +8,7 @@ module dev::QiaraCoinTypesV12{
     use supra_framework::supra_coin::{Self, SupraCoin};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::option::{Option};
-    
+
     use dev::QiaraMathV9::{Self as Math};
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;

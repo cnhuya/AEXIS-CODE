@@ -1,4 +1,4 @@
-module dev::QiaraVaultRatesV12 {
+module dev::QiaraVaultRatesV13 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::signer;

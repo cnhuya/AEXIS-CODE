@@ -1,4 +1,4 @@
-module dev::QiaraChainTypesV12 {
+module dev::QiaraChainTypesV13 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
 
@@ -15,11 +15,11 @@ module dev::QiaraChainTypesV12 {
 
     public fun convert_chainType_to_string<T>(): String{
         let type = type_info::type_name<T>();
-        if(type == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisChainTypesV1::Sui") ){
+        if(type == utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::AexisChainTypesV13::Sui") ){
             return utf8(b"Sui")
-        } else if(type == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisChainTypesV1::Supra") ){
+        } else if(type == utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::AexisChainTypesV13::Supra") ){
             return utf8(b"Supra")
-        } else if(type == utf8(b"0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd::AexisChainTypesV1::Base") ){
+        } else if(type == utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::AexisChainTypesV13::Base") ){
             return utf8(b"Base")
         } else{
             return utf8(b"Unknown")
