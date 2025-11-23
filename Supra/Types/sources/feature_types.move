@@ -1,4 +1,4 @@
-module dev::QiaraFeatureTypesV13 {
+module dev::QiaraFeatureTypesV14 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
 
