@@ -1,4 +1,4 @@
-module dev::QiaraVaultRatesV11 {
+module dev::QiaraVaultRatesV12 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::signer;
@@ -7,7 +7,7 @@ module dev::QiaraVaultRatesV11 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraCoinTypesV11::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
+    use dev::QiaraCoinTypesV12::{Self as CoinTypes, SuiBitcoin, SuiEthereum, SuiSui, SuiUSDC, SuiUSDT, BaseEthereum, BaseUSDC};
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
 // === ACCESS === //

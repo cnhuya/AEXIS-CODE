@@ -1,4 +1,4 @@
-module dev::QiaraCoinTypesV11{
+module dev::QiaraCoinTypesV12{
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
@@ -6,9 +6,12 @@ module dev::QiaraCoinTypesV11{
     use supra_framework::coin::{Self, Coin, BurnCapability, FreezeCapability, MintCapability};
     use std::type_info::{Self, TypeInfo};
     use supra_framework::supra_coin::{Self, SupraCoin};
+    use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
     const ERROR_NOT_VALIDATOR: u64 = 1;
+    const ERROR_INVALID_COIN_TYPE: u64 = 2;
+    const ERROR_UNKNOWN_ERROR: u64 = 3;
 // === ACCESS === //
     struct Access has store, key, drop {}
     struct Permission has key, drop {}
@@ -35,23 +38,44 @@ module dev::QiaraCoinTypesV11{
         mint_cap: MintCapability<CoinType>,
         freeze_cap: FreezeCapability<CoinType>,
     }
+// i.e Bitcoin -> SuiBitcoin, BaseBitcoin... any bridged bitcoin... (for METADATA properties such as tokenomics etc, which determines the tier of the asset)
+    struct RouterBook has key{
+        book: Map<String, vector<String>>
+    }
 
 // === INIT === //
-    fun init_module(admin: &signer) {
+    fun init_module(admin: &signer) acquires RouterBook {
         assert!(signer::address_of(admin) == @dev, 1);
 
-        init_coin<SuiBitcoin>(admin, utf8(b"Sui Bitcoin"),   utf8(b"SUIBTC"), 8);
-        init_coin<SuiEthereum>(admin, utf8(b"Sui Ethereum"), utf8(b"SUIETH"), 8);
-        init_coin<SuiSui>(admin,     utf8(b"Sui SUI"),       utf8(b"SUISUI"), 8);
-        init_coin<SuiUSDC>(admin,    utf8(b"Sui USDC"),      utf8(b"SUIUSDC"), 8);
-        init_coin<SuiUSDT>(admin,    utf8(b"Sui USDT"),      utf8(b"SUIUSDT"), 8);
+        if (!exists<RouterBook>(@dev)) {
+            move_to(admin, RouterBook { book: map::new<String, vector<String>>() });
+        };
 
-        init_coin<BaseEthereum>(admin,    utf8(b"Base Ethereum"),      utf8(b"BASEBTC"), 8);
-        init_coin<BaseUSDC>(admin,    utf8(b"Base USDC"),      utf8(b"BASEUSDC"), 8);
+        init_coin<SuiBitcoin>(admin, utf8(b"Sui Bitcoin"),   utf8(b"SUIBTC"),utf8(b"Bitcoin"), 8);
+        init_coin<SuiEthereum>(admin, utf8(b"Sui Ethereum"), utf8(b"SUIETH"),utf8(b"Ethereum"), 8);
+        init_coin<SuiSui>(admin,     utf8(b"Sui SUI"),       utf8(b"SUISUI"),utf8(b"Sui"), 8);
+        init_coin<SuiUSDC>(admin,    utf8(b"Sui USDC"),      utf8(b"SUIUSDC"),utf8(b"USDC"), 8);
+        init_coin<SuiUSDT>(admin,    utf8(b"Sui USDT"),      utf8(b"SUIUSDT"),utf8(b"USDT"), 8);
+
+        init_coin<BaseEthereum>(admin,    utf8(b"Base Ethereum"),      utf8(b"BASEBTC"),utf8(b"Ethereum"), 8);
+        init_coin<BaseUSDC>(admin,    utf8(b"Base USDC"),      utf8(b"BASEUSDC"),utf8(b"USDC"), 8);
     }
 // === INIT COIN === //
-    public entry fun init_coin<T: store>(admin: &signer, name: String, symbol: String, decimals: u8) {
+    public entry fun init_coin<T: store>(admin: &signer, name: String, symbol: String, router: String, decimals: u8,) acquires RouterBook {
         assert!(signer::address_of(admin) == @dev, 1);
+
+        let router_book = borrow_global_mut<RouterBook>(@dev);
+
+        if (!map::contains_key(&router_book.book, &router)) {
+            map::add(&mut router_book.book, router, vector::empty<String>());
+        };
+
+        let book = map::borrow_mut(&mut router_book.book, &router);
+        let type_name = type_info::type_name<T>();
+
+        if (!vector::contains(book, &type_name)) {
+            vector::push_back(book, type_name);
+        };
 
         if (!exists<Capabilities<T>>(signer::address_of(admin))) {
             let (burn_cap, freeze_cap, mint_cap) = coin::initialize<T>(
@@ -144,6 +168,22 @@ module dev::QiaraCoinTypesV11{
     #[view]
     public fun balance_of<T>(addr: address): u64 {
         coin::balance<T>(addr)
+    }
+
+    #[view]
+    public fun get_router<T>(): String acquires RouterBook{
+
+        let keys = map::keys(&borrow_global<RouterBook>(@dev).book);
+        let len = vector::length(&keys);
+
+        while(len>0){
+            let key = vector::borrow(&keys, len-1);
+            if(*key == type_info::type_name<T>()){
+                return *key
+            };
+            len=len-1;
+        };
+         abort ERROR_UNKNOWN_ERROR
     }
 
 }
