@@ -12,6 +12,8 @@ module dev::PerpTypesV12 {
     struct Aerodrome has store, key { }
     struct Virtuals has store, key { }
     struct Supra has store, key { }
+    struct USDC has store, key { }
+    struct USDT has store, key { }
 
 // === HELPER FUNCTIONS === //
     #[view]
