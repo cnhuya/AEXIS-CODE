@@ -524,7 +524,7 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
 
 /// === VIEW FUNCTIONS ===
     #[view]
-    public fun get_position<T: store + drop>(user: address): Position<T> acquires UserBook {
+    public fun get_position<T: store>(user: address): Position<T> acquires UserBook {
         let user_book = borrow_global<UserBook<T>>(@dev);
 
         if (!table::contains(&user_book.book, user)) {
@@ -536,7 +536,7 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
     }
 
     #[view]
-    public fun get_view_position<T: store + drop>(user: address): ViewPosition acquires UserBook {
+    public fun get_view_position<T: store>(user: address): ViewPosition acquires UserBook {
         let user_book = borrow_global_mut<UserBook<T>>(@dev);
 
         let price = VerifiedTokens::get_coin_metadata_price(&VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>()));
