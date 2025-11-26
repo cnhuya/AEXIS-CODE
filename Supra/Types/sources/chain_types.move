@@ -7,6 +7,7 @@ module dev::QiaraChainTypesV15 {
     struct Sui has store, key { }
     struct Base has store, key { }
     struct Injective has store, key { }
+    struct Solana has store, key { }
 
 
 // === HELPER FUNCTIONS === //
@@ -25,6 +26,8 @@ module dev::QiaraChainTypesV15 {
             return utf8(b"Base")
         } else if(type == type_info::type_name<Injective>() ){
             return utf8(b"Injective")
+        } else if(type == type_info::type_name<Solana>() ){
+            return utf8(b"Solana")
         } else{
             return utf8(b"Unknown")
         }
