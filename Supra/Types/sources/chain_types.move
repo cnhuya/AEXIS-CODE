@@ -6,6 +6,8 @@ module dev::QiaraChainTypesV15 {
     struct Supra has store, key { }
     struct Sui has store, key { }
     struct Base has store, key { }
+    struct Injective has store, key { }
+
 
 // === HELPER FUNCTIONS === //
     #[view]
@@ -15,12 +17,14 @@ module dev::QiaraChainTypesV15 {
 
     public fun convert_chainType_to_string<T>(): String{
         let type = type_info::type_name<T>();
-        if(type == utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::AexisChainTypesV13::Sui") ){
+        if(type == type_info::type_name<Supra>() ){
             return utf8(b"Sui")
-        } else if(type == utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::AexisChainTypesV13::Supra") ){
+        } else if(type == type_info::type_name<Sui>() ){
             return utf8(b"Supra")
-        } else if(type == utf8(b"0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0::AexisChainTypesV13::Base") ){
+        } else if(type == type_info::type_name<Base>() ){
             return utf8(b"Base")
+        } else if(type == type_info::type_name<Injective>() ){
+            return utf8(b"Injective")
         } else{
             return utf8(b"Unknown")
         }
