@@ -1,4 +1,4 @@
-module dev::QiaraTestV32 {
+module dev::QiaraTestV33 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -23,7 +23,7 @@ module dev::QiaraTestV32 {
     const SECONDS_IN_MONTH: u64 = 2_592_000;
     const U64_MAX: u64 = 18_446_744_073_709_551_615;
     const INIT_SUPPLY: u64 = 1_000_000_000_000;
-    const ASSET_SYMBOL: vector<u8> = b"QiaraT32";
+    const ASSET_SYMBOL: vector<u8> = b"QiaraT33";
     const DECIMALS_N: u64 = 1_000_000;    
 
     // Token Type
@@ -131,12 +131,12 @@ module dev::QiaraTestV32 {
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTestV32"),
+            string::utf8(b"QiaraTestV33"),
             string::utf8(b"deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTestV32"),
+            string::utf8(b"QiaraTestV33"),
             string::utf8(b"withdraw"),
         );
         dispatchable_fungible_asset::register_dispatch_functions(
@@ -197,6 +197,17 @@ module dev::QiaraTestV32 {
             let transfer_ref = &managed.transfer_ref;
 
             return withdraw(store, amount, transfer_ref)
+        }
+
+        public fun withdraw_from_user_store(sender: &signer, amount: u64): FungibleAsset acquires ManagedFungibleAsset, CreationTime {
+            assert!(!capabilities::assert_wallet_capability(signer::address_of(sender), utf8(b"QiaraToken"), utf8(b"BLACKLIST")), ERROR_BLACKLISTED);
+            let asset = get_metadata();
+            let managed = borrow_global<ManagedFungibleAsset>(object::object_address(&asset));
+            let transfer_ref = &managed.transfer_ref;
+
+            let from_wallet = primary_fungible_store::primary_store(signer::address_of(sender), asset);
+
+            return withdraw(from_wallet, amount, transfer_ref)
         }
 
 
