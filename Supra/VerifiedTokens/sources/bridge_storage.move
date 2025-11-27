@@ -1,4 +1,4 @@
-module dev::QiaraTokensBridgeStorageV3{
+module dev::QiaraTokensBridgeStorageV4{
     use std::signer;
     use std::bcs;
     use std::vector;
@@ -10,7 +10,7 @@ module dev::QiaraTokensBridgeStorageV3{
     use std::table::{Self, Table};
     use std::timestamp;
 
-    use dev::QiaraTokensMetadataV3::{Self as TokensMetadata};
+    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata};
 
 
 // === ERRORS === //

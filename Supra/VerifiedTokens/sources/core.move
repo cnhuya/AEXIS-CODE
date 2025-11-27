@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV3{
+module dev::QiaraTokensCoreV4{
     use std::signer;
     use std::vector;
     use std::bcs;
@@ -10,8 +10,8 @@ module dev::QiaraTokensCoreV3{
     use std::option::{Option};
     use dev::QiaraMathV9::{Self as Math};
     use dev::QiaraCoinTypesV15::{Self as TokensType, Bitcoin, Ethereum, Solana, Sui, Deepbook, Injective, Aerodrome, Virtuals, Supra, USDT, USDC};
-    use dev::QiaraTokensMetadataV3::{Self as TokensMetadata};
-    use dev::QiaraTokensBridgeStorageV3::{Self as TokensBridgeStorage, Access as TokensBridgeStorageAccess};
+    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata};
+    use dev::QiaraTokensBridgeStorageV4::{Self as TokensBridgeStorage, Access as TokensBridgeStorageAccess};
 
 
 // === ERRORS === //

@@ -1,4 +1,4 @@
-module dev::QiaraTokensBridgeHandlerV3{
+module dev::QiaraTokensBridgeHandlerV4{
     use std::signer;
     use std::bcs;
     use std::vector;
@@ -10,11 +10,11 @@ module dev::QiaraTokensBridgeHandlerV3{
     use supra_framework::event;
 
     use dev::QiaraChainTypesV15::{Self as ChainTypes};
-    use dev::QiaraTokensBridgeStorageV3::{Self as TokensBridgeStorage, Access as TokensBridgeStorageAccess};
-    use dev::QiaraTokensCoreV3::{Self as TokensCore, Access as TokensCoreAccess};
-    use dev::QiaraTokensTiersV3::{Self as TokensTiers};
-    use dev::QiaraTokensMetadataV3::{Self as TokensMetadata};
-    use dev::QiaraTokensFeeVaultV3::{Self as TokensFeeVault, Access as TokensFeeVaultAccess};
+    use dev::QiaraTokensBridgeStorageV4::{Self as TokensBridgeStorage, Access as TokensBridgeStorageAccess};
+    use dev::QiaraTokensCoreV4::{Self as TokensCore, Access as TokensCoreAccess};
+    use dev::QiaraTokensTiersV4::{Self as TokensTiers};
+    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata};
+    use dev::QiaraTokensFeeVaultV4::{Self as TokensFeeVault, Access as TokensFeeVaultAccess};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
