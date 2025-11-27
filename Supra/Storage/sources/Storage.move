@@ -1,4 +1,4 @@
-module dev::QiaraStorageV31 {
+module dev::QiaraStorageV32 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -152,6 +152,7 @@ module dev::QiaraStorageV31 {
         
         register_constant<u64>(admin, utf8(b"QiaraAuto"), utf8(b"MAX_DURATION"), 604_800, true, &give_permission(&give_access(admin)));
         register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"FEE"), 10_000, true, &give_permission(&give_access(admin))); // 0.01%
+        register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"UNLOCK_PERIOD"), 604_800, true, &give_permission(&give_access(admin)));
 
     }
 

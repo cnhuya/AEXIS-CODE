@@ -1,4 +1,4 @@
-module dev::QiaraGovernanceV31 {
+module dev::QiaraGovernanceV32 {
     use std::signer;
     use std::string::{Self, String, utf8};
     use std::vector;
@@ -11,9 +11,9 @@ module dev::QiaraGovernanceV31 {
     use supra_framework::primary_fungible_store;
     use aptos_std::from_bcs;
 
-    use dev::QiaraStorageV31::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV31::{Self as capabilities, Access as CapabilitiesAccess};
-    use dev::QiaraFunctionsV31::{Self as functions, Access as FunctionAccess};
+    use dev::QiaraStorageV32::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV32::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraFunctionsV32::{Self as functions, Access as FunctionAccess};
 
     const OWNER: address = @dev;
     const QIARA_TOKEN: address = @0xf6d11e5ace09708c285e9dbabb267f4c4201718aaf0e0a70664ae48aaa38452f;
@@ -160,146 +160,145 @@ module dev::QiaraGovernanceV31 {
         count_ref.count = count_ref.count + 1;
     }
 
-   // --- finalize_proposal: remove & consume proposal, then operate on owned value ---
-// finalize_proposal: remove proposal, destructure into locals, then operate on locals
-public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires PendingProposals, Access {
-    let addr = signer::address_of(user);
+    // finalize_proposal: remove proposal, destructure into locals, then operate on locals
+    public entry fun finalize_proposal(user: &signer, proposal_id: u64) acquires PendingProposals, Access {
+        let addr = signer::address_of(user);
 
-    let registry = borrow_global_mut<PendingProposals>(OWNER);
-    let len = vector::length(&registry.proposals);
+        let registry = borrow_global_mut<PendingProposals>(OWNER);
+        let len = vector::length(&registry.proposals);
 
-    while (len > 0) {
-        let idx = len - 1;
-        let prop_ref = vector::borrow(&registry.proposals, idx);
-        if (prop_ref.id == proposal_id) {
-            // remove and destructure
-            let proposal = vector::remove(&mut registry.proposals, idx);
+        while (len > 0) {
+            let idx = len - 1;
+            let prop_ref = vector::borrow(&registry.proposals, idx);
+            if (prop_ref.id == proposal_id) {
+                // remove and destructure
+                let proposal = vector::remove(&mut registry.proposals, idx);
 
-            let Proposal {
-                id,
-                type,
-                proposer,
-                duration,
-                header,
-                constant,
-                new_value,
-                value_type,
-                isChange,
-                editable,
-                yes,
-                no,
-                voters,
-                result,
-            } = proposal;
+                let Proposal {
+                    id,
+                    type,
+                    proposer,
+                    duration,
+                    header,
+                    constant,
+                    new_value,
+                    value_type,
+                    isChange,
+                    editable,
+                    yes,
+                    no,
+                    voters,
+                    result,
+                } = proposal;
 
-            // 1. Ensure proposal duration expired
-            assert!(timestamp::now_seconds() > duration, ERROR_PROPOSAL_NOT_FINISHED_YET);
+                // 1. Ensure proposal duration expired
+                assert!(timestamp::now_seconds() > duration, ERROR_PROPOSAL_NOT_FINISHED_YET);
 
-            // 2. Ensure minimum participation threshold
-            let min_votes = storage::expect_u64(
-                storage::viewConstant(utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOTAL_VOTES_PERCENTAGE_SUPPLY"))
-            );
-            if(yes >= min_votes){
-                // 3. Calculate quorum %
-                let total_votes = yes + no;
-                let  result: u8 = 2; // default fail
-                if (total_votes != 0) {
-                    let quorum_required = storage::expect_u64(
-                        storage::viewConstant(utf8(b"QiaraGovernance"), utf8(b"MINIMUM_QUARUM_FOR_PROPOSAL_TO_PASS"))
-                    );
+                // 2. Ensure minimum participation threshold
+                let min_votes = storage::expect_u64(
+                    storage::viewConstant(utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOTAL_VOTES_PERCENTAGE_SUPPLY"))
+                );
+                if(yes >= min_votes){
+                    // 3. Calculate quorum %
+                    let total_votes = yes + no;
+                    let  result: u8 = 2; // default fail
+                    if (total_votes != 0) {
+                        let quorum_required = storage::expect_u64(
+                            storage::viewConstant(utf8(b"QiaraGovernance"), utf8(b"MINIMUM_QUARUM_FOR_PROPOSAL_TO_PASS"))
+                        );
 
-                    if (((yes * 100) / total_votes) >= quorum_required) {
-                        result = 1;
-                        let x = vector::length(&type);
-                        while(x > 0){
-                            let _type = vector::borrow(&type, x-1);
-                            let _isChange = *vector::borrow(&isChange, x-1);
-                            x=x-1;
+                        if (((yes * 100) / total_votes) >= quorum_required) {
+                            result = 1;
+                            let x = vector::length(&type);
+                            while(x > 0){
+                                let _type = vector::borrow(&type, x-1);
+                                let _isChange = *vector::borrow(&isChange, x-1);
+                                x=x-1;
 
-                            if (*_type == utf8(b"Constant")) {
-                                if (_isChange) {
-                                    storage::change_constant_multi(
-                                        user,
-                                        header,
-                                        constant,
-                                        new_value,
-                                        &storage::give_permission(&borrow_global<Access>(OWNER).storage_access)
-                                    );
-                                } else {
-                                    storage::handle_registration_multi(
-                                        user,
-                                        header,
-                                        constant,
-                                        new_value,
-                                        value_type,
-                                        editable,
-                                        &storage::give_permission(&borrow_global<Access>(OWNER).storage_access)
-                                    );
-                                };
-                            } else if (*_type == utf8(b"Capability")) {
-                                if (_isChange) {
-                                    capabilities::remove_capability_multi(
-                                        user,
-                                        to_adress_multi(new_value),
-                                        header,
-                                        constant,
-                                        &capabilities::give_permission(&borrow_global<Access>(OWNER).capabilities_access)
-                                    );
-                                } else {
-                                    capabilities::create_capability_multi(
-                                        user,
-                                        to_adress_multi(new_value),
-                                        header,
-                                        constant,
-                                        editable,
-                                        &capabilities::give_permission(&borrow_global<Access>(OWNER).capabilities_access)
-                                    );
-                                };
-                            } else if (*_type == utf8(b"Function")) {
-                                if (_isChange) {
-                                    functions::consume_function_multi (
-                                        user,
-                                        header,
-                                        constant,
-                                        &functions::give_permission(&borrow_global<Access>(OWNER).function_access)
-                                    );
-                                } else {
-                                    functions::register_function_multi(
-                                        user,
-                                        header,
-                                        constant,
-                                        &functions::give_permission(&borrow_global<Access>(OWNER).function_access)
-                                    );
+                                if (*_type == utf8(b"Constant")) {
+                                    if (_isChange) {
+                                        storage::change_constant_multi(
+                                            user,
+                                            header,
+                                            constant,
+                                            new_value,
+                                            &storage::give_permission(&borrow_global<Access>(OWNER).storage_access)
+                                        );
+                                    } else {
+                                        storage::handle_registration_multi(
+                                            user,
+                                            header,
+                                            constant,
+                                            new_value,
+                                            value_type,
+                                            editable,
+                                            &storage::give_permission(&borrow_global<Access>(OWNER).storage_access)
+                                        );
+                                    };
+                                } else if (*_type == utf8(b"Capability")) {
+                                    if (_isChange) {
+                                        capabilities::remove_capability_multi(
+                                            user,
+                                            to_adress_multi(new_value),
+                                            header,
+                                            constant,
+                                            &capabilities::give_permission(&borrow_global<Access>(OWNER).capabilities_access)
+                                        );
+                                    } else {
+                                        capabilities::create_capability_multi(
+                                            user,
+                                            to_adress_multi(new_value),
+                                            header,
+                                            constant,
+                                            editable,
+                                            &capabilities::give_permission(&borrow_global<Access>(OWNER).capabilities_access)
+                                        );
+                                    };
+                                } else if (*_type == utf8(b"Function")) {
+                                    if (_isChange) {
+                                        functions::consume_function_multi (
+                                            user,
+                                            header,
+                                            constant,
+                                            &functions::give_permission(&borrow_global<Access>(OWNER).function_access)
+                                        );
+                                    } else {
+                                        functions::register_function_multi(
+                                            user,
+                                            header,
+                                            constant,
+                                            &functions::give_permission(&borrow_global<Access>(OWNER).function_access)
+                                        );
+                                    };
                                 };
                             };
                         };
                     };
                 };
+
+                // emit event
+                event::emit(ProposalResultEvent {
+                    id,
+                    type,
+                    proposer,
+                    start: timestamp::now_seconds(),
+                    end: timestamp::now_seconds() + duration,
+                    header,
+                    constant,
+                    new_value,
+                    value_type,
+                    isChange,
+                    editable,
+                    yes,
+                    no,
+                    result,
+                });
+
+                break
             };
-
-            // emit event
-            event::emit(ProposalResultEvent {
-                id,
-                type,
-                proposer,
-                start: timestamp::now_seconds(),
-                end: timestamp::now_seconds() + duration,
-                header,
-                constant,
-                new_value,
-                value_type,
-                isChange,
-                editable,
-                yes,
-                no,
-                result,
-            });
-
-            break
+            len = idx;
         };
-        len = idx;
-    };
-}
+    }
 
 
 
