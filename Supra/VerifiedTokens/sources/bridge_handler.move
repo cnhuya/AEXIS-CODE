@@ -1,4 +1,4 @@
-module dev::QiaraTokensBridgeHandlerV4{
+module dev::QiaraTokensBridgeHandlerV5{
     use std::signer;
     use std::bcs;
     use std::vector;
@@ -9,12 +9,13 @@ module dev::QiaraTokensBridgeHandlerV4{
     use std::timestamp;
     use supra_framework::event;
 
-    use dev::QiaraChainTypesV15::{Self as ChainTypes};
-    use dev::QiaraTokensBridgeStorageV4::{Self as TokensBridgeStorage, Access as TokensBridgeStorageAccess};
-    use dev::QiaraTokensCoreV4::{Self as TokensCore, Access as TokensCoreAccess};
-    use dev::QiaraTokensTiersV4::{Self as TokensTiers};
-    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata};
-    use dev::QiaraTokensFeeVaultV4::{Self as TokensFeeVault, Access as TokensFeeVaultAccess};
+    use dev::QiaraTokensBridgeStorageV5::{Self as TokensBridgeStorage, Access as TokensBridgeStorageAccess};
+    use dev::QiaraTokensCoreV5::{Self as TokensCore, Access as TokensCoreAccess};
+    use dev::QiaraTokensTiersV5::{Self as TokensTiers};
+    use dev::QiaraTokensMetadataV5::{Self as TokensMetadata};
+    use dev::QiaraTokensFeeVaultV5::{Self as TokensFeeVault, Access as TokensFeeVaultAccess};
+
+    use dev::QiaraChainTypesV16::{Self as ChainTypes};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
@@ -153,7 +154,7 @@ module dev::QiaraTokensBridgeHandlerV4{
              validator: signer::address_of(banker), 
              token: type_info::type_name<Token>(), 
              address: recipient, 
-             chain: ChainTypes::convert_chainType_to_string<Chain>(),
+             chain: ChainTypes::convert_chainType_to_string<Chain>(),    
              time: timestamp::now_seconds() 
         });
 

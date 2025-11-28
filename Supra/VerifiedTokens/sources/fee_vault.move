@@ -1,12 +1,12 @@
-module dev::QiaraTokensFeeVaultV4{
+module dev::QiaraTokensFeeVaultV5{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
     use std::vector;
     use std::type_info::{Self, TypeInfo};
     use supra_framework::event;
-    use supra_framework::coin::{Self, Coin};
-
+    use supra_framework::fungible_asset::{Self, FungibleAsset};
+    use supra_framework::object::{Self, Object};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -29,8 +29,8 @@ module dev::QiaraTokensFeeVaultV4{
 
 // === STRUCTS === //
    
-    struct Vault<phantom T> has key {
-        balance: coin::Coin<T>,
+    struct Vault<Chain> has key {
+        balance: Object<FungibleStore<Chain>>, // private
     }
 
 
@@ -40,6 +40,7 @@ module dev::QiaraTokensFeeVaultV4{
         amount: u64,
         payer: vector<u8>,
         token: String,
+        chain: String,
         time: u64,
         type: String,
     }
@@ -49,6 +50,7 @@ module dev::QiaraTokensFeeVaultV4{
         amount: u64,
         collector: address,
         token: String,
+        chain: String,
         time: u64
     }
 
@@ -57,9 +59,9 @@ module dev::QiaraTokensFeeVaultV4{
     }
 
 
-    public fun pay_fee<Token>(user: vector<u8>, coins: Coin<Token>, type: String, cap: Permission) acquires Vault {
-        assert!(exists<Vault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
-        let vault = borrow_global_mut<Vault<Token>>(@dev);
+    public fun pay_fee<Chain>(user: vector<u8>, fa: FungibleAsset, type: String, cap: Permission) acquires Vault {
+        assert!(exists<Vault<Chain>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
+        let vault = borrow_global_mut<Vault<Chain>>(@dev);
 
         let amount = coin::value(&coins);
         coin::merge(&mut vault.balance, coins);
@@ -67,15 +69,16 @@ module dev::QiaraTokensFeeVaultV4{
         event::emit(PayFeeEvent {
             amount: amount,
             payer: user,
-            token: type_info::type_name<Token>(),
+            token: fungible_asset::name(fungible_asset::metadata_from_asset(&fa)),
+            chain: type_info::type_name<Chain>(),
             time: timestamp::now_seconds(),
             type: type,
         });
     }
 
-    public fun collect_fee<Token>(user: &signer, amount: u64) acquires Vault {
-        assert!(exists<Vault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
-        let vault = borrow_global_mut<Vault<Token>>(@dev);
+    public fun collect_fee<Chain>(user: &signer, amount: u64) acquires Vault {
+        assert!(exists<Vault<Chain>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
+        let vault = borrow_global_mut<Vault<Chain>>(@dev);
 
         let coins = coin::extract(&mut vault.balance, amount);
         coin::deposit(signer::address_of(user), coins);
@@ -83,21 +86,22 @@ module dev::QiaraTokensFeeVaultV4{
         event::emit(CollectFeeEvent {
             amount: amount,
             collector: signer::address_of(user),
-            token: type_info::type_name<Token>(),
+            token: fungible_asset::name(fungible_asset::metadata_from_asset(&fa)),
+            chain: type_info::type_name<Chain>(),
             time: timestamp::now_seconds(),
         });
     }
 
     #[view]
-    public fun get_balance_amount<Token>(): u64 acquires Vault {
-        assert!(exists<Vault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
-        let vault = borrow_global<Vault<Token>>(@dev);
-        coin::value(&vault.balance)
+    public fun get_balance_amount<Chain>(): u64 acquires Vault {
+        assert!(exists<Vault<Chain>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
+        let vault = borrow_global<Vault<Chain>>(@dev);
+        fungible_asset::amount(&vault.balance)
     }
 
-    public fun init_fee_vault<Token>(admin: &signer) {
-        if (!exists<Vault<Token>>(@dev)) {
-            move_to(admin, Vault {balance: coin::zero<Token>()});
+    public fun init_fee_vault<Chain>(admin: &signer) {
+        if (!exists<Vault<Chain>>(@dev)) {
+            move_to(admin, Vault {balance: fungible_asset::zero<Chain>()});
         }
     }
 }

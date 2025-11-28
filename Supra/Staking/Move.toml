@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraStakingV2"
+    name = "QiaraStakingV3"
     version = "2.1.1"
     authors = []
 
@@ -31,10 +31,14 @@
     rev = 'main'
     subdir = 'Supra/Token'
 
-    [dependencies.QiaraStorageV32]
+    [dependencies.QiaraVerifiedTokensV48]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
-    subdir = 'Supra/Storage'
+    subdir = 'Supra/VerifiedTokens'
 
+    [dependencies.QiaraStakingThirdPartyV1]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/StakingThirdParty'
 
     [dev-dependencies]

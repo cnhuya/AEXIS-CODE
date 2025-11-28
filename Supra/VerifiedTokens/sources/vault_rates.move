@@ -1,4 +1,4 @@
-module dev::QiaraTokensRatesV4 {
+module dev::QiaraTokensRatesV5 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::signer;
@@ -7,9 +7,8 @@ module dev::QiaraTokensRatesV4 {
     use supra_framework::supra_coin::{Self, SupraCoin};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use dev::QiaraMathV9::{Self as Math};
-
-    use dev::QiaraCoinTypesV15::{Self as TokensType, Bitcoin, Ethereum, Solana, Sui, Deepbook, Injective, Aerodrome, Virtuals, Supra, USDT, USDC};
-    use dev::QiaraChainTypesV15::{Self as ChainType, Supra as SupraChain, Base, Sui as SuiChain, Injective as InjectiveChain, Solana as SolanaChain};
+    use dev::QiaraTokensTypesV5::{Self as TokensType,  Bitcoin, Ethereum, Solana, Sui, Deepbook, Injective, Aerodrome, Virtuals, Supra, USDT, USDC};
+    use dev::QiaraChainTypesV16::{Self as ChainTypes, Sui as SuiChain, Base, Solana as SolanaChain, Injective as InjectiveChain, Supra as SupraChain };
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -50,13 +49,13 @@ module dev::QiaraTokensRatesV4 {
 
 // === HELPER FUNCTIONS === //
     public entry fun change_rate(addr: &signer) acquires RateList {
-        change_rates<Bitcoin, Sui>(8022,give_permission(&give_access(addr)));
+        change_rates<Bitcoin, SuiChain>(8022,give_permission(&give_access(addr)));
         change_rates<Ethereum, SuiChain>(17147,give_permission(&give_access(addr)));
         change_rates<Ethereum, Base>(9874,give_permission(&give_access(addr)));
         change_rates<Solana, SolanaChain>(22578,give_permission(&give_access(addr)));
         change_rates<Sui, Sui>(12011,give_permission(&give_access(addr)));
         change_rates<Deepbook, SuiChain>(13547,give_permission(&give_access(addr)));
-        change_rates<Injective, Injective>(16454,give_permission(&give_access(addr)));
+        change_rates<Injective, InjectiveChain>(16454,give_permission(&give_access(addr)));
         change_rates<Aerodrome, Base>(12974,give_permission(&give_access(addr)));
         change_rates<Virtuals, Base>(29331,give_permission(&give_access(addr)));
         change_rates<Supra, SupraChain>(12974,give_permission(&give_access(addr)));

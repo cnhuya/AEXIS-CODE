@@ -1,4 +1,4 @@
-module dev::QiaraStakingV2{
+module dev::QiaraStakingV3{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -13,12 +13,20 @@ module dev::QiaraStakingV2{
     use std::table::{Self, Table};
 
     use dev::QiaraTestV34::{Self as Qiara, Qiara as QiaraToken};
-    use dev::QiaraStorageV32::{Self as storage};
+    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata};
+    use dev::QiaraStakingThirdPartyV1::{Self as StakingThirdParty};
+
+    // For simplicity constant undecentralized unlock period due to re-dependancy loop cycle that would occur,
+    // due to the fact that governance is using this module for voting power.
+    // -------------------------------------------------------------------
+    // However in the future, when there is official price oracle for Qiara token, it could be made via using lock function in margin and using
+    // that as voting power, could be interesting & unique concept, however needs to be throughfully researched and studied.
+    const SECONDS_IN_WEEK: u64 = 604_800;
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_VAULT_NOT_INITIALIZED: u64 = 2;
-
+    const ERROR_USER_NOT_INITIALIZED: u64 = 3;
 
 // === ACCESS === //
     struct Access has store, key, drop {}
@@ -56,6 +64,31 @@ module dev::QiaraStakingV2{
         unstake_requests: Table<address, Map<String, vector<UnstakeRequest>>>,
     }
 
+// === EVENTS === //
+    #[event]
+    struct StakeEvent has copy, drop, store {
+        address: address,
+        coin: String,
+        amount: u64,
+        time: u64
+    }
+
+    #[event]
+    struct RequestUnstakeEvent has copy, drop, store {
+        address: address,
+        coin: String,
+        amount: u64,
+        time: u64
+    }
+
+    #[event]
+    struct UnstakeEvent has copy, drop, store {
+        address: address,
+        coin: String,
+        amount: u64,
+        time: u64
+    }
+
 // === INIT === //
     fun init_module(admin: &signer) {
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
@@ -85,6 +118,14 @@ module dev::QiaraStakingV2{
 
             let user_stake = find_user<QiaraToken>(borrow_global_mut<UserTracker>(@dev), signer::address_of(signer));
             *user_stake = *user_stake + amount;
+
+            event::emit(StakeEvent {
+                address: signer::address_of(signer),
+                coin: type_info::type_name<QiaraToken>(),
+                amount: amount,
+                time: timestamp::now_seconds() 
+            });
+
         }
         public fun qiara_unstake(signer: &signer, amount: u64, cap: Permission) acquires QiaraVault, UserTracker {
             assert!(exists<QiaraVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
@@ -100,6 +141,13 @@ module dev::QiaraStakingV2{
             };
             vector::push_back(requests, request);
 
+            event::emit(RequestUnstakeEvent {
+                address: signer::address_of(signer),
+                coin: type_info::type_name<QiaraToken>(),
+                amount: amount,
+                time: timestamp::now_seconds() 
+            });
+
         }
         public fun qiara_withdraw(signer: &signer, cap: Permission) acquires QiaraVault, UserTracker {
             assert!(exists<QiaraVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
@@ -107,6 +155,13 @@ module dev::QiaraStakingV2{
 
             let total = calculate_total_unlocks<QiaraToken>(*find_user_requests<QiaraToken>(borrow_global_mut<UserTracker>(@dev), signer));
             Qiara::entry_withdraw_from_store(signer, vault.balance, total);
+       
+            event::emit(UnstakeEvent {
+                address: signer::address_of(signer),
+                coin: type_info::type_name<QiaraToken>(),
+                amount: total,
+                time: timestamp::now_seconds() 
+            });
         }
 
     // Interface for Basic Coin Token Types
@@ -119,6 +174,13 @@ module dev::QiaraStakingV2{
 
             let user_stake = find_user<Token>(borrow_global_mut<UserTracker>(@dev), signer::address_of(signer));
             *user_stake = *user_stake + amount;
+      
+            event::emit(StakeEvent {
+                address: signer::address_of(signer),
+                coin: type_info::type_name<Token>(),
+                amount: amount,
+                time: timestamp::now_seconds() 
+            });
         }
         public fun unstake<Token>(signer: &signer, amount: u64) acquires CoinVault, UserTracker {
             assert!(exists<CoinVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
@@ -133,6 +195,13 @@ module dev::QiaraStakingV2{
                 request_time: timestamp::now_seconds(),
             };
             vector::push_back(requests, request);
+       
+            event::emit(RequestUnstakeEvent {
+                address: signer::address_of(signer),
+                coin: type_info::type_name<Token>(),
+                amount: amount,
+                time: timestamp::now_seconds() 
+            });
         }
         public fun withdraw<Token>(signer: &signer) acquires CoinVault, UserTracker {
             assert!(exists<CoinVault<Token>>(@dev), ERROR_VAULT_NOT_INITIALIZED);
@@ -142,6 +211,13 @@ module dev::QiaraStakingV2{
 
             let coins = coin::extract<Token>(&mut vault.balance, total);
             coin::deposit(signer::address_of(signer), coins);
+    
+            event::emit(UnstakeEvent {
+                address: signer::address_of(signer),
+                coin: type_info::type_name<Token>(),
+                amount: total,
+                time: timestamp::now_seconds() 
+            });
         }
 // === HELPER FUNCTIONS === //
     fun find_user<Token>(tracker: &mut UserTracker, address: address): &mut u64 {
@@ -176,15 +252,50 @@ module dev::QiaraStakingV2{
 
     fun calculate_total_unlocks<Token>(vect: vector<UnstakeRequest>): u64 {
         let total: u64 = 0;
+        let unlock_period = StakingThirdParty::return_unlock_period();
         let len = vector::length(&vect);
         let i = 0;
         while (i < len) {
             let req = vector::borrow(&vect, i);
-            if (timestamp::now_seconds() >= req.request_time + storage::expect_u64(storage::viewConstant(utf8(b"QiaraStaking"), utf8(b"UNLOCK_PERIOD")))) {
+            if (timestamp::now_seconds() >= req.request_time + unlock_period ) {
                 total = total + req.amount;
             };
             i = i + 1;
         };
         return total
     }
+
+    fun calculate_total_vote_power(map: Map<String, u64>): u256{
+        let keys = map::keys(&map);
+    
+        let base_weight = (StakingThirdParty::return_base_weight() as u256);
+        let usd_to_weight_scale = (StakingThirdParty::return_coins_usd_scale() as u256);
+
+        let len_keys = vector::length(&keys);
+        let total_vote_power: u256 = 0;
+        while(len_keys > 0){
+            let key = vector::borrow(&keys, len_keys-1);
+            let value = (*map::borrow(&map, key) as u256);
+            if(*key != type_info::type_name<QiaraToken>()){
+                let metadata = TokensMetadata::get_coin_metadata_by_res(*key);
+                total_vote_power = total_vote_power * ((value * TokensMetadata::get_coin_metadata_price(&metadata))/usd_to_weight_scale);
+            } else if (*key == type_info::type_name<QiaraToken>()){
+                total_vote_power = total_vote_power + value;
+            };
+            len_keys = len_keys-1;
+        };
+        return base_weight+ total_vote_power
+    }
+// === VIEW FUNCTIONS === //
+    #[view]
+        public fun get_voting_power(address: address): u256 acquires UserTracker{
+            let tracker = borrow_global<UserTracker>(@dev);
+
+            if(!table::contains(&tracker.tracker, address)) {
+                abort ERROR_USER_NOT_INITIALIZED
+            };
+
+            let user_map = table::borrow(&tracker.tracker, address);
+            return calculate_total_vote_power(*user_map)
+        }
 }
