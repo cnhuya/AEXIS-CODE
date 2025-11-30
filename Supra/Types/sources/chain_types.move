@@ -1,4 +1,4 @@
-module dev::QiaraChainTypesV17 {
+module dev::QiaraChainTypesV18 {
     use std::string::{Self as string, String, utf8};
 
 
@@ -12,8 +12,6 @@ module dev::QiaraChainTypesV17 {
     const CHAIN_BASE: u8 = 3;
     const CHAIN_INJECTIVE: u8 = 4;
     const CHAIN_SOLANA: u8 = 5;
-
-
 
 // === FUNCTIONS === //
     #[view]
@@ -85,4 +83,4 @@ module dev::QiaraChainTypesV17 {
             ERROR_INVALID_CHAIN
         )
     }
- }
+}
