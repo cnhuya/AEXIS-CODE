@@ -29,4 +29,19 @@ module dev::QiaraChainTypesV17 {
             return utf8(b"Unknown")
         }
     }
+    public fun convert_string_to_chainType(chain: String): u8{
+        if(utf8(b"Supra") == chain ){
+            return CHAIN_SUPRA
+        } else if(utf8(b"Sui") == chain ){
+            return CHAIN_SUI
+        } else if(utf8(b"Base") == chain ){
+            return CHAIN_BASE
+        } else if(utf8(b"Injective") == chain ){
+            return CHAIN_INJECTIVE
+        } else if(utf8(b"Solana") == chain ){
+            return CHAIN_SOLANA
+        } else{
+            abort 0
+        }
+    }
 }
