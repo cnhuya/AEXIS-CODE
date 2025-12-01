@@ -2,7 +2,6 @@ module dev::QiaraChainTypesV18 {
     use std::string::{Self as string, String, utf8};
 
 
-
 // === ERRORS === //
     const ERROR_INVALID_CHAIN: u64 = 1;
 
