@@ -1,4 +1,4 @@
-module dev::QiaraCapabilitiesV32 {
+module dev::QiaraCapabilitiesV33 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
