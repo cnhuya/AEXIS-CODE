@@ -104,9 +104,6 @@ module dev::QiaraStorageV33 {
         register_constant<bool>(admin, utf8(b"QiaraToken"), utf8(b"PAUSED"), false, true, &give_permission(&give_access(admin)));
         register_constant<address>(admin, utf8(b"QiaraToken"), utf8(b"TREASURY_RECEIPENT"), @0xf286f429deaf08050a5ec8fc8a031b8b36e3d4e9d2486ef374e50ef487dd5bbd, true, &give_permission(&give_access(admin)));
 
-        register_constant<u64>(admin, utf8(b"QiaraTokens"), utf8(b"TRANSFER_FEE"), 250, false, &give_permission(&give_access(admin))); // 0,00025% 
-        register_constant<u64>(admin, utf8(b"QiaraTokens"), utf8(b"FLAT_USD_FEE"), 100, false, &give_permission(&give_access(admin))); // 0,0001$
-
         register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T0_X"), 100, true, &give_permission(&give_access(admin)));
         register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T00_X"), 150, true, &give_permission(&give_access(admin)));
         register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T1_X"), 200, true, &give_permission(&give_access(admin)));
@@ -159,6 +156,12 @@ module dev::QiaraStorageV33 {
 
     }
 
+    public entry fun more(admin: &signer) acquires KeyRegistry, ConstantDatabase{
+        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
+       
+        register_constant<u64>(admin, utf8(b"QiaraTokens"), utf8(b"TRANSFER_FEE"), 250, false, &give_permission(&give_access(admin))); // 0,00025% 
+        register_constant<u64>(admin, utf8(b"QiaraTokens"), utf8(b"FLAT_USD_FEE"), 100, false, &give_permission(&give_access(admin))); // 0,0001$
+    }
 
     fun register_constant<T: drop>(address: &signer, header: String, constant_name: String, value: T, editable: bool, permission: &Permission) acquires ConstantDatabase, KeyRegistry {
         assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
