@@ -27,23 +27,23 @@ module dev::QiaraTokenTypesV19 {
         assert!(vector::contains(&return_all_tokens(), token), ERROR_INVALID_TOKEN);
 
         if(token == &utf8(b"Bitcoin")){
-            return utf8(b"Qiara13 Bitcoin")
+            return utf8(b"Qiara14 Bitcoin")
         } else if (token == &utf8(b"Ethereum")){
-            return utf8(b"Qiara13 Ethereum")        
+            return utf8(b"Qiara14 Ethereum")        
         } else if (token == &utf8(b"Solana")){
-            return utf8(b"Qiara13 Solana")        
+            return utf8(b"Qiara14 Solana")        
         } else if (token == &utf8(b"Sui")){
-            return utf8(b"Qiara13 Sui")        
+            return utf8(b"Qiara14 Sui")        
         } else if (token == &utf8(b"Deepbook")){
-            return utf8(b"Qiara13 Deepbook")        
+            return utf8(b"Qiara14 Deepbook")        
         } else if (token == &utf8(b"Supra")){
-            return utf8(b"Qiara13 Supra")        
+            return utf8(b"Qiara14 Supra")        
         } else if (token == &utf8(b"Injective")){
-            return utf8(b"Qiara13 Injective")        
+            return utf8(b"Qiara14 Injective")        
         } else if (token == &utf8(b"USDC")){
-            return utf8(b"Qiara13 USDC")        
+            return utf8(b"Qiara14 USDC")        
         } else if (token == &utf8(b"USDT")){
-            return utf8(b"Qiara13 USDT")        
+            return utf8(b"Qiara14 USDT")        
         } else {
             abort(ERROR_INVALID_TOKEN)   
         }
