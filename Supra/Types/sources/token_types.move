@@ -1,4 +1,4 @@
-module dev::QiaraTokenTypesV18 {
+module dev::QiaraTokenTypesV19 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
 
