@@ -23,7 +23,29 @@ module dev::QiaraTokenTypesV18 {
         ]
     }
 
-    public fun ensure_valid_token(token: &String) {
-        assert!(vector::contains(&return_all_tokens(), token), ERROR_INVALID_TOKEN)
+    public fun ensure_valid_token(token: &String): String {
+        assert!(vector::contains(&return_all_tokens(), token), ERROR_INVALID_TOKEN);
+
+        if(token == &utf8(b"Bitcoin")){
+            return utf8(b"Qiara13 Bitcoin")
+        } else if (token == &utf8(b"Ethereum")){
+            return utf8(b"Qiara13 Ethereum")        
+        } else if (token == &utf8(b"Solana")){
+            return utf8(b"Qiara13 Solana")        
+        } else if (token == &utf8(b"Sui")){
+            return utf8(b"Qiara13 Sui")        
+        } else if (token == &utf8(b"Deepbook")){
+            return utf8(b"Qiara13 Deepbook")        
+        } else if (token == &utf8(b"Supra")){
+            return utf8(b"Qiara13 Supra")        
+        } else if (token == &utf8(b"Injective")){
+            return utf8(b"Qiara13 Injective")        
+        } else if (token == &utf8(b"USDC")){
+            return utf8(b"Qiara13 USDC")        
+        } else if (token == &utf8(b"USDT")){
+            return utf8(b"Qiara13 USDT")        
+        } else {
+            abort(ERROR_INVALID_TOKEN)   
+        }
     }
 }
