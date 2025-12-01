@@ -14,6 +14,7 @@ module dev::QiaraGovernanceV32 {
     use dev::QiaraStorageV32::{Self as storage, Access as StorageAccess};
     use dev::QiaraCapabilitiesV32::{Self as capabilities, Access as CapabilitiesAccess};
     use dev::QiaraFunctionsV32::{Self as functions, Access as FunctionAccess};
+   // use dev::QiaraStakingV2::{Self};
 
     const OWNER: address = @dev;
     const QIARA_TOKEN: address = @0xf6d11e5ace09708c285e9dbabb267f4c4201718aaf0e0a70664ae48aaa38452f;
