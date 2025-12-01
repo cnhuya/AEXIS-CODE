@@ -22,7 +22,6 @@ module dev::QiaraTokenTypesV19 {
             utf8(b"USDT"), 
         ]
     }
-
     public fun ensure_valid_token(token: &String): String {
         assert!(vector::contains(&return_all_tokens(), token), ERROR_INVALID_TOKEN);
 
@@ -33,7 +32,9 @@ module dev::QiaraTokenTypesV19 {
         } else if (token == &utf8(b"Solana")){
             return utf8(b"Qiara14 Solana")        
         } else if (token == &utf8(b"Sui")){
-            return utf8(b"Qiara14 Sui")        
+            return utf8(b"Qiara14 Sui") 
+        } else if (token == &utf8(b"Virtuals")){
+            return utf8(b"Qiara14 Virtuals")        
         } else if (token == &utf8(b"Deepbook")){
             return utf8(b"Qiara14 Deepbook")        
         } else if (token == &utf8(b"Supra")){
