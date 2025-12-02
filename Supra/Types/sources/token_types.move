@@ -94,33 +94,29 @@ public fun convert_token_to_symbol(token: &String): String {
 }
 
 public fun convert_symbol_to_token(symbol: &String): String {
-    let full_token_name = string::utf8(TOKEN_PREFIX);
-    
     if(symbol == &utf8(b"QBTC")){
-        string::append_utf8(&mut full_token_name, b"Bitcoin");
+        return utf8(b"Bitcoin")
     } else if (symbol == &utf8(b"QETH")){
-        string::append_utf8(&mut full_token_name, b"Ethereum");        
+        return utf8(b"Ethereum")        
     } else if (symbol == &utf8(b"QSOL")){
-        string::append_utf8(&mut full_token_name, b"Solana");        
+        return utf8(b"Solana")        
     } else if (symbol == &utf8(b"QSUI")){
-        string::append_utf8(&mut full_token_name, b"Sui"); 
+        return utf8(b"Sui") 
     } else if (symbol == &utf8(b"QVIRTUALS")){
-        string::append_utf8(&mut full_token_name, b"Virtuals");        
+        return utf8(b"Virtuals")        
     } else if (symbol == &utf8(b"QDEEP")){
-        string::append_utf8(&mut full_token_name, b"Deepbook");        
+        return utf8(b"Deepbook")        
     } else if (symbol == &utf8(b"QSUPRA")){
-        string::append_utf8(&mut full_token_name, b"Supra");        
+        return utf8(b"Supra")        
     } else if (symbol == &utf8(b"QINJ")){
-        string::append_utf8(&mut full_token_name, b"Injective");        
+        return utf8(b"Injective")        
     } else if (symbol == &utf8(b"QUSDC")){
-        string::append_utf8(&mut full_token_name, b"USDC");        
+        return utf8(b"USDC")        
     } else if (symbol == &utf8(b"QUSDT")){
-        string::append_utf8(&mut full_token_name, b"USDT");        
+        return utf8(b"USDT")        
     } else {
-        abort(ERROR_INVALID_CONVERT_SYMBOL);   
-    };
-    
-    full_token_name
+        abort(ERROR_INVALID_CONVERT_SYMBOL)   
+    }
 }
 
 // Helper function to get full token name with prefix
