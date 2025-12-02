@@ -5,6 +5,7 @@ module dev::QiaraTokenTypesV19 {
 
 // === ERRORS === //
     const ERROR_INVALID_TOKEN: u64 = 1;
+    const ERROR_INVALID_CONVERT_TOKEN: u64 = 2;
 
 // === FUNCTIONS === //
     #[view]
@@ -74,7 +75,7 @@ module dev::QiaraTokenTypesV19 {
         } else if (token == &utf8(b"Qiara15 USDT")){
             return utf8(b"QUSDT")        
         } else {
-            abort(ERROR_INVALID_TOKEN)   
+            abort(ERROR_INVALID_CONVERT_TOKEN)   
         }
     }
 }
