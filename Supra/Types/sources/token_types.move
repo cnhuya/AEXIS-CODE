@@ -3,7 +3,7 @@ module dev::QiaraTokenTypesV19 {
     use std::vector;
 
 
-const TOKEN_PREFIX: vector<u8> = b"Qiara16 ";
+const TOKEN_PREFIX: vector<u8> = b"Qiara17 ";
 const SYMBOL_PREFIX: vector<u8> = b"Q";
 
 // === ERRORS === //
@@ -66,25 +66,25 @@ public fun convert_token_to_symbol(token: &String): String {
     
     let symbol = string::utf8(SYMBOL_PREFIX);
     
-    if(token == &utf8(b"Qiara16 Bitcoin")){
+    if(token == &utf8(b"Qiara17 Bitcoin")){
         string::append_utf8(&mut symbol, b"BTC");
-    } else if (token == &utf8(b"Qiara16 Ethereum")){
+    } else if (token == &utf8(b"Qiara17 Ethereum")){
         string::append_utf8(&mut symbol, b"ETH");        
-    } else if (token == &utf8(b"Qiara16 Solana")){
+    } else if (token == &utf8(b"Qiara17 Solana")){
         string::append_utf8(&mut symbol, b"SOL");        
-    } else if (token == &utf8(b"Qiara16 Sui")){
+    } else if (token == &utf8(b"Qiara17 Sui")){
         string::append_utf8(&mut symbol, b"SUI"); 
-    } else if (token == &utf8(b"Qiara16 Virtuals")){
+    } else if (token == &utf8(b"Qiara17 Virtuals")){
         string::append_utf8(&mut symbol, b"VIRTUALS");        
-    } else if (token == &utf8(b"Qiara16 Deepbook")){
+    } else if (token == &utf8(b"Qiara17 Deepbook")){
         string::append_utf8(&mut symbol, b"DEEP");        
-    } else if (token == &utf8(b"Qiara16 Supra")){
+    } else if (token == &utf8(b"Qiara17 Supra")){
         string::append_utf8(&mut symbol, b"SUPRA");        
-    } else if (token == &utf8(b"Qiara16 Injective")){
+    } else if (token == &utf8(b"Qiara17 Injective")){
         string::append_utf8(&mut symbol, b"INJ");        
-    } else if (token == &utf8(b"Qiara16 USDC")){
+    } else if (token == &utf8(b"Qiara17 USDC")){
         string::append_utf8(&mut symbol, b"USDC");        
-    } else if (token == &utf8(b"Qiara16 USDT")){
+    } else if (token == &utf8(b"Qiara17 USDT")){
         string::append_utf8(&mut symbol, b"USDT");        
     } else {
         abort(ERROR_INVALID_CONVERT_TOKEN);   
