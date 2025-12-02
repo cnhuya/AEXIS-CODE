@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV26 {
+module dev::QiaraTokensCoreV27 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,9 +15,10 @@ module dev::QiaraTokensCoreV26 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraTokensMetadataV26::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV26::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV26::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensMetadataV27::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV27::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV27::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV27::{Self as TokensTiers};
 
     use dev::QiaraChainTypesV19::{Self as ChainTypes};
     use dev::QiaraTokenTypesV19::{Self as TokensType};
@@ -147,6 +148,7 @@ module dev::QiaraTokensCoreV26 {
         ChainTypes::ensure_valid_chain_name(&chain);
         token = TokensType::ensure_valid_token(&token);
 
+
         let fa = mint(token, chain, INIT_SUPPLY, give_permission(&give_access(signer)));
         let asset = get_metadata(token);
         let store = primary_fungible_store::ensure_primary_store_exists(signer::address_of(signer),asset);
@@ -274,6 +276,7 @@ module dev::QiaraTokensCoreV26 {
     public entry fun transfer(sender:&signer, to: address, token: String, chain: String, amount: u64) acquires ManagedFungibleAsset,Permissions {
         ChainTypes::ensure_valid_chain_name(&chain);
         token = TokensType::ensure_valid_token(&token);
+        TokensOmnichain::ensure_token_supports_chain(token, chain);
         let asset = get_metadata(token);
 
         if(!account::exists_at(to)){
@@ -424,7 +427,8 @@ module dev::QiaraTokensCoreV26 {
     // Function that can be only called by Validator, used to redeem tokens to existing Supra wallet.
    public fun redeem(validator: &signer, permissioneless_wallet: vector<u8>, supra_wallet: address, token:String, chain:String, perm: Permission) acquires ManagedFungibleAsset, Permissions {
         let asset = get_metadata(token);
-        
+        ChainTypes::ensure_valid_chain_name(&chain);
+        token = TokensType::ensure_valid_token(&token);       
         assert!(account::exists_at(supra_wallet), ERROR_ACCOUNT_DOES_NOT_EXISTS);
 
         let amount = (TokensOmnichain::return_adress_balance(token, chain,bcs::to_bytes(&signer::address_of(validator))) as u64);
@@ -436,7 +440,24 @@ module dev::QiaraTokensCoreV26 {
         deposit(wallet, fa, chain, &managed.transfer_ref);
     }
     
+    // gets value by usd
 
+
+    #[view]
+    public fun ensure_fees(validator: address, symbol: String, chain: String, amount: u64): u64{
+        let metadata = TokensMetadata::get_coin_metadata_by_symbol(symbol);
+        let tier = TokensMetadata::get_coin_metadata_tier(&metadata);
+        let flat_fee = TokensTiers::flat_usd_fee(tier); // 0.0005$
+        let transfer_fee = TokensTiers::transfer_fee(tier); // 0.00025%
+
+        let token_value = TokensMetadata::getValue(symbol, (flat_fee as u256));
+        return ((transfer_fee as u64) * amount) + (token_value as u64)
+
+    //    let fa = mint(token, chain, amount, give_permission(&give_access(validator)));
+
+    //    let wallet = primary_fungible_store::primary_store(signer::address_of(validator), asset);
+   //     deposit(wallet, fa, chain, ref);
+    }
 
 
 // === HELPFER FUNCTIONS === //

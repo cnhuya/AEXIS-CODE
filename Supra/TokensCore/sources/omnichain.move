@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV26{
+module dev::QiaraTokensOmnichainV27{
     use std::signer;
     use std::bcs;
     use std::vector;
@@ -9,6 +9,9 @@ module dev::QiaraTokensOmnichainV26{
     use supra_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore};
     use supra_framework::primary_fungible_store;
     use supra_framework::object::{Self, Object};
+
+    use dev::QiaraChainTypesV19::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV19::{Self as TokensType};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
@@ -37,7 +40,7 @@ module dev::QiaraTokensOmnichainV26{
     // Tracks allowed/supported chains for each Token.
     // i.e Ethereum (token) -> Base/Sui/Solana (chains)
     struct TokensChains has key{
-        book: Map<String, String>
+        book: Map<String, vector<String>>
     }
     // Tracks overall "liqudity" across chains for each token type (the string argument)
     // i.e Ethereum (token) -> Base/Sui/Solana (chains)... -> supply
@@ -62,7 +65,7 @@ module dev::QiaraTokensOmnichainV26{
         assert!(signer::address_of(admin) == @dev, 1);
 
         if (!exists<TokensChains>(@dev)) {
-            move_to(admin, TokensChains { book: map::new<String, String>() });
+            move_to(admin, TokensChains { book: map::new<String, vector<String>>() });
         };
         if (!exists<CrosschainBook>(@dev)) {
             move_to(admin, CrosschainBook { book: table::new<String,Map<String, u256>>() });
@@ -78,17 +81,28 @@ module dev::QiaraTokensOmnichainV26{
 
 // === HELPERS === //
 
-    public fun change_TokenSupply(token:String, chain:String, amount: u64, isMint: bool, perm: Permission) acquires CrosschainBook {
+    public fun change_TokenSupply(token:String, chain:String, amount: u64, isMint: bool, perm: Permission) acquires CrosschainBook, TokensChains {
+        ChainTypes::ensure_valid_chain_name(&chain);
+        TokensType::ensure_valid_token(&token);
+      
         let book = borrow_global_mut<CrosschainBook>(@dev);
+        let chains = borrow_global_mut<TokensChains>(@dev);
         let token_type = token;
         let chain_type = chain;
         
+        if (!map::contains_key(&chains.book, &token_type)) {
+            map::upsert(&mut chains.book, token_type, vector::empty<String>());
+        };
+        let chains = map::borrow_mut(&mut chains.book, &token_type);
+        vector::push_back(chains, chain);
+
         if (!table::contains(&book.book, token_type)) {
             table::add(&mut book.book, token_type, map::new<String, u256>());
         };
         
         let token_book = table::borrow_mut(&mut book.book, token_type);
-        
+        ensure_token_supports_chain(token, chain);
+ 
         // Force the logic without else
         if (map::contains_key(token_book, &chain_type)) {
             let current_supply = map::borrow_mut(token_book, &chain_type);
@@ -102,10 +116,22 @@ module dev::QiaraTokensOmnichainV26{
             map::upsert(token_book, chain_type, (amount as u256));
         }   
     }
-    public fun change_UserTokenSupply(token:String, chain:String, address: vector<u8>, amount: u64, isMint: bool, perm: Permission) acquires UserCrosschainBook {
+    public fun change_UserTokenSupply(token:String, chain:String, address: vector<u8>, amount: u64, isMint: bool, perm: Permission) acquires UserCrosschainBook, TokensChains {
+        ChainTypes::ensure_valid_chain_name(&chain);
+        TokensType::ensure_valid_token(&token);
+     
         let book = borrow_global_mut<UserCrosschainBook>(@dev);
+        let chains = borrow_global_mut<TokensChains>(@dev);
         let token_type = token;
         let chain_type = chain;
+
+        if (!map::contains_key(&chains.book, &token_type)) {
+            map::upsert(&mut chains.book, token_type, vector::empty<String>());
+        };
+        let chains = map::borrow_mut(&mut chains.book, &token_type);
+        vector::push_back(chains, chain);
+
+
         if (!table::contains(&book.book, address)) {
             table::add(&mut book.book, address, table::new<String, Map<String, u256>>());
         };
@@ -114,7 +140,8 @@ module dev::QiaraTokensOmnichainV26{
         if(!table::contains(user_book, token_type)) {
             table::add(user_book, token_type, map::new<String, u256>());
         };
-
+        
+        ensure_token_supports_chain(token, chain);
         let user = table::borrow_mut(user_book, token_type);
         if (!map::contains_key(user, &chain_type)) {
             map::add( user, chain_type, (amount as u256));
@@ -141,11 +168,11 @@ module dev::QiaraTokensOmnichainV26{
         if (!map::contains_key(&book.book, &token)) {
             abort ERROR_TOKEN_NOT_INITIALIZED
         };
-        return map::values(&book.book)
+        return *map::borrow(&book.book, &token)
     }
 
 
-    public fun ensure_token_supports_chain(token: String, chain:String){
+    public fun ensure_token_supports_chain(token: String, chain:String) acquires TokensChains{
         assert!(vector::contains(&return_supported_chains(token), &chain), ERROR_TOKEN_NOT_INITIALIZED_FOR_THIS_CHAIN)
     }
 

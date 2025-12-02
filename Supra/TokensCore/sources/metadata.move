@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV26{
+module dev::QiaraTokensMetadataV27{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -12,8 +12,8 @@ module dev::QiaraTokensMetadataV26{
     use dev::QiaraStorageV33::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraTokensRatesV26::{Self as rates};
-    use dev::QiaraTokensTiersV26::{Self as tier};
+    use dev::QiaraTokensRatesV27::{Self as rates};
+    use dev::QiaraTokensTiersV27::{Self as tier};
 
 
 // === ERRORS === //
@@ -411,6 +411,23 @@ module dev::QiaraTokensMetadataV26{
         public fun get_coin_metadata_full_multiplier(metadata: &VMetadata): u64 {
             metadata.full_tier.multiplier
         }
+
+    // CALCULATIONS
+    // gets value by usd
+    #[view]
+    public fun getValue(symbol: String, amount: u256): u256 acquires Tokens{
+        let metadata = get_coin_metadata_by_symbol(symbol);
+        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(get_coin_metadata_oracleID(&metadata));
+        return ((amount as u256) * (price as u256)) / get_coin_metadata_denom(&metadata)
+    }
+
+    // converts usd back to coin value
+    #[view]
+    public fun getValueByCoin(symbol: String, amount: u256): u256 acquires Tokens{
+        let metadata = get_coin_metadata_by_symbol(symbol);
+        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(get_coin_metadata_oracleID(&metadata));
+        return (((amount as u256)* get_coin_metadata_denom(&metadata)) / (price as u256))
+    }
 
     // OFF STRUCTS HELPERS
         #[view]
