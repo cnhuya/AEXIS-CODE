@@ -6,6 +6,7 @@ module dev::QiaraTokenTypesV19 {
 // === ERRORS === //
     const ERROR_INVALID_TOKEN: u64 = 1;
     const ERROR_INVALID_CONVERT_TOKEN: u64 = 2;
+    const ERROR_INVALID_CONVERT_SYMBOL: u64 = 3;
 
 // === FUNCTIONS === //
     #[view]
@@ -76,6 +77,34 @@ module dev::QiaraTokenTypesV19 {
             return utf8(b"QUSDT")        
         } else {
             abort(ERROR_INVALID_CONVERT_TOKEN)   
+        }
+    }
+
+    public fun convert_symbol_to_token(symbol: &String): String {
+       // assert!(vector::contains(&return_all_symbols(), symbol), ERROR_INVALID_SYMBOL);
+
+        if(symbol == &utf8(b"QBTC")){
+            return utf8(b"Qiara15 Bitcoin")
+        } else if (symbol == &utf8(b"QETH")){
+            return utf8(b"Qiara15 Ethereum")        
+        } else if (symbol == &utf8(b"QSOL")){
+            return utf8(b"Qiara15 Solana")        
+        } else if (symbol == &utf8(b"QSUI")){
+            return utf8(b"Qiara15 Sui") 
+        } else if (symbol == &utf8(b"QVIRTUALS")){
+            return utf8(b"Qiara15 Virtuals")        
+        } else if (symbol == &utf8(b"QDEEP")){
+            return utf8(b"Qiara15 Deepbook")        
+        } else if (symbol == &utf8(b"QSUPRA")){
+            return utf8(b"Qiara15 Supra")        
+        } else if (symbol == &utf8(b"QINJ")){
+            return utf8(b"Qiara15 Injective")        
+        } else if (symbol == &utf8(b"QUSDC")){
+            return utf8(b"Qiara15 USDC")        
+        } else if (symbol == &utf8(b"QUSDT")){
+            return utf8(b"Qiara15 USDT")        
+        } else {
+            abort(ERROR_INVALID_CONVERT_SYMBOL)   
         }
     }
 }
