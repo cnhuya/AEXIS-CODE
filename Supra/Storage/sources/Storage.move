@@ -162,9 +162,10 @@ module dev::QiaraStorageV34 {
         register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"STAKING_FEE"), 1_000_000, true, &give_permission(&give_access(admin))); // 1%
     }
 
-    public entry fun change(admin: &signer) acquires ConstantDatabase{
+    public entry fun change(admin: &signer) acquires ConstantDatabase, KeyRegistry{
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
-        change_constant(admin, utf8(b"QiaraStaking"), utf8(b"STAKING_FEE"),bc::to_bytes(&1_000_000), &give_permission(&give_access(admin))); // 1%
+        register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"USD_VALUE"), 1_000_000, false, &give_permission(&give_access(admin))); // 1$ = 1$
+        register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), 5, false, &give_permission(&give_access(admin)));
     }
 
     fun register_constant<T: drop>(address: &signer, header: String, constant_name: String, value: T, editable: bool, permission: &Permission) acquires ConstantDatabase, KeyRegistry {

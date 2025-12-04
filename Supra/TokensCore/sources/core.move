@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV27 {
+module dev::QiaraTokensCoreV33 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,11 +15,12 @@ module dev::QiaraTokensCoreV27 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraTokensMetadataV27::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV27::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV27::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV27::{Self as TokensTiers};
-
+    use dev::QiaraTokensMetadataV33::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV33::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV33::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV33::{Self as TokensTiers};
+    use dev::QiaraTokensValidatorsV33::{Self as TokensValidators,  Access as TokensValidatorAccess};
+    use dev::QiaraTokensQiaraV33::{Self as TokensQiara,  Access as TokensQiaraAccess};
     use dev::QiaraChainTypesV19::{Self as ChainTypes};
     use dev::QiaraTokenTypesV19::{Self as TokensType};
 
@@ -49,6 +50,8 @@ module dev::QiaraTokensCoreV27 {
 // === STRUCTS === //
     struct Permissions has key {
         tokens_omnichain_access: TokensOmnichainAccess,
+        tokens_validator_access: TokensValidatorAccess,
+        tokens_qiara_access: TokensQiaraAccess,
     }
 
     struct ManagedFungibleAsset has key {
@@ -110,7 +113,7 @@ module dev::QiaraTokensCoreV27 {
     fun init_module(admin: &signer){
 
         if (!exists<Permissions>(@dev)) {
-            move_to(admin, Permissions { tokens_omnichain_access: TokensOmnichain::give_access(admin)});
+            move_to(admin, Permissions { tokens_omnichain_access: TokensOmnichain::give_access(admin), tokens_validator_access: TokensValidators::give_access(admin), tokens_qiara_access: TokensQiara::give_access(admin)});
         };
     }
 
@@ -126,44 +129,48 @@ module dev::QiaraTokensCoreV27 {
         init_token(admin, utf8(b"Supra"), utf8(b"QSUPRA"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/supra.webp"), 1_732_598_400, 500, 100_000_000_000, 21_000_700_000, 80_600_180_397, 1);
         init_token(admin, utf8(b"USDT"), utf8(b"QUSDT"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt.webp"), 0, 47, 185_977_352_465, 185_977_352_465, 185_977_352_465, 255);
         init_token(admin, utf8(b"USDC"), utf8(b"QUSDC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdc.webp"), 0, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);   
+        init_token(admin, utf8(b"Qiara"), utf8(b"QIARA"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/qiara.webp"), 0, 0, 0, 0, 0, 1);   
+
     }
 
 
     public entry fun init_depo(signer: &signer) acquires ManagedFungibleAsset, Permissions{
         ma_drilla_lul(signer, utf8(b"Ethereum"), utf8(b"Base"));
+      //  tttta(9);
         ma_drilla_lul(signer, utf8(b"Ethereum"), utf8(b"Sui"));
         ma_drilla_lul(signer, utf8(b"Bitcoin"), utf8(b"Base"));
         ma_drilla_lul(signer, utf8(b"Solana"), utf8(b"Solana"));
         ma_drilla_lul(signer, utf8(b"Sui"), utf8(b"Sui"));
         ma_drilla_lul(signer, utf8(b"Deepbook"), utf8(b"Sui"));
         ma_drilla_lul(signer, utf8(b"Injective"), utf8(b"Injective"));
+       // tttta(1);
         ma_drilla_lul(signer, utf8(b"Virtuals"), utf8(b"Base"));
         ma_drilla_lul(signer, utf8(b"Supra"), utf8(b"Supra"));
         ma_drilla_lul(signer, utf8(b"USDT"), utf8(b"Base"));
         ma_drilla_lul(signer, utf8(b"USDC"), utf8(b"Base"));
         ma_drilla_lul(signer, utf8(b"USDC"), utf8(b"Sui"));
+        ma_drilla_lul(signer, utf8(b"Qiara"), utf8(b"Supra"));
     }
 
     fun ma_drilla_lul(signer:&signer, token: String, chain: String) acquires ManagedFungibleAsset, Permissions{
-        ChainTypes::ensure_valid_chain_name(&chain);
-        token = TokensType::ensure_valid_token(&token);
+        ensure_safety(token, chain);
 
-
+       // tttta(7);
         let fa = mint(token, chain, INIT_SUPPLY, give_permission(&give_access(signer)));
+       // tttta(1000);
         let asset = get_metadata(token);
         let store = primary_fungible_store::ensure_primary_store_exists(signer::address_of(signer),asset);
-        let managed = authorized_borrow_refs(asset);
-        deposit(store, fa, chain, &managed.transfer_ref);
+       // tttta(1);
+        deposit(store, fa, chain);
     }
 
 
     fun init_token(admin: &signer, name: String, symbol: String, icon: String, creation: u64,oracleID: u32, max_supply: u128, circulating_supply: u128, total_supply: u128, stable:u8 ){
-        name = TokensType::ensure_valid_token(&name);
-        let constructor_ref = &object::create_named_object(admin, bcs::to_bytes(&name));
+        let constructor_ref = &object::create_named_object(admin, bcs::to_bytes(&TokensType::ensure_valid_token(&name)));
         primary_fungible_store::create_primary_store_enabled_fungible_asset(
             constructor_ref,
             option::none(),
-            name,
+            TokensType::ensure_valid_token(&name),
             symbol, 
             6, 
             icon,
@@ -180,7 +187,7 @@ module dev::QiaraTokensCoreV27 {
 
 
 
-        let asset_address = object::create_object_address(&ADMIN, bcs::to_bytes(&name));
+        let asset_address = object::create_object_address(&ADMIN, bcs::to_bytes(&TokensType::ensure_valid_token(&name)));
         assert!(fungible_asset::is_untransferable(asset),1);
         let sign_wallet = primary_fungible_store::ensure_primary_store_exists(signer::address_of(admin),asset);
 
@@ -207,36 +214,61 @@ module dev::QiaraTokensCoreV27 {
         );
    
         move_to(&metadata_object_signer,ManagedFungibleAsset { transfer_ref, burn_ref, mint_ref }); // <:!:initialize
-        TokensMetadata::create_metadata(admin, symbol, creation, oracleID, max_supply, circulating_supply, total_supply, stable);
-
+        TokensMetadata::create_metadata(admin, name, creation, oracleID, max_supply, circulating_supply, total_supply, stable);
+        if(symbol == utf8(b"QIARA")){
+            TokensQiara::init_qiara(admin);
+        }
     }
+// === PUBLIC FUNCTIONS === //
+    public fun deposit<T: key>(store: Object<T>,fa: FungibleAsset, chain: String) acquires Permissions, ManagedFungibleAsset{
+        internal_deposit<T>(store, fa, chain, authorized_borrow_refs(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store)))))
+    }
+    public fun withdraw<T: key>(store: Object<T>,amount: u64, chain: String): FungibleAsset acquires Permissions, ManagedFungibleAsset {
+        internal_withdraw<T>(store, amount, chain, authorized_borrow_refs(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store)))))
+    }
+ 
+// === INTERNAL FUNCTIONS === //
+    fun internal_deposit<T: key>(store: Object<T>,fa: FungibleAsset, chain: String, managed: &ManagedFungibleAsset) acquires Permissions{
+        ChainTypes::ensure_valid_chain_name(&chain);
+        fungible_asset::set_frozen_flag(&managed.transfer_ref, store, true);
+        if(fungible_asset::amount(&fa) == 0){
+           fungible_asset::destroy_zero(fa);
+           return
+        };
+        TokensOmnichain::change_UserTokenSupply(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store))), chain, bcs::to_bytes(&object::owner(store)), fungible_asset::amount(&fa), true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        fungible_asset::deposit_with_ref(&managed.transfer_ref, store, fa);
+    }
+    fun internal_withdraw<T: key>(store: Object<T>,amount: u64, chain: String, managed: &ManagedFungibleAsset): FungibleAsset acquires Permissions {
+        ChainTypes::ensure_valid_chain_name(&chain);
+        fungible_asset::set_frozen_flag(&managed.transfer_ref, store, true);
+        if(fungible_asset::symbol(fungible_asset::store_metadata(store)) == utf8(b"QIARA")){
+            let fee = calculate_qiara_fees(amount);
+             //   tttta(fee); // aborts
+            if(fee >= amount){ // amount is going to be 0 - CHECK FAILS?
+                amount = 0;
+                TokensOmnichain::change_UserTokenSupply(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store))), chain, bcs::to_bytes(&object::owner(store)), fee, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+                fungible_asset::burn(&managed.burn_ref, fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, fee));               
+            } else {
+                amount = amount - fee;
+                TokensOmnichain::change_UserTokenSupply(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store))), chain, bcs::to_bytes(&object::owner(store)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+                fungible_asset::burn(&managed.burn_ref, fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, fee));
+            };
+            return fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, amount)
+        };
+
+        TokensOmnichain::change_UserTokenSupply(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store))), chain, bcs::to_bytes(&object::owner(store)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        return fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, amount)
+    }
+    fun internal_mint(symbol: String, chain: String, amount: u64, managed: &ManagedFungibleAsset): FungibleAsset acquires Permissions {
+        TokensOmnichain::change_TokenSupply(symbol, chain,amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
+        return fungible_asset::mint(&managed.mint_ref, amount)
+    }
+ 
 // === OVERWRITE FUNCTIONS === //
-
-    /// Deposit function override to ensure that the account is not denylisted and the FA coin is not paused.
-    /// OPTIONAL
-    /// 
-    public fun deposit<T: key>(store: Object<T>,fa: FungibleAsset, chain: String, transfer_ref: &TransferRef) acquires Permissions{
-        ChainTypes::ensure_valid_chain_name(&chain);
-        fungible_asset::set_frozen_flag(transfer_ref, store, true);
-        TokensOmnichain::change_UserTokenSupply(fungible_asset::symbol(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&object::owner(store)), fungible_asset::amount(&fa), true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
-        fungible_asset::deposit_with_ref(transfer_ref, store, fa);
-    }
-    /// Withdraw function override to ensure that the account is not denylisted and the FA coin is not paused.
-    /// OPTIONAL
-    public fun withdraw<T: key>(store: Object<T>,amount: u64, chain: String, transfer_ref: &TransferRef): FungibleAsset acquires Permissions {
-        ChainTypes::ensure_valid_chain_name(&chain);
-        fungible_asset::set_frozen_flag(transfer_ref, store, true);
-        TokensOmnichain::change_UserTokenSupply(fungible_asset::symbol(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&object::owner(store)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
-        fungible_asset::withdraw_with_ref(transfer_ref, store, amount)
-    }
- 
- 
-   public fun c_deposit<T: key>(store: Object<T>,fa: FungibleAsset, transfer_ref: &TransferRef) {
+    public fun c_deposit<T: key>(store: Object<T>,fa: FungibleAsset, transfer_ref: &TransferRef) {
         fungible_asset::set_frozen_flag(transfer_ref, store, true);
         fungible_asset::deposit_with_ref(transfer_ref, store, fa);
     }
-    /// Withdraw function override to ensure that the account is not denylisted and the FA coin is not paused.
-    /// OPTIONAL
     public fun c_withdraw<T: key>(store: Object<T>,amount: u64, transfer_ref: &TransferRef): FungibleAsset {
         fungible_asset::set_frozen_flag(transfer_ref, store, true);
         fungible_asset::withdraw_with_ref(transfer_ref, store, amount)
@@ -245,90 +277,56 @@ module dev::QiaraTokensCoreV27 {
 // === TOKENOMICS FUNCTIONS === //
     /// Burn fungible assets directly from the caller's own account.
     /// Anyone can call this to burn their own tokens.
-    public entry fun burn(signer: &signer, token: String, chain: String, amount: u64) acquires Permissions, ManagedFungibleAsset {
-        let wallet = primary_fungible_store::primary_store(signer::address_of(signer), get_metadata(token));
-        let asset = get_metadata(token);
-        let managed = authorized_borrow_refs(asset);
-        let fa = withdraw(wallet, amount, chain,&managed.transfer_ref);
-        TokensOmnichain::change_TokenSupply(fungible_asset::symbol(get_metadata_from_address(object::object_address(&fungible_asset::metadata_from_asset(&fa)))), chain, fungible_asset::amount(&fa), false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
+    public entry fun burn(signer: &signer, symbol: String, chain: String, amount: u64) acquires Permissions, ManagedFungibleAsset {
+        let wallet = primary_fungible_store::primary_store(signer::address_of(signer), get_metadata(symbol));
+        let managed = authorized_borrow_refs(symbol);
+        let fa = internal_withdraw(wallet, amount, chain, managed);
+        TokensOmnichain::change_TokenSupply(symbol, chain, fungible_asset::amount(&fa), false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
         fungible_asset::burn(&managed.burn_ref, fa);
     }
 
     // Only allowed modules are allowed to call mint function, 
     // in this scenario we allow only the module bridge_handler to be able to call this function.
-    public fun mint(token: String, chain: String, amount: u64, cap: Permission): FungibleAsset acquires ManagedFungibleAsset,Permissions {
-        let asset = get_metadata(token);
-        let managed = authorized_borrow_refs(asset);
-        let fa = fungible_asset::mint(&managed.mint_ref, amount);
-        TokensOmnichain::change_TokenSupply(fungible_asset::symbol(get_metadata_from_address(object::object_address(&fungible_asset::metadata_from_asset(&fa)))), chain,amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
-        return fa
+    public fun mint(symbol: String, chain: String, amount: u64, cap: Permission): FungibleAsset acquires Permissions, ManagedFungibleAsset {
+        internal_mint(symbol, chain, amount, authorized_borrow_refs(symbol))
     }
 
 
-    public fun p_transfer(validator: &signer, sender:vector<u8>, to: vector<u8>, token: String, chain: String, amount: u64, perm: Permission) acquires Permissions {
-        ChainTypes::ensure_valid_chain_name(&chain);
-        token = TokensType::ensure_valid_token(&token);
-        TokensOmnichain::change_UserTokenSupply(token, chain, sender, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
-        TokensOmnichain::change_UserTokenSupply(token, chain, to, amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
-
-    }
-
-    public entry fun transfer(sender:&signer, to: address, token: String, chain: String, amount: u64) acquires ManagedFungibleAsset,Permissions {
-        ChainTypes::ensure_valid_chain_name(&chain);
-        token = TokensType::ensure_valid_token(&token);
-        TokensOmnichain::ensure_token_supports_chain(token, chain);
-        let asset = get_metadata(token);
-
+    public entry fun transfer(sender:&signer, to: address, symbol: String, chain: String, amount: u64) acquires ManagedFungibleAsset,Permissions {
+        ensure_safety(symbol, chain);
+        let asset = get_metadata(symbol);
+        TokensOmnichain::ensure_token_supports_chain(symbol, chain);
+        let managed = authorized_borrow_refs(symbol);
         if(!account::exists_at(to)){
-            burn(sender, token, chain, amount);
-            TokensOmnichain::change_UserTokenSupply(token, chain, bcs::to_bytes(&to), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+            let wallet = primary_fungible_store::ensure_primary_store_exists(signer::address_of(sender),asset);
+            let fa = internal_withdraw(wallet, amount, chain, managed);
+            fungible_asset::burn(&managed.burn_ref, fa);
+            TokensOmnichain::change_UserTokenSupply(symbol, chain, bcs::to_bytes(&to), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
             return
         };
 
         let from = primary_fungible_store::ensure_primary_store_exists(signer::address_of(sender),asset);
         let to = primary_fungible_store::ensure_primary_store_exists(to,asset);
 
-        let managed = authorized_borrow_refs(asset);
-        let fa = withdraw(from, amount, chain, &managed.transfer_ref);
-        deposit(to, fa, chain, &managed.transfer_ref);
+        
+        let fa = internal_withdraw(from, amount, chain, managed);
+        internal_deposit(to, fa, chain, managed);
     }
 
-// === BRIDGE FUNCTIONS === //
-    // Function to pre-"burn" tokens when bridging out, but the transaction isnt yet validated so the tokens arent really burned yet.
-    // Later implement function to claim locked tokens if the bridge tx fails
-    public fun p_request_bridge(validator: &signer, user: vector<u8>, token: String, chain: String, amount: u64, perm: Permission) acquires Permissions{
-        ChainTypes::ensure_valid_chain_name(&chain);
-        token = TokensType::ensure_valid_token(&token);
+    public entry fun request_bridge(user: &signer, symbol: String, chain: String, amount: u64) acquires Permissions, ManagedFungibleAsset{
+        ensure_safety(symbol, chain);
+        let managed = authorized_borrow_refs(symbol);
+        let wallet = primary_fungible_store::primary_store(signer::address_of(user), get_metadata(symbol));
+        let fa = internal_withdraw(wallet, amount, chain, managed);
 
-        let legit_amount = (TokensOmnichain::return_adress_balance(token, chain, user) as u64);
+        let legit_amount = (TokensOmnichain::return_adress_balance(symbol, chain,bcs::to_bytes(&signer::address_of(user))) as u64);
         assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
 
-        TokensOmnichain::change_UserTokenSupply(token, chain, user, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
-
-        event::emit(RequestBridgeEvent {
-            address: user,
-            token: token,
-            chain: chain,
-            amount: amount,
-            time: timestamp::now_seconds() 
-        });
-
-    }
-
-    public fun request_bridge(user: &signer, token: String, chain: String, amount: u64) acquires Permissions, ManagedFungibleAsset{
-        let asset = get_metadata(token);
-        let wallet = primary_fungible_store::primary_store(signer::address_of(user), get_metadata(token));
-        let managed = authorized_borrow_refs(asset);
-        let fa = withdraw(wallet, amount, chain,&managed.transfer_ref);
-
-        let legit_amount = (TokensOmnichain::return_adress_balance(token, chain,bcs::to_bytes(&signer::address_of(user))) as u64);
-        assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
-
-        deposit(TokensStorage::return_lock_storage(token, chain), fa, chain, &managed.transfer_ref);
+        internal_deposit(TokensStorage::return_lock_storage(symbol, chain), fa, chain,managed);
     
         event::emit(RequestBridgeEvent {
             address: bcs::to_bytes(&signer::address_of(user)),
-            token: token,
+            token: symbol,
             chain: chain,
             amount: amount,
             time: timestamp::now_seconds() 
@@ -336,17 +334,43 @@ module dev::QiaraTokensCoreV27 {
     
     }
 
-    public fun bridged(validator: &signer, user: address, token: String, chain: String, amount: u64, perm: Permission) acquires Permissions, ManagedFungibleAsset{
-        ChainTypes::ensure_valid_chain_name(&chain);
-        token = TokensType::ensure_valid_token(&token);
+// === PERMISSIONELESS FUNCTIONS === // - only validators can call
+    public fun p_transfer(validator: &signer, sender:vector<u8>, to: vector<u8>, symbol: String, chain: String, amount: u64, perm: Permission) acquires Permissions {
+        ensure_safety(symbol, chain);
+        TokensOmnichain::change_UserTokenSupply(symbol, chain, sender, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        TokensOmnichain::change_UserTokenSupply(symbol, chain, to, amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+
+    }
+
+    // Function to pre-"burn" tokens when bridging out, but the transaction isnt yet validated so the tokens arent really burned yet.
+    // Later implement function to claim locked tokens if the bridge tx fails
+    public fun p_request_bridge(validator: &signer, user: vector<u8>, symbol: String, chain: String, amount: u64, perm: Permission) acquires Permissions{
+        ensure_safety(symbol, chain);
+        let legit_amount = (TokensOmnichain::return_adress_balance(symbol, chain, user) as u64);
+        assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
+
+        TokensOmnichain::change_UserTokenSupply(symbol, chain, user, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+
+        event::emit(RequestBridgeEvent {
+            address: user,
+            token: symbol,
+            chain: chain,
+            amount: amount,
+            time: timestamp::now_seconds() 
+        });
+
+    }
+
+    public fun bridged(validator: &signer, user: address, symbol: String, chain: String, amount: u64, perm: Permission) acquires Permissions, ManagedFungibleAsset{
+        ensure_safety(symbol, chain);
 
         if(!account::exists_at(user)){
-            TokensOmnichain::change_UserTokenSupply(token, chain, bcs::to_bytes(&user), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
-            TokensOmnichain::change_TokenSupply(token, chain,amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
+            TokensOmnichain::change_UserTokenSupply(symbol, chain, bcs::to_bytes(&user), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+            TokensOmnichain::change_TokenSupply(symbol, chain,amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
             
             event::emit(BridgedEvent {
                 address: bcs::to_bytes(&user),
-                token: token,
+                token: symbol,
                 chain: chain,
                 amount: amount,
                 time: timestamp::now_seconds() 
@@ -354,16 +378,16 @@ module dev::QiaraTokensCoreV27 {
             return
         };
      
-        let asset = get_metadata(token);
-        let fa = mint(token, chain, amount, give_permission(&give_access(validator)));
+        let asset = get_metadata(symbol);
+        let managed = authorized_borrow_refs(symbol);
+        let fa = internal_mint(symbol, chain, amount, managed);
 
         let store = primary_fungible_store::ensure_primary_store_exists(user,asset);
-        let managed = authorized_borrow_refs(asset);
-        deposit(store, fa, chain, &managed.transfer_ref);
+        internal_deposit(store, fa, chain, managed);
     
         event::emit(BridgedEvent {
             address: bcs::to_bytes(&user),
-            token: token,
+            token: symbol,
             chain: chain,
             amount: amount,
             time: timestamp::now_seconds() 
@@ -371,16 +395,17 @@ module dev::QiaraTokensCoreV27 {
     
     }
 
-    public fun finalize_bridge(validator: &signer,  token: String, chain: String, amount: u64, perm: Permission) acquires Permissions, ManagedFungibleAsset{
-        let asset = get_metadata(token);
-        let managed = authorized_borrow_refs(asset);
-        let fa = withdraw(TokensStorage::return_lock_storage(token, chain), amount, chain, &managed.transfer_ref);
+    public fun finalize_bridge(validator: &signer,  symbol: String, chain: String, amount: u64, perm: Permission) acquires Permissions, ManagedFungibleAsset{
+        ensure_safety(symbol, chain);
+    
+        let managed = authorized_borrow_refs(symbol);
+        let fa = internal_withdraw(TokensStorage::return_lock_storage(symbol, chain), amount, chain, managed);
 
-        TokensOmnichain::change_TokenSupply(fungible_asset::symbol(get_metadata_from_address(object::object_address(&fungible_asset::metadata_from_asset(&fa)))), chain, fungible_asset::amount(&fa), false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
+        TokensOmnichain::change_TokenSupply(symbol, chain, fungible_asset::amount(&fa), false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
         fungible_asset::burn(&managed.burn_ref, fa);
     
         event::emit(FinalizeBridgeEvent {
-            token: token,
+            token: symbol,
             chain: chain,
             amount: amount,
             time: timestamp::now_seconds() 
@@ -388,17 +413,16 @@ module dev::QiaraTokensCoreV27 {
     
     }
 
-    public fun finalize_failed_bridge(validator: &signer, user: address, token: String, chain: String, amount: u64, perm: Permission) acquires Permissions, ManagedFungibleAsset{
-        ChainTypes::ensure_valid_chain_name(&chain);
-        token = TokensType::ensure_valid_token(&token);
-
+    public fun finalize_failed_bridge(validator: &signer, user: address, symbol: String, chain: String, amount: u64, perm: Permission) acquires Permissions, ManagedFungibleAsset{
+        ensure_safety(symbol, chain);
+        let managed = authorized_borrow_refs(symbol);
         if(!account::exists_at(user)){
-            TokensOmnichain::change_UserTokenSupply(token, chain, bcs::to_bytes(&user), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
-            TokensOmnichain::change_TokenSupply(token, chain,amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
+            TokensOmnichain::change_UserTokenSupply(symbol, chain, bcs::to_bytes(&user), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+            TokensOmnichain::change_TokenSupply(symbol, chain,amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
             
             event::emit(BridgeRefundEvent {
                 address: bcs::to_bytes(&user),
-                token: token,
+                token: symbol,
                 chain: chain,
                 amount: amount,
                 time: timestamp::now_seconds() 
@@ -406,16 +430,15 @@ module dev::QiaraTokensCoreV27 {
             return
         };
      
-        let asset = get_metadata(token);
-        let fa = mint(token, chain, amount, give_permission(&give_access(validator)));
+        let asset = get_metadata(symbol);
+        let fa = internal_mint(symbol, chain, amount, managed);
 
         let store = primary_fungible_store::ensure_primary_store_exists(user,asset);
-        let managed = authorized_borrow_refs(asset);
-        deposit(store, fa, chain, &managed.transfer_ref);
+        internal_deposit(store, fa, chain, managed);
     
         event::emit(BridgeRefundEvent {
             address: bcs::to_bytes(&user),
-            token: token,
+            token: symbol,
             chain: chain,
             amount: amount,
             time: timestamp::now_seconds() 
@@ -425,55 +448,94 @@ module dev::QiaraTokensCoreV27 {
     }
 
     // Function that can be only called by Validator, used to redeem tokens to existing Supra wallet.
-   public fun redeem(validator: &signer, permissioneless_wallet: vector<u8>, supra_wallet: address, token:String, chain:String, perm: Permission) acquires ManagedFungibleAsset, Permissions {
-        let asset = get_metadata(token);
-        ChainTypes::ensure_valid_chain_name(&chain);
-        token = TokensType::ensure_valid_token(&token);       
+   public fun redeem(validator: &signer, permissioneless_wallet: vector<u8>, supra_wallet: address, symbol:String, chain:String, perm: Permission) acquires ManagedFungibleAsset, Permissions {
+        let asset = get_metadata(symbol);
+        ensure_safety(symbol, chain);
+        let managed = authorized_borrow_refs(symbol);
         assert!(account::exists_at(supra_wallet), ERROR_ACCOUNT_DOES_NOT_EXISTS);
 
-        let amount = (TokensOmnichain::return_adress_balance(token, chain,bcs::to_bytes(&signer::address_of(validator))) as u64);
-        let fa = mint(token, chain, amount, give_permission(&give_access(validator)));
-        TokensOmnichain::change_UserTokenSupply(token, chain, permissioneless_wallet, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        let amount = (TokensOmnichain::return_adress_balance(symbol, chain,bcs::to_bytes(&signer::address_of(validator))) as u64);
+        let fa = internal_mint(symbol, chain, amount, managed);
+        TokensOmnichain::change_UserTokenSupply(symbol, chain, permissioneless_wallet, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
       
-        let managed = authorized_borrow_refs(asset);
         let wallet = primary_fungible_store::primary_store(supra_wallet, asset);
-        deposit(wallet, fa, chain, &managed.transfer_ref);
+        internal_deposit(wallet, fa, chain, managed);
     }
     
-    // gets value by usd
+    public entry fun claim_inflation(claimer: &signer) acquires Permissions, ManagedFungibleAsset  {
+        TokensQiara::change_last_claim(claimer, TokensQiara::give_permission(&borrow_global<Permissions>(@dev).tokens_qiara_access));
+        let asset = get_metadata(utf8(b"Qiara"));
+        let claimable_amount = TokensQiara::claimable(*option::borrow(&fungible_asset::supply(asset)));
+        let managed = authorized_borrow_refs(utf8(b"QIARA"));
+        let delta_seconds = timestamp::now_seconds() - TokensQiara::get_last_claimed();
+
+        let fa = internal_mint(utf8(b"Qiara"),utf8(b"Supra"),(claimable_amount as u64), managed);
+
+        let to_wallet = primary_fungible_store::ensure_primary_store_exists(signer::address_of(claimer),asset);
+        internal_deposit(to_wallet, fa,utf8(b"Supra"), managed);
+    }
 
 
     #[view]
     public fun ensure_fees(validator: address, symbol: String, chain: String, amount: u64): u64{
         let metadata = TokensMetadata::get_coin_metadata_by_symbol(symbol);
         let tier = TokensMetadata::get_coin_metadata_tier(&metadata);
-        let flat_fee = TokensTiers::flat_usd_fee(tier); // 0.0005$
-        let transfer_fee = TokensTiers::transfer_fee(tier); // 0.00025%
+        let flat_fee = TokensTiers::flat_usd_fee(tier); // 0.0002$
+        let transfer_fee = TokensTiers::transfer_fee(tier); // 0.00030%
 
-        let token_value = TokensMetadata::getValue(symbol, (flat_fee as u256));
-        return ((transfer_fee as u64) * amount) + (token_value as u64)
+        //27500000000 - transfer_fee // with 1$ size
+        //10004001600 - flat fee // with 1$ size
 
-    //    let fa = mint(token, chain, amount, give_permission(&give_access(validator)));
+        let token_value = TokensMetadata::getValueByCoin(symbol, (flat_fee as u256)*100_000_000);
+        return  (((transfer_fee as u64) * (amount*100))) + (token_value as u64) //
+    }
 
-    //    let wallet = primary_fungible_store::primary_store(signer::address_of(validator), asset);
-   //     deposit(wallet, fa, chain, ref);
+    public entry fun ensure_accrue_fees(validator: address, symbol: String, chain: String, amount: u64) acquires Permissions{
+        let metadata = TokensMetadata::get_coin_metadata_by_symbol(symbol);
+        let tier = TokensMetadata::get_coin_metadata_tier(&metadata);
+        let flat_fee = (TokensTiers::flat_usd_fee(tier) as u256); 
+        let transfer_fee = (TokensTiers::transfer_fee(tier) as u256); 
+
+        let token_value = (TokensMetadata::getValueByCoin(symbol, (flat_fee*100_000_000)) as u256);
+        let value =  (transfer_fee * ((amount as u256)*100)) + token_value;
+        TokensValidators::ensure_and_accrue_validator_reward_balance(validator, symbol, chain, value, TokensValidators::give_permission(&borrow_global<Permissions>(@dev).tokens_validator_access))
+
+    }
+    #[view]
+    public fun calculate_qiara_fees(amount: u64): u64 {
+        // 500 + 100*0 = 500
+        let burn_fee_bps = TokensQiara::get_burn_fee() + TokensQiara::get_burn_fee_increase() * TokensQiara::get_month();
+
+        // scale denominator = 100_000_000 (because 1% = 1_000_000, so 100% = 100_000_000)
+        let scale = 100_000_000;
+
+        
+        let burn_amount = (amount * burn_fee_bps) / scale;
+        if(burn_amount == 0){
+            if(TokensQiara::get_minimal_fee() > amount){
+                return amount;
+            } else {
+            return TokensQiara::get_minimal_fee();                
+            };
+        };
+        return burn_amount
     }
 
 
 // === HELPFER FUNCTIONS === //
 
-    /// Borrow the immutable reference of the refs of `metadata`.
-    /// This validates that the signer is the metadata object's owner.
-    inline fun authorized_borrow_refs(asset: Object<Metadata>): &ManagedFungibleAsset acquires ManagedFungibleAsset {borrow_global<ManagedFungibleAsset>(object::object_address(&asset))}
-
-
-
+    fun ensure_safety(token: String, chain: String): String{
+        ChainTypes::ensure_valid_chain_name(&chain);
+        return TokensType::ensure_valid_token(&token)
+    }
+    // Borrow the immutable reference of the refs of `metadata`.
+    inline fun authorized_borrow_refs(symbol: String): &ManagedFungibleAsset acquires ManagedFungibleAsset {let asset = get_metadata(symbol); borrow_global<ManagedFungibleAsset>(object::object_address(&asset))}
 
 // === VIEW FUNCTIONS === //
     #[view]
     /// Return the address of the managed fungible asset that's created when this module is deployed.
-    public fun get_metadata(token:String): Object<Metadata> {
-        let asset_address = object::create_object_address(&ADMIN, bcs::to_bytes(&token));
+    public fun get_metadata(symbol:String): Object<Metadata> {
+        let asset_address = object::create_object_address(&ADMIN, bcs::to_bytes(&TokensType::ensure_valid_token(&symbol)));
         object::address_to_object<Metadata>(asset_address)
     }
 

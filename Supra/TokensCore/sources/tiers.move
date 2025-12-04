@@ -1,10 +1,10 @@
-module dev::QiaraTokensTiersV27{
+module dev::QiaraTokensTiersV33{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::type_info::{Self, TypeInfo};
     use supra_oracle::supra_oracle_storage;
-    use dev::QiaraStorageV33::{Self as storage};
+    use dev::QiaraStorageV34::{Self as storage};
 
 
 // === ERRORS === //
@@ -232,7 +232,14 @@ module dev::QiaraTokensTiersV27{
             ((base_fee + ((base_fee * multiplier)/100) / 10) as u128) // the /100 is here because of multiplier scailing
         }
 
-
+        #[view]
+        public fun staking_vote_weight(id: u8): u128{
+            let tier = get_tier(id);
+            let usd_value_convert_ratio = storage::expect_u64(storage::viewConstant(utf8(b"QiaraStaking"), utf8(b"USD_VALUE")));
+            let tier_slashing = storage::expect_u64(storage::viewConstant(utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY")));
+            let efficiency = (tier.efficiency as u128);
+            return ((usd_value_convert_ratio as u128)*efficiency/(tier_slashing as u128))+((usd_value_convert_ratio as u128))
+        }
 
 // === CONVERT === //
     public fun convert_tier_to_string(tier: u8): String{

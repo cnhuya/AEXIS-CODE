@@ -1,4 +1,4 @@
-module dev::QiaraTokensStoragesV27 {
+module dev::QiaraTokensStoragesV33 {
     use std::signer;
     use std::string::{Self as string, String, utf8};
     use std::table::{Self, Table};
@@ -14,7 +14,8 @@ module dev::QiaraTokensStoragesV27 {
     const ERROR_NOT_ADMIN: u64 = 0;
     const ERROR_NO_STORAGE: u64 = 1;
     const ERROR_STORAGE_EXISTS: u64 = 2;
-
+    const ERROR_INVALID_VALIDATOR: u64 = 3;
+    const ERROR_TOKEN_NOT_YET_REWARDED: u64 = 4;
     // === ACCESS === //
     struct Access has store, key, drop {}
     struct Permission has copy, key, drop {}
@@ -42,6 +43,7 @@ module dev::QiaraTokensStoragesV27 {
         balances: Table<String, Map<String, Object<FungibleStore>>>
     }
 
+
     // ----------------------------------------------------------------
     // Module init
     // ----------------------------------------------------------------
@@ -64,27 +66,25 @@ module dev::QiaraTokensStoragesV27 {
         let lock_storage = borrow_global_mut<LockStorage>(@dev);
         let fee_storage = borrow_global_mut<FeeStorage>(@dev);
 
-        // Create stores only if they don't exist for this token
+        // Lock
         if (!table::contains(&lock_storage.balances, token)) {
-            let lock_store = primary_fungible_store::ensure_primary_store_exists<Metadata>(@dev, metadata);
             table::add(&mut lock_storage.balances, token, map::new<String, Object<FungibleStore>>());
         };
-
         let lock = table::borrow_mut(&mut lock_storage.balances, token);
         if (!map::contains_key(lock, &chain)) {
             map::add( lock, chain, primary_fungible_store::ensure_primary_store_exists<Metadata>(@dev, metadata));
         };
 
+        // Fee
         if (!table::contains(&fee_storage.balances, token)) {
-            let fee_store = primary_fungible_store::ensure_primary_store_exists<Metadata>(@dev, metadata);
             table::add(&mut fee_storage.balances, token, map::new<String, Object<FungibleStore>>());
         };
-
         let fee = table::borrow_mut(&mut fee_storage.balances, token);
         if (!map::contains_key(fee, &chain)) {
             map::add( fee, chain, primary_fungible_store::ensure_primary_store_exists<Metadata>(@dev, metadata));
         };
     }
+
 
     // --------------------------
     // PUBLIC FUNCTIONS
@@ -109,6 +109,7 @@ module dev::QiaraTokensStoragesV27 {
         return *map::borrow(lock, &chain)
 
     }
+
 
     #[view]
     public fun return_lock_balance(token: String, chain: String): u64 acquires LockStorage {

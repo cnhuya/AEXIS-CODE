@@ -1,6 +1,7 @@
-module dev::QiaraTokensOmnichainV27{
+module dev::QiaraTokensOmnichainV33{
     use std::signer;
     use std::bcs;
+    use std::timestamp;
     use std::vector;
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
@@ -9,6 +10,7 @@ module dev::QiaraTokensOmnichainV27{
     use supra_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore};
     use supra_framework::primary_fungible_store;
     use supra_framework::object::{Self, Object};
+    use supra_framework::event;
 
     use dev::QiaraChainTypesV19::{Self as ChainTypes};
     use dev::QiaraTokenTypesV19::{Self as TokensType};
@@ -21,6 +23,7 @@ module dev::QiaraTokensOmnichainV27{
     const ERROR_ADDRESS_NOT_INITIALIZED: u64 = 4;
     const ERROR_TOKEN_NOT_INITIALIZED: u64 = 5;
     const ERROR_TOKEN_NOT_INITIALIZED_FOR_THIS_CHAIN: u64 = 6;
+    const ERROR_INSUFFICIENT_BALANCE: u64 = 7;
     
 // === ACCESS === //
     struct Access has store, key, drop {}
@@ -60,6 +63,26 @@ module dev::QiaraTokensOmnichainV27{
     //    book: Table<vector<u8>, Table<String, Map<String, u256>>>
     // }
 
+
+// === EVENTS === //
+    #[event]
+    struct MintEvent has copy, drop, store {
+        address: vector<u8>,
+        token: String,
+        chain: String,
+        amount: u64,
+        time: u64
+    }
+
+    #[event]
+    struct BurnEvent has copy, drop, store {
+        address: vector<u8>,
+        token: String,
+        chain: String,
+        amount: u64,
+        time: u64
+    }
+
 // === INIT === //
     fun init_module(admin: &signer) {
         assert!(signer::address_of(admin) == @dev, 1);
@@ -82,8 +105,8 @@ module dev::QiaraTokensOmnichainV27{
 // === HELPERS === //
 
     public fun change_TokenSupply(token:String, chain:String, amount: u64, isMint: bool, perm: Permission) acquires CrosschainBook, TokensChains {
-        ChainTypes::ensure_valid_chain_name(&chain);
-        TokensType::ensure_valid_token(&token);
+       // ChainTypes::ensure_valid_chain_name(&chain);
+       // TokensType::ensure_valid_token(&token);
       
         let book = borrow_global_mut<CrosschainBook>(@dev);
         let chains = borrow_global_mut<TokensChains>(@dev);
@@ -116,48 +139,90 @@ module dev::QiaraTokensOmnichainV27{
             map::upsert(token_book, chain_type, (amount as u256));
         }   
     }
-    public fun change_UserTokenSupply(token:String, chain:String, address: vector<u8>, amount: u64, isMint: bool, perm: Permission) acquires UserCrosschainBook, TokensChains {
-        ChainTypes::ensure_valid_chain_name(&chain);
-        TokensType::ensure_valid_token(&token);
-     
-        let book = borrow_global_mut<UserCrosschainBook>(@dev);
-        let chains = borrow_global_mut<TokensChains>(@dev);
-        let token_type = token;
-        let chain_type = chain;
+public fun change_UserTokenSupply(
+    token: String, 
+    chain: String, 
+    address: vector<u8>, 
+    amount: u64, 
+    isMint: bool, 
+    perm: Permission
+) acquires UserCrosschainBook, TokensChains {
+    
+    let book = borrow_global_mut<UserCrosschainBook>(@dev);
+    let chains = borrow_global_mut<TokensChains>(@dev);
+    let token_type = token;
+    let chain_type = chain;
 
-        if (!map::contains_key(&chains.book, &token_type)) {
-            map::upsert(&mut chains.book, token_type, vector::empty<String>());
-        };
-        let chains = map::borrow_mut(&mut chains.book, &token_type);
-        vector::push_back(chains, chain);
+    if (!map::contains_key(&chains.book, &token_type)) {
+        map::upsert(&mut chains.book, token_type, vector::empty<String>());
+    };
+    let c = map::borrow_mut(&mut chains.book, &token_type);
+    
+    if (!vector::contains(c, &chain_type)) {
+        vector::push_back(c, chain_type);
+    };
 
+    if (!table::contains(&book.book, address)) {
+      //  tttta(100);
+        table::add(&mut book.book, address, table::new<String, Map<String, u256>>());
+    };
 
-        if (!table::contains(&book.book, address)) {
-            table::add(&mut book.book, address, table::new<String, Map<String, u256>>());
-        };
-
-        let user_book = table::borrow_mut(&mut book.book, address);
-        if(!table::contains(user_book, token_type)) {
-            table::add(user_book, token_type, map::new<String, u256>());
-        };
-        
-        ensure_token_supports_chain(token, chain);
-        let user = table::borrow_mut(user_book, token_type);
-        if (!map::contains_key(user, &chain_type)) {
-            map::add( user, chain_type, (amount as u256));
+    let user_book = table::borrow_mut(&mut book.book, address);
+    
+    if(!table::contains(user_book, token_type)) {
+        table::add(user_book, token_type, map::new<String, u256>());
+    };
+    
+if(isMint){
+            event::emit(MintEvent {
+            address: address,
+            token: token,
+            chain: chain,
+            amount: amount,
+            time: timestamp::now_seconds() 
+        });
+} else {
+            event::emit(BurnEvent {
+            address: address,
+            token: token,
+            chain: chain,
+            amount: amount,
+            time: timestamp::now_seconds() 
+        });
+};
+    
+    let user = table::borrow_mut(user_book, token_type);
+   // tttta(1);
+    // 5. Handle the amount change
+    if (!map::contains_key(user, &chain_type)) {
+        // First time for this chain
+        if (isMint) {
+            map::add(user, chain_type, (amount as u256));
         } else {
-            let current = map::borrow_mut( user, &chain_type);
-            if(isMint){
-                map::upsert(user, chain_type, *current + (amount as u256));
+            // Can't withdraw from zero balance
+            // For withdrawals, we should have checked balance first
+            // But initialize with 0 anyway
+            map::add(user, chain_type, (0 as u256));
+        };
+   // tttta(5);
+    } else {
+        let current = map::borrow_mut(user, &chain_type);
+        if (isMint) {
+            *current = *current + (amount as u256);
+        } else {
+            // Check for underflow
+            if (*current < (amount as u256)) {
+                // Handle underflow - either abort or set to 0
+                // *current = (0 as u256); // Option 1: Set to 0
+                abort ERROR_INSUFFICIENT_BALANCE // Option 2: Abort (recommended)
             } else {
-                if(*current < (amount as u256)){
-                    return;
-                } else {
-                map::upsert(user, chain_type, *current - (amount as u256));
-                }
+                *current = *current - (amount as u256);
             };
-        }   
+        };
+    //tttta(500);
     }
+
+}
 
 
 // === VIEW FUNCTIONS === //

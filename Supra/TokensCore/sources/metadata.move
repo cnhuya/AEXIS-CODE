@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV27{
+module dev::QiaraTokensMetadataV33{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -9,11 +9,11 @@ module dev::QiaraTokensMetadataV27{
     use std::timestamp;
     use supra_framework::event;
 
-    use dev::QiaraStorageV33::{Self as storage};
+    use dev::QiaraStorageV34::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraTokensRatesV27::{Self as rates};
-    use dev::QiaraTokensTiersV27::{Self as tier};
+    use dev::QiaraTokensRatesV33::{Self as rates};
+    use dev::QiaraTokensTiersV33::{Self as tier};
 
 
 // === ERRORS === //
@@ -479,6 +479,7 @@ module dev::QiaraTokensMetadataV27{
             (metadata.full_tier.multiplier * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"W_FEE")))) / (storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_MULTIPLIER_HANDICAP")))/100)
         
         }
+
 
         #[view]
         public fun get_coin_metadata_by_symbol(res: String): VMetadata acquires Tokens {
