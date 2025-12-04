@@ -4,10 +4,10 @@
     authors = []
 
     [addresses]
-    dev = "0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0"
+    dev = "0xd4fcdba413ff103eec996a07b795847a8b4ce5c328d35d9843dc5ec2230de605"
     [dev-addresses]
 
-    [dependencies.QiaraStorageV32]
+    [dependencies.QiaraStorageV34]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Storage'
