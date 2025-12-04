@@ -1,4 +1,4 @@
-module dev::QiaraStakingThirdPartyV1{
+module dev::QiaraStakingThirdPartyV2{
     use std::string::{Self, utf8};
     use dev::QiaraStorageV34::{Self as storage};
 
@@ -14,8 +14,8 @@ module dev::QiaraStakingThirdPartyV1{
     }
       
     #[view]
-    public fun return_coins_usd_scale(): u64 {
-      storage::expect_u64(storage::viewConstant(utf8(b"QiaraStaking"), utf8(b"COINS_USD_SCALE")))
+    public fun return_efficiency_slashing(): u64 {
+      storage::expect_u64(storage::viewConstant(utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY")))
     }
 
 }
