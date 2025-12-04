@@ -2,8 +2,7 @@ module dev::QiaraTokenTypesV19 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
 
-
-const TOKEN_PREFIX: vector<u8> = b"Qiara18 ";
+const TOKEN_PREFIX: vector<u8> = b"Qiara19 ";
 const SYMBOL_PREFIX: vector<u8> = b"Q";
 
 // === ERRORS === //
@@ -25,6 +24,7 @@ const SYMBOL_PREFIX: vector<u8> = b"Q";
             utf8(b"Injective"),
             utf8(b"USDC"),
             utf8(b"USDT"), 
+            utf8(b"Qiara"), 
         ]
     }
 // Define constants at the module level
@@ -54,6 +54,8 @@ public fun ensure_valid_token(token: &String): String {
         string::append_utf8(&mut full_token_name, b"USDC");        
     } else if (token == &utf8(b"USDT")){
         string::append_utf8(&mut full_token_name, b"USDT");        
+    } else if (token == &utf8(b"Qiara")){
+        return utf8(b"Qiara19")
     } else {
         abort(ERROR_INVALID_TOKEN);   
     };
@@ -66,26 +68,28 @@ public fun convert_token_to_symbol(token: &String): String {
     
     let symbol = string::utf8(SYMBOL_PREFIX);
     
-    if(token == &utf8(b"Qiara18 Bitcoin")){
+    if(token == &utf8(b"Qiara19 Bitcoin")){
         string::append_utf8(&mut symbol, b"BTC");
-    } else if (token == &utf8(b"Qiara18 Ethereum")){
+    } else if (token == &utf8(b"Qiara19 Ethereum")){
         string::append_utf8(&mut symbol, b"ETH");        
-    } else if (token == &utf8(b"Qiara18 Solana")){
+    } else if (token == &utf8(b"Qiara19 Solana")){
         string::append_utf8(&mut symbol, b"SOL");        
-    } else if (token == &utf8(b"Qiara18 Sui")){
+    } else if (token == &utf8(b"Qiara19 Sui")){
         string::append_utf8(&mut symbol, b"SUI"); 
-    } else if (token == &utf8(b"Qiara18 Virtuals")){
+    } else if (token == &utf8(b"Qiara19 Virtuals")){
         string::append_utf8(&mut symbol, b"VIRTUALS");        
-    } else if (token == &utf8(b"Qiara18 Deepbook")){
+    } else if (token == &utf8(b"Qiara19 Deepbook")){
         string::append_utf8(&mut symbol, b"DEEP");        
-    } else if (token == &utf8(b"Qiara18 Supra")){
+    } else if (token == &utf8(b"Qiara19 Supra")){
         string::append_utf8(&mut symbol, b"SUPRA");        
-    } else if (token == &utf8(b"Qiara18 Injective")){
+    } else if (token == &utf8(b"Qiara19 Injective")){
         string::append_utf8(&mut symbol, b"INJ");        
-    } else if (token == &utf8(b"Qiara18 USDC")){
+    } else if (token == &utf8(b"Qiara19 USDC")){
         string::append_utf8(&mut symbol, b"USDC");        
-    } else if (token == &utf8(b"Qiara18 USDT")){
-        string::append_utf8(&mut symbol, b"USDT");        
+    } else if (token == &utf8(b"Qiara19 USDT")){
+        string::append_utf8(&mut symbol, b"USDT");   
+    } else if (token == &utf8(b"Qiara19")){
+        return utf8(b"QIARA")       
     } else {
         abort(ERROR_INVALID_CONVERT_TOKEN);   
     };
@@ -113,7 +117,9 @@ public fun convert_symbol_to_token(symbol: &String): String {
     } else if (symbol == &utf8(b"QUSDC")){
         return utf8(b"USDC")        
     } else if (symbol == &utf8(b"QUSDT")){
-        return utf8(b"USDT")        
+        return utf8(b"USDT")  
+    } else if (symbol == &utf8(b"QIARA")){
+        return utf8(b"Qiara")        
     } else {
         abort(ERROR_INVALID_CONVERT_SYMBOL)   
     }
