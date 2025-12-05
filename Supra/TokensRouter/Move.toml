@@ -11,7 +11,6 @@
     Extensions = "0x1"
     [dev-addresses]
 
-
     [dependencies.AptosStdlib]
     git = "https://github.com/Entropy-Foundation/aptos-core.git"
     rev = "dev"
@@ -21,5 +20,10 @@
     git = "https://github.com/Entropy-Foundation/aptos-core.git"
     rev = "dev"
     subdir = "aptos-move/framework/supra-framework"
+
+    [dependencies.QiaraTypesV19]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Types'
 
     [dev-dependencies]

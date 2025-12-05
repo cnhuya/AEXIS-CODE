@@ -5,10 +5,12 @@ module dev::QiaraTokensRouterV1 {
     use supra_framework::object::{Self, Object};
     use supra_framework::fungible_asset::{Self, Metadata};
 
+    use dev::QiaraTokenTypesV19::{Self as TokensType};
+
 // === HELPER FUNCTIONS === //
     #[view]
-    public fun get_metadata(token:String): Object<Metadata> {
-        let asset_address = object::create_object_address(&@dev, bcs::to_bytes(&token));
+    public fun get_metadata(symbol:String): Object<Metadata> {
+        let asset_address = object::create_object_address(&@dev, bcs::to_bytes(&TokensType::ensure_valid_token(&symbol)));
         object::address_to_object<Metadata>(asset_address)
     }
 
