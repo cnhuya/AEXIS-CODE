@@ -1,32 +1,30 @@
-module dev::AexisChainsV50 {
+module dev::QiaraBridgeV1 {
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::type_info;
-    use std::table;
+    use std::table:: {Self as table, Table};
     use std::timestamp;
     use std::bcs;
     use std::debug::print;
     use aptos_std::from_bcs;
+    use aptos_std::ed25519::{Self as Crypto, Signature, UnvalidatedPublicKey};
     use supra_framework::event;
     use supra_framework::fungible_asset::{Self, Metadata, FungibleAsset};
     use supra_framework::object::{Self, Object};
     use supra_framework::primary_fungible_store;
 
-    use dev::QiaraStorageV20::{Self as storage};
-    
-    use dev::AexisCoinTypesV2::{Self as CoinDeployer, AccessCoins, UserCoinsCap};
+    use dev::QiaraStorageV34::{Self as storage};
 
-    use dev::AexisVaultsV18::{Self as Vaults, UserCap, Access};
-
-    use aptos_std::ed25519::{Self as Crypto, Signature, UnvalidatedPublicKey};
+    use dev::QiaraTokensCoreV33::{Self as TokensCore};
+    use dev::QiaraStakingV6::{Self as Staking};
 
     /// Admin address constant
-    const STORAGE: address = @dev; // <-- replace with real admin address
-    const QIARA_TOKEN: address = @0xf6d11e5ace09708c285e9dbabb267f4c4201718aaf0e0a70664ae48aaa38452f;
-
-
+    const STORAGE: address = @dev;
+    const SPLITTER: u8 = 0x7C; // Pipe character '|' in UTF-8
+    const SPLITTER_STR: vector<u8> = b"|";
+// === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_INVALID_CHAIN_ID: u64 = 2;
     const ERROR_VALIDATOR_IS_ALREADY_ALLOWED: u64 = 3;
@@ -41,8 +39,25 @@ module dev::AexisChainsV50 {
     const ERROR_CAPS_NOT_PUBLISHED: u64 = 11;
 
 
-   // struct testETH has drop, store {}
+// === ACCESS === //
+    struct Access has store, key, drop {}
+    struct Permission has store, key, drop, copy {}
 
+    public fun give_access(s: &signer): Access {
+        assert!(signer::address_of(s) == @dev, ERROR_NOT_ADMIN);
+        //capabilities::assert_wallet_capability(utf8(b"QiaraVault"), utf8(b"PERMISSION_TO_INITIALIZE_VAULTS"));
+        Access {}
+    }
+
+    public fun give_permission(access: &Access): Permission {
+        Permission {}
+    }
+
+    // Permissions 
+    struct Permissions has key {
+    }
+
+// === STRUCTS === //
    // [DEPRECATED]
    // struct DepositEvent has store, key {}
    // struct RequestUnlockEvent has store, key {}
@@ -58,56 +73,38 @@ module dev::AexisChainsV50 {
    /// If lets say it was "validated" total of 5 times succesfully, the 6th times will mote if from here
    /// to chain storage
    /// 
-   /// <message> <vector<QUAR>>
+   /// <message> <vector<Aux>>
    /// <message> <validators, weight>
    /// <message> <validator adress, validator weight, <weight>>
    
-    struct Pending<phantom T> has key {
-        txs: table::Table<vector<u8>, Quar>,
+    struct PubKeys has key {
+        registry: Table<address, vector<u8>>,
     }
 
-    struct Validated<phantom T> has key {
-        txs: table::Table<vector<u8>, Quar>,
+    struct Pending has key {
+        txs: Table<vector<u8>, Votes>,
     }
 
-    struct ValidatorVote has key, copy, store, drop {
-        validator: vector<u8>,
+    struct Validated has key {
+        txs: Table<vector<u8>, Votes>,
+    }
+
+    struct Vote has key, copy, store, drop {
+        validator: address,
+        tx_index: u64, // i.e the last tx validator got rewardedy
         weight: u64,
     }
 
-    struct Quar has key, copy, store, drop {
-        validators: vector<ValidatorVote>,
+    struct Votes has key, copy, store, drop {
+        votes: vector<Vote>,
         weight: u128,
     }
 
-    // Permissions 
-    struct Caps has key {
-        vault_access: Access,
-        coin_access: AccessCoins,
-    }
-
-    // Validator should be a key type so it can be stored in Chain
-    struct Validator has store, copy, drop {
-        address: address,
-        pubkey: vector<u8>,
-    }
-
-    struct DeserializedTX has store, drop, key {
-        native_tx_hash: vector<u8>,
-        event_type: String,
-        user: vector<u8>,
-        vault_provider: String,
-        vault_lend_rate: u64,
-        vault_borrow_rate: u64,
-        amount: u64,
-    }
-
-
+// === EVENTS === //
     #[event]
     struct ValidationEvent has copy, drop, store {
         chain_type: String,
         event_type: String,
-    //    creator: vector<u8>,
         validator: vector<u8>,
         message: vector<u8>,
     }
@@ -124,419 +121,145 @@ module dev::AexisChainsV50 {
         amount: u64,
         time: u64
     }
-
+// === INIT === //
     fun init_module(admin: &signer) {
-        if (!exists<Caps>(STORAGE)) {
-            let _cap = Caps { vault_access: Vaults::give_access(admin), coin_access: CoinDeployer::give_access(admin)};
-            move_to(admin, _cap);
-        };
-
-        assert!(exists<Caps>(STORAGE), ERROR_NOT_FOUND);
-        //assert!(!exists<Chain<Supra>>(signer::address_of(admin)), ERROR_NOT_FOUND);
-
-        register_chain<Sui>(admin, 1, utf8(b"Sui Network"), utf8(b"SUI"));
-        register_chain<Base>(admin, 2, utf8(b"Base Chain"), utf8(b"BASE"));
-        register_chain<Supra>(admin, 3, utf8(b"Supra"), utf8(b"SUPRA"));
-
+    //    if (!exists<Permissions>(@dev)) {
+    //        let _cap = Permissions { vault_access: Vaults::give_access(admin), coin_access: CoinDeployer::give_access(admin)};
+    //        move_to(admin, _cap);
+    //    };
     }
 
+// === FUNCTIONS === //
+   
+    public entry fun register_event(validator: &signer, validator_pubkey: vector<u8>, _signature: vector<u8>, message: vector<u8>) acquires Pending, Validated, PubKeys, Permissions {
 
-    fun get_qiara_balance(addr: address): u64 {
-        fungible_asset::balance(primary_fungible_store::ensure_primary_store_exists(addr, object::address_to_object<Metadata>(QIARA_TOKEN)))
+        ensure_validator_pubkey(borrow_global_mut<PubKeys>(@dev), validator, validator_pubkey);
+
+        print(&utf8(b" SENDER "));
+        print(&signer::address_of(validator));
+        print(&utf8(b" abc "));
+
+        let pubkey_struct = Crypto::new_unvalidated_public_key_from_bytes(validator_pubkey);
+        let signature = Crypto::new_signature_from_bytes(_signature);
+        let verified = Crypto::signature_verify_strict(&signature, &pubkey_struct, message);
+        assert!(verified, ERROR_INVALID_SIGNATURE);
+
+        let pending = borrow_global_mut<Pending>(STORAGE);
+        let validated = borrow_global_mut<Validated>(STORAGE);
+
+        // Store event in both pending and chain storage
+        handle_event(
+            validator,
+            (signer::address_of(validator)),
+            &mut pending.txs,
+            &mut validated.txs,
+            message,
+        );
     }
 
-    fun get_qiara_circ_supply(addr: address): u64 {
-        fungible_asset::balance(primary_fungible_store::ensure_primary_store_exists(addr, object::address_to_object<Metadata>(QIARA_TOKEN)))
-    }
-
-    public entry fun register_chain<T>(admin: &signer, id: u8, name: String, symbol: String) {
-        assert!(!exists<Chain<T>>(signer::address_of(admin)), ERROR_CHAIN_ALREADY_REGISTERED);
-
-        let chain = Chain<T> { 
-            id, 
-            name, 
-            symbol, 
-            validators: vector::empty<Validator>(),
-        };
-
-        // pending storage (temporary validation counters)
-        let pending_txs_table = table::new<vector<u8>, Quar>();
-        let validated_txs_table = table::new<vector<u8>, Quar>();
-
-        let pending = Pending<T> { 
-            txs: pending_txs_table,
-        };
-        let validated = Validated<T> { 
-            txs: validated_txs_table,
-        };
-
-        move_to(admin, chain);
-        move_to(admin, pending);
-        move_to(admin, validated);
-    }
-
-
-    ///
-    /// TO DO
-    /// 
-    /// Implement manual event registration, bridge aggregrator would then check the tx hash offchain and emit new event registration,
-    /// unless all asserts are passed (transaction type is allowed (package,module,function...) or check txs if allowed in certain blockchains)
-    /// 
-
-    ///[DEPRECATED]
-  //  public entry fun batch_register_event<T: store, E>(admin: &signer, signatures: vector<vector<u8>>, messages: vector<vector<u8>>) acquires Chain,Pending, Validated, Caps{
-        //assert!(vector::length(&native_tx_hash) == vector::length(&user) && vector::length(&user) == vector::length(&amount), ERROR_INVALID_BATCH_REGISTER_EVENT_ARG_EQUALS);
-         //let len = vector::length(&messages);
-   //     while(len>0){
-    //        register_event<T, E>(admin, *vector::borrow(&signatures, len-1), *vector::borrow(&messages, len-1));
-     //       len = len-1;
-      //  };
-    //}
-
-public entry fun register_event<T: store, E, X:store>(sender: &signer, _signature: vector<u8>, message: vector<u8>) acquires Chain, Pending, Validated, Caps {
-    let chain = borrow_global_mut<Chain<T>>(STORAGE);
-    let vault_provider = type_info::type_name<X>();
-    vector::append(&mut message, *String::bytes(&vault_provider));
-    // Check validator and get pubkey without double borrowing
-    let pubkey: vector<u8> = vector::empty<u8>();
-    let i = 0;
-    let validators_len = vector::length(&chain.validators);
-    print(&utf8(b" VALIDATORS LEN "));
-    print(&validators_len);
-    let found = false;
-    print(&utf8(b" SENDER "));
-    print(&signer::address_of(sender));
-    print(&utf8(b" abc "));
-    print(&chain.validators);
-    let validator: Validator;
-    while (i < validators_len) {
-        let v = vector::borrow(&chain.validators, i);
-        if (v.address == signer::address_of(sender)) {
-            print(&v.address);
-            print(&signer::address_of(sender));
-            pubkey = v.pubkey;
-            validator=*v;
-            found = true;
-            break;
-        };
-        i = i + 1;
-    };
-    assert!(found, ERROR_NOT_VALIDATOR);
-
-    let pubkey_struct = Crypto::new_unvalidated_public_key_from_bytes(pubkey);
-    let signature = Crypto::new_signature_from_bytes(_signature);
-    let verified = Crypto::signature_verify_strict(&signature, &pubkey_struct, message);
-    assert!(verified, ERROR_INVALID_SIGNATURE);
-
-    let pending = borrow_global_mut<Pending<T>>(STORAGE);
-    let validated = borrow_global_mut<Validated<T>>(STORAGE);
-
-
-    // Store event in both pending and chain storage
-    handle_event<T, E, X>(
-        sender,
-        bcs::to_bytes(&signer::address_of(sender)),
-        &mut pending.txs,
-        &mut validated.txs,
-        message,
-    );
-}
-
-    // In the future allow anyone to add validator if they stake enough coins
-    public entry fun allow_validator<T: store>(admin: &signer,validator_address: address, validator_pubkey: vector<u8>) acquires Chain {
-        // Only admin can add validators
+    fun ensure_validator_pubkey(pubkeys_registry: &mut PubKeys, validator: &signer, validator_pubkey: vector<u8>) {
         print(&vector::length(&validator_pubkey));
-        let chain = borrow_global_mut<Chain<T>>(STORAGE);
 
-        // Check for duplicates
-        let i = 0;
-        let validators_len = vector::length(&chain.validators);
-        while (i < validators_len) {
-            let existing_validator = vector::borrow(&chain.validators, i);
-            assert!(existing_validator.pubkey != validator_pubkey, ERROR_VALIDATOR_IS_ALREADY_ALLOWED);
-            i = i + 1;
+        if(!table::contains(&pubkeys_registry.registry, signer::address_of(validator))) {
+            table::add(&mut pubkeys_registry.registry, signer::address_of(validator), validator_pubkey);
         };
-
-
-        // Create and add validator struct
-        let new_validator = Validator { address: validator_address, pubkey: validator_pubkey};
-        vector::push_back(&mut chain.validators, new_validator);
     }
 
 
-    ///
-    /// VIEW
-    /// 
+    fun handle_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, Aux>, validated_table: &mut table::Table<vector<u8>, Aux>, message: vector<u8>) acquires Permissions {
+        let quorum = storage::expect_u128(storage::viewConstant(utf8(b"QiaraChains"), utf8(b"QUARUM")));
 
-    #[view]
-    public fun get_chain_validators<T>(): vector<Validator> acquires Chain {
-        let chain = borrow_global<Chain<T>>(STORAGE);
-        chain.validators
-    }
-
-    #[view]
-    public fun deserialize_message(message: vector<u8>): (DeserializedTX, u64 ) {
-        let len = vector::length(&message);
-
-
-        let event_id = from_bcs::to_u8(copy_range(&message, 0, 1)); // u8 is 1 bytes 
-        let user_addr = copy_range(&message, 1, 33); // addresses are 32 bytes
-        let vault_lend_rate = from_bcs::to_u64(copy_range(&message, 33, 41)); // u64 is 8 bytes
-        let vault_borrow_rate = from_bcs::to_u64(copy_range(&message, 41,49)); // u64 is 8 bytes
-        let amount = copy_range(&message, 49, 57); // u64 is 8 bytes
-        let native_tx_hash = copy_range(&message, 57, 89); // tx hash is 32 bytes
-        let vault_provider = String::utf8(copy_range(&message, 89, len)); // 
-        (DeserializedTX 
-        {
-            native_tx_hash:native_tx_hash,
-            event_type: convert_eventID_to_string(event_id),
-            user: user_addr,
-            vault_lend_rate: vault_lend_rate,
-            vault_borrow_rate: vault_borrow_rate,
-            amount: from_bcs::to_u64(amount),
-            vault_provider: vault_provider,
-        }, len)
-    }
-
-    /// In the future add pagination for txs by switching to smart table instead of table.
-    #[view]
-    public fun get_chain<T>(): Chain<T> acquires Chain {
-        let chain = borrow_global<Chain<T>>(STORAGE);
-        let _chain = Chain<T> {
-            id: chain.id,
-            name: chain.name,
-            symbol: chain.symbol,
-            validators: chain.validators,
-        };
-        _chain
-    }
-
-
-
-    ///
-    /// HELPER
-    /// 
-    
-    /// Helper function to get validator public key
-    /// Returns `Some(pubkey)` if address is a validator, `None` otherwise
-    public fun get_validator_pubkey<T: store>(validator_addr: address): vector<u8> acquires Chain {
-        let chain = borrow_global<Chain<T>>(STORAGE);
-
-        let i = 0;
-        let validators_len = vector::length(&chain.validators);
-
-        while (i < validators_len) {
-            let v = vector::borrow(&chain.validators, i);
-            if (v.address == validator_addr) {
-                return (v.pubkey);
-            };
-            i = i + 1;
-        };
-
-        abort(ERROR_NOT_VALIDATOR)
-    }
-
-
-    //[DEPRECATED]
-/*   public fun batch_is_tx_registered<T, E>(chain: &mut Chain<T>,txs: &vector<vector<u8>>): v {
-        let chain = borrow_global_mut<Chain<T>>(ADMIN);
-        let len = vector::length(&txs);
-        while(len>0){
-            let result = is_tx_registered(chain, vector::borrow(&txs, len-1));
-        }
-        is_tx_registered(chain, vector::borrow(&txs, len-1));
-*/
-
-    //[DEPRECATED]    
- /*   public fun is_tx_registered<T, E>(chain: &mut Chain<T>,native_tx_hash: &vector<u8>): bool {
-        let timestamp = timestamp::now_seconds();
-        let epoch_key = timestamp / 86400;
-
-        if (type_info::type_name<E>() == type_info::type_name<DepositEvent>()) {
-            if (!table::contains(&chain.deposits, epoch_key)) {
-                return false;
-            };
-            let vec = table::borrow_mut(&mut chain.deposits, epoch_key);
-            let len = vector::length(vec);
-            let i = 0;
-            while (i < len) {
-                let event = vector::borrow(vec, i);
-                if (event.native_tx_hash == *native_tx_hash) {
-                    return true;
-                };
-                i = i + 1;
-            };
-            false
-
-        } else if (type_info::type_name<E>() == type_info::type_name<RequestUnlockEvent>()) {
-            if (!table::contains(&chain.request_unlocks, epoch_key)) {
-                return false;
-            };
-            let vec = table::borrow_mut(&mut chain.request_unlocks, epoch_key);
-            let len = vector::length(vec);
-            let i = 0;
-            while (i < len) {
-                let event = vector::borrow(vec, i);
-                if (event.native_tx_hash == *native_tx_hash) {
-                    return true;
-                };
-                i = i + 1;
-            };
-            false
-
-        } else if (type_info::type_name<E>() == type_info::type_name<UnlockEvent>()) {
-            if (!table::contains(&chain.unlocks, epoch_key)) {
-                return false;
-            };
-            let vec = table::borrow_mut(&mut chain.unlocks, epoch_key);
-            let len = vector::length(vec);
-            let i = 0;
-            while (i < len) {
-                let event = vector::borrow(vec, i);
-                if (event.native_tx_hash == *native_tx_hash) {
-                    return true;
-                };
-                i = i + 1;
-            };
-            false
-        } else {
-            false
-        }
-    }
-*/
- 
-    public fun get_supra_bankers(): vector<address> acquires Chain {
-        let chain = borrow_global_mut<Chain<Supra>>(STORAGE);
-        let len = vector::length(&chain.validators);
-        let vect = vector::empty<address>();
-        let i = 0;
-        while (i < len) {
-            let validator = vector::borrow(&chain.validators, i);
-            vector::push_back(&mut vect, validator.address);
-            i = i + 1;
-        };
-        vect
-    }
-
-    fun copy_range(v: &vector<u8>, start: u64, end: u64): vector<u8> {
-        let out = vector::empty<u8>();
-        let i = start;
-        while (i < end) {
-            let b_ref = vector::borrow(v, i);
-            vector::push_back(&mut out, *b_ref);
-            i = i + 1;
-        };
-        out
-    }
-
-
-fun handle_event<T, E, X: store>(signer: &signer, validator: vector<u8>, pending_table: &mut table::Table<vector<u8>, Quar>, validated_table: &mut table::Table<vector<u8>, Quar>, message: vector<u8>) acquires Caps {
-    let quorum = storage::expect_u128(storage::viewConstant(utf8(b"QiaraChains"), utf8(b"QUARUM")));
-
-    // Ensure message has enough bytes for all slices we take below.
-    assert!(vector::length(&message) >= 73, ERROR_INVALID_MESSAGE);
-
-    // Already validated?
-    if (table::contains(validated_table, message)) {
-        abort(ERROR_DUPLICATE_EVENT);
-    };
-
-    let vote_weight =  get_qiara_balance(from_bcs::to_address(validator));
-    // Update pending validators
-    // Update pending validators
-    let count = if (table::contains(pending_table, message)) {
-        let _quar = table::borrow_mut(pending_table, message);
-        let exists = false;
-        let len = vector::length(&_quar.validators);
-        let i = 0;
-        while (i < len) {
-            let v = vector::borrow(&_quar.validators, i);
-            if (v.validator == validator) {
-                exists = true;
-            };
-            i = i + 1;
-        };
-        if (!exists) {
-            let vote = ValidatorVote { validator: validator, weight: vote_weight };
-            _quar.weight = _quar.weight + (vote_weight as u128);
-            vector::push_back(&mut _quar.validators, vote);
-        };
-        _quar.weight
-    } else {
-        let validator_vote = ValidatorVote {validator: validator, weight: vote_weight};
-        let vect = vector<ValidatorVote>[validator_vote];
-        let quar = Quar {validators: vect, weight: (vote_weight as u128)};
-        table::add(pending_table, copy message, quar);
-
-        let event_id = from_bcs::to_u8(copy_range(&message, 0, 1));
-        event::emit(ValidationEvent {
-            chain_type: ChainTypes::convert_chainType_to_string<T>(),
-            event_type: convert_eventID_to_string(event_id),
-            validator: validator,
-            message: message,
-        });
-        1
-    };
-
-
-    // Promote to validated
-    if (count >= (quorum as u128)) {
-        // Defensive: ensure key exists before remove
-        assert!(table::contains(pending_table, message), ERROR_NOT_FOUND);
-        let validators = table::remove(pending_table, message);
-
+        // Already validated?
         if (table::contains(validated_table, message)) {
             abort(ERROR_DUPLICATE_EVENT);
         };
-        table::add(validated_table, message, validators);
 
-        // Decode fields (we already length-checked)
-        let event_id = from_bcs::to_u8(copy_range(&message, 0, 1));
-        let user_addr = from_bcs::to_address(copy_range(&message, 1, 33));
-        let lend_rate =  from_bcs::to_u64(copy_range(&message, 33, 41)); // u64 is 8 bytes
-        let borrow_rate =  from_bcs::to_u64(copy_range(&message, 41,49)); // u64 is 8 bytes
-        let amount = from_bcs::to_u64(copy_range(&message, 49, 57)); 
-        //let vault_provider = copy_range(&message, 89, len); // 
-        //let _native_tx_hash = copy_range(&message, 41, 73); // keep if youll use it later
+        let vote_weight = Staking::get_voting_power(address);
+        // Update pending validators
+        let count = if (table::contains(pending_table, message)) {
+            let _quar = table::borrow_mut(pending_table, message);
+            if(vector::contains(&_quar.validators, validator)){
+                let vote = ValidatorVote { validator: validator, weight: vote_weight };
+                _quar.weight = _quar.weight + (vote_weight as u128);
+                vector::push_back(&mut _quar.validators, vote);
+            };
+            _quar.weight
+        } else {
+            let validator_vote = ValidatorVote {validator: validator, weight: vote_weight};
+            let vect = vector<ValidatorVote>[validator_vote];
+            let quar = Aux {validators: vect, weight: (vote_weight as u128)};
+            table::add(pending_table, copy message, quar);
 
-        // >>> PROBABLE CRASH SITE BEFORE: make sure Caps exists <<<
-        assert!(exists<Caps>(STORAGE), ERROR_CAPS_NOT_PUBLISHED);
-        let cap = borrow_global<Caps>(STORAGE);
-
-        // If these are needed later, keep; otherwise remove to avoid unused warnings.
-        let _coin_cap = CoinDeployer::give_usercap(signer, &cap.coin_access);
-        let _user_cap = Vaults::give_usercap(signer, &cap.vault_access);
-
-        let even_type = convert_eventID_to_string(event_id);
-        if(even_type == utf8(b"Deposit")){
-            let coins = CoinDeployer::extract_to<E>(signer, _coin_cap, user_addr, amount);
-            Vaults::bridge_deposit<E,T,X>(signer, &cap.vault_access, _user_cap, user_addr, amount, coins, lend_rate, borrow_rate);
-        } else if(even_type == utf8(b"Request Unlock")){
-         //   Vaults::request_unlock<E>(signer, user_addr, amount, &_user_cap);
-        } else if(even_type == utf8(b"Unlock")){
-         //   Vaults::unlock<E>(signer, user_addr, amount, &_user_cap);
-        }  else{
-            abort(ERROR_INVALID_MESSAGE);
+        //    let event_id = from_bcs::to_u8(copy_range(&message, 0, 1));
+        //    event::emit(ValidationEvent {
+        //        chain_type: ChainTypes::convert_chainType_to_string<T>(),
+        //        event_type: convert_eventID_to_string(event_id),
+        //        validator: validator,
+        //        message: message,
+        //    });
+            1
         };
-        let _validators = copy validators;
-        event::emit(EventRegistered {
-            chain_type: ChainTypes::convert_chainType_to_string<T>(),
-            event_type: even_type,
-            validator: copy validator,
-            validators: validators.validators,
-            recipient: user_addr,
-            message: message,
-            token_type: type_info::type_name<E>(),
-            amount: amount,
-            time: timestamp::now_seconds(),
-        });
-    };
-}
+
+
+        // Promote to validated
+        if (count >= (quorum as u128)) {
+            // Defensive: ensure key exists before remove
+            assert!(table::contains(pending_table, message), ERROR_NOT_FOUND);
+            let validators = table::remove(pending_table, message);
+
+            if (table::contains(validated_table, message)) {
+                abort(ERROR_DUPLICATE_EVENT);
+            };
+            table::add(validated_table, message, validators);
+
+            // Decode fields (we already length-checked)
+       //     let event_id = from_bcs::to_u8(copy_range(&message, 0, 1));
+       //     let user_addr = from_bcs::to_address(copy_range(&message, 1, 33));
+       //     let lend_rate =  from_bcs::to_u64(copy_range(&message, 33, 41)); // u64 is 8 bytes
+       //     let borrow_rate =  from_bcs::to_u64(copy_range(&message, 41,49)); // u64 is 8 bytes
+       //     let amount = from_bcs::to_u64(copy_range(&message, 49, 57)); 
+            //let vault_provider = copy_range(&message, 89, len); // 
+            //let _native_tx_hash = copy_range(&message, 41, 73); // keep if youll use it later
+
+            // >>> PROBABLE CRASH SITE BEFORE: make sure Caps exists <<<
+            assert!(exists<Permissions>(@dev), ERROR_CAPS_NOT_PUBLISHED);
+            let cap = borrow_global<Permissions>(@dev);
+
+            // If these are needed later, keep; otherwise remove to avoid unused warnings.
+            let _coin_cap = CoinDeployer::give_usercap(signer, &cap.coin_access);
+            let _user_cap = Vaults::give_usercap(signer, &cap.vault_access);
+
+            let even_type = 1;
+            if(even_type == utf8(b"Deposit")){
+              //  let coins = CoinDeployer::extract_to<E>(signer, _coin_cap, user_addr, amount);
+            //    Vaults::bridge_deposit<E,T,X>(signer, &cap.vault_access, _user_cap, user_addr, amount, coins, lend_rate, borrow_rate);
+            } else if(even_type == utf8(b"Request Unlock")){
+            //   Vaults::request_unlock<E>(signer, user_addr, amount, &_user_cap);
+            } else if(even_type == utf8(b"Unlock")){
+            //   Vaults::unlock<E>(signer, user_addr, amount, &_user_cap);
+            }  else{
+                abort(ERROR_INVALID_MESSAGE);
+            };
+        //    let _validators = copy validators;
+        /*    event::emit(EventRegistered {
+                chain_type: ChainTypes::convert_chainType_to_string<T>(),
+                event_type: even_type,
+                validator: copy validator,
+                validators: validators.validators,
+                recipient: user_addr,
+                message: message,
+                token_type: type_info::type_name<E>(),
+                amount: amount,
+                time: timestamp::now_seconds(),
+            });*/
+        };
+    }
+
 
 
     #[view]
-    public fun is_validated_single<T>(message: vector<u8>): bool acquires Validated {
-        let validated = borrow_global<Validated<T>>(STORAGE);
+    public fun is_validated_single(message: vector<u8>): bool acquires Validated {
+        let validated = borrow_global<Validated>(@dev);
             if (table::contains(&validated.txs, message)) {
                 return true
             } else {
@@ -546,8 +269,8 @@ fun handle_event<T, E, X: store>(signer: &signer, validator: vector<u8>, pending
 
 
     #[view]
-    public fun is_validated<T>(messages: vector<vector<u8>>): vector<bool> acquires Validated {
-        let validated = borrow_global<Validated<T>>(STORAGE);
+    public fun is_validated(messages: vector<vector<u8>>): vector<bool> acquires Validated {
+        let validated = borrow_global<Validated>(@dev);
 
         let results = vector::empty<bool>();
         let len = vector::length(&messages);
