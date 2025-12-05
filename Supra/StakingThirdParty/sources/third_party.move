@@ -18,4 +18,9 @@ module dev::QiaraStakingThirdPartyV2{
       storage::expect_u64(storage::viewConstant(utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY")))
     }
 
+    #[view]
+    public fun return_staking_fee(): u64 {
+      storage::expect_u64(storage::viewConstant(utf8(b"QiaraStaking"), utf8(b"STAKING_FEE")))
+    }
+
 }
