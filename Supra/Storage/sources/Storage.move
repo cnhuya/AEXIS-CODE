@@ -1,4 +1,4 @@
-module dev::QiaraStorageV34 {
+module dev::QiaraStorageV35 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -101,8 +101,8 @@ module dev::QiaraStorageV34 {
     public entry fun more(admin: &signer) acquires KeyRegistry, ConstantDatabase{
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
        
-        register_constant<u64>(admin, utf8(b"QiaraTokens"), utf8(b"TRANSFER_FEE"), 250, false, &give_permission(&give_access(admin))); // 0,00025% 
-        register_constant<u64>(admin, utf8(b"QiaraTokens"), utf8(b"FLAT_USD_FEE"), 100, false, &give_permission(&give_access(admin))); // 0,0001$
+        register_constant<u64>(admin, utf8(b"QiaraTokens"), utf8(b"TRANSFER_FEE"), 50, false, &give_permission(&give_access(admin))); // 0,00005% 
+        register_constant<u64>(admin, utf8(b"QiaraTokens"), utf8(b"FLAT_USD_FEE"), 1000, false, &give_permission(&give_access(admin))); // 0,001$
         register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"INFLATION"), 25_000_000, true, &give_permission(&give_access(admin))); // 25%
         register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"INFLATION_DEBT"), 150_000, false, &give_permission(&give_access(admin))); // 0.15% a month
         register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"BURN_FEE"), 500, false, &give_permission(&give_access(admin))); // 0,0005%
@@ -164,8 +164,8 @@ module dev::QiaraStorageV34 {
 
     public entry fun change(admin: &signer) acquires ConstantDatabase, KeyRegistry{
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
-        register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"USD_VALUE"), 1_000_000, false, &give_permission(&give_access(admin))); // 1$ = 1$
-        register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), 5, false, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), 2, false, &give_permission(&give_access(admin)));
+       // change_constant(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), new_value: vector<u8>, permission: &Permission)
     }
 
     fun register_constant<T: drop>(address: &signer, header: String, constant_name: String, value: T, editable: bool, permission: &Permission) acquires ConstantDatabase, KeyRegistry {
