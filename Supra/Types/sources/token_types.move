@@ -2,7 +2,7 @@ module dev::QiaraTokenTypesV19 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
 
-const TOKEN_PREFIX: vector<u8> = b"Qiara20 ";
+const TOKEN_PREFIX: vector<u8> = b"Qiara21 ";
 const SYMBOL_PREFIX: vector<u8> = b"Q";
 
 // === ERRORS === //
