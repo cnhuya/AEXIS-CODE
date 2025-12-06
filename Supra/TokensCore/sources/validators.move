@@ -1,9 +1,9 @@
-module dev::QiaraTokensValidatorsV36 {
+module dev::QiaraTokensValidatorsV37 {
     use std::signer;
     use std::string::{Self as string, String, utf8};
     use std::table::{Self, Table};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
-
+    use std::timestamp;
 
     // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
@@ -28,7 +28,8 @@ module dev::QiaraTokensValidatorsV36 {
     }
 
     struct ValidatorRewards has key {
-        balances: Table<address, Table<String, Map<String, u256>>>
+        balances: Table<address, Table<String, Map<String, u256>>>,
+        last_reward: Table<address, u64>
     }
 
     // ----------------------------------------------------------------
@@ -36,14 +37,18 @@ module dev::QiaraTokensValidatorsV36 {
     // ----------------------------------------------------------------
     fun init_module(admin: &signer) {
         if (!exists<ValidatorRewards>(@dev)) {
-            move_to(admin, ValidatorRewards { balances: table::new<address,Table<String, Map<String, u256>>>() });
+            move_to(admin, ValidatorRewards { balances: table::new<address,Table<String, Map<String, u256>>>(), last_reward: table::new<address,u64>() });
         };
     }
 
 
    public fun ensure_and_accrue_validator_reward_balance(validator: address, token: String, chain: String, amount: u256, perm: Permission) acquires ValidatorRewards {
         let ref = borrow_global_mut<ValidatorRewards>(@dev);
-        // Ensure validator entry exists
+
+        // Ensure validator entries exists
+        if (!table::contains(&ref.last_reward, validator)) {
+            table::add(&mut ref.last_reward, validator, timestamp::now_seconds());
+        };
         if (!table::contains(&ref.balances, validator)) {
             table::add(&mut ref.balances, validator, table::new<String, Map<String, u256>>());
         };
@@ -63,6 +68,7 @@ module dev::QiaraTokensValidatorsV36 {
             return
         };
         
+        table::upsert(&mut ref.last_reward, validator, timestamp::now_seconds());
         let x = map::borrow_mut(token_balances, &chain);
         map::upsert(token_balances, chain, *x+amount);
     }
@@ -90,6 +96,18 @@ module dev::QiaraTokensValidatorsV36 {
         };
         
         *table::borrow(validator_balances, token)
+    }
+
+    #[view]
+    public fun return_validator_last_reward(validator: address): u64 acquires ValidatorRewards {
+         let rewards = borrow_global<ValidatorRewards>(@dev);
+
+        // Ensure validator entry exists
+        if (!table::contains(&rewards.last_reward, validator)) {
+            abort ERROR_INVALID_VALIDATOR
+        };
+
+        *table::borrow(&rewards.last_reward, validator)
     }
 
 
