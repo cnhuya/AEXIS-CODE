@@ -1,6 +1,6 @@
-module dev::QiaraStakingThirdPartyV2{
+module dev::QiaraStakingThirdPartyV3{
     use std::string::{Self, utf8};
-    use dev::QiaraStorageV34::{Self as storage};
+    use dev::QiaraStorageV35::{Self as storage};
 
 // === VIEW FUNCTIONS === //
     #[view]
