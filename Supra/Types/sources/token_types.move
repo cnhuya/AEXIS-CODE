@@ -55,7 +55,7 @@ public fun ensure_valid_token(token: &String): String {
     } else if (token == &utf8(b"USDT")){
         string::append_utf8(&mut full_token_name, b"USDT");        
     } else if (token == &utf8(b"Qiara")){
-        return utf8(b"Qiara20")
+        return utf8(b"Qiara21")
     } else {
         abort(ERROR_INVALID_TOKEN);   
     };
@@ -68,27 +68,27 @@ public fun convert_token_to_symbol(token: &String): String {
     
     let symbol = string::utf8(SYMBOL_PREFIX);
     
-    if(token == &utf8(b"Qiara20 Bitcoin")){
+    if(token == &utf8(b"Qiara21 Bitcoin")){
         string::append_utf8(&mut symbol, b"BTC");
-    } else if (token == &utf8(b"Qiara20 Ethereum")){
+    } else if (token == &utf8(b"Qiara21 Ethereum")){
         string::append_utf8(&mut symbol, b"ETH");        
-    } else if (token == &utf8(b"Qiara20 Solana")){
+    } else if (token == &utf8(b"Qiara21 Solana")){
         string::append_utf8(&mut symbol, b"SOL");        
-    } else if (token == &utf8(b"Qiara20 Sui")){
+    } else if (token == &utf8(b"Qiara21 Sui")){
         string::append_utf8(&mut symbol, b"SUI"); 
-    } else if (token == &utf8(b"Qiara20 Virtuals")){
+    } else if (token == &utf8(b"Qiara21 Virtuals")){
         string::append_utf8(&mut symbol, b"VIRTUALS");        
-    } else if (token == &utf8(b"Qiara20 Deepbook")){
+    } else if (token == &utf8(b"Qiara21 Deepbook")){
         string::append_utf8(&mut symbol, b"DEEP");        
-    } else if (token == &utf8(b"Qiara20 Supra")){
+    } else if (token == &utf8(b"Qiara21 Supra")){
         string::append_utf8(&mut symbol, b"SUPRA");        
-    } else if (token == &utf8(b"Qiara20 Injective")){
+    } else if (token == &utf8(b"Qiara21 Injective")){
         string::append_utf8(&mut symbol, b"INJ");        
-    } else if (token == &utf8(b"Qiara20 USDC")){
+    } else if (token == &utf8(b"Qiara21 USDC")){
         string::append_utf8(&mut symbol, b"USDC");        
-    } else if (token == &utf8(b"Qiara20 USDT")){
+    } else if (token == &utf8(b"Qiara21 USDT")){
         string::append_utf8(&mut symbol, b"USDT");   
-    } else if (token == &utf8(b"Qiara20")){
+    } else if (token == &utf8(b"Qiara21")){
         return utf8(b"QIARA")       
     } else {
         abort(ERROR_INVALID_CONVERT_TOKEN);   
