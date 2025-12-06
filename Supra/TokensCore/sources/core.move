@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV35 {
+module dev::QiaraTokensCoreV36 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,12 +15,12 @@ module dev::QiaraTokensCoreV35 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraTokensMetadataV35::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV35::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV35::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV35::{Self as TokensTiers};
-    use dev::QiaraTokensValidatorsV35::{Self as TokensValidators,  Access as TokensValidatorAccess};
-    use dev::QiaraTokensQiaraV35::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV36::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV36::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV36::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV36::{Self as TokensTiers};
+    use dev::QiaraTokensValidatorsV36::{Self as TokensValidators,  Access as TokensValidatorAccess};
+    use dev::QiaraTokensQiaraV36::{Self as TokensQiara,  Access as TokensQiaraAccess};
     use dev::QiaraChainTypesV19::{Self as ChainTypes};
     use dev::QiaraTokenTypesV19::{Self as TokensType};
 
@@ -491,15 +491,21 @@ module dev::QiaraTokensCoreV35 {
 
         let total = (((transfer_fee as u256) * (amount*100))) + token_value;
         if(total > amount*100_000_000){
-            return (amount, amount*100_000_000) // to ensure fee doesnt overfload the actuall amount which would cause abort errors later on.
+            return (amount, amount) // to ensure fee doesnt overfload the actuall amount which would cause abort errors later on.
         };
-        return (amount, total)
+
+        // the +1 is here to avoid bad overall debt, because malicious users could create new permisioneless account, do some action,
+        // because of the % fee, the rewards are messuered in different scale (*100_000_000)
+        // so essentially the results would be (1000, 100036119502) for 1111 inputed amount, which would mean
+        // that the validator actually gets higher reward than the actuall fee is which could lead to debt of unified liquidity
+        // eventually creates extremely small/non-noticable deflationary pressure for the token
+        return (((total/100_000_000)+1), total) 
     }
 
-    public entry fun ensure_accrue_fees(validator: address, symbol: String, chain: String, amount: u256) acquires Permissions{
+    public fun ensure_accrue_fees(validator: address, symbol: String, chain: String, amount: u256): u256 acquires Permissions{
         let (fee, validator_reward) = ensure_fees(validator, symbol, chain, amount);
-        TokensValidators::ensure_and_accrue_validator_reward_balance(validator, symbol, chain, (validator_reward as u256), TokensValidators::give_permission(&borrow_global<Permissions>(@dev).tokens_validator_access))
-
+        TokensValidators::ensure_and_accrue_validator_reward_balance(validator, symbol, chain, (validator_reward as u256), TokensValidators::give_permission(&borrow_global<Permissions>(@dev).tokens_validator_access));
+        return (amount-fee)
     }
     #[view]
     public fun calculate_qiara_fees(amount: u64): u64 {

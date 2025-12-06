@@ -1,4 +1,4 @@
-module dev::QiaraTokensPublicV35{
+module dev::QiaraTokensPublicV36{
     use std::signer;
     use std::type_info::{Self, TypeInfo};
     use supra_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore};
