@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV33 {
+module dev::QiaraTokensCoreV34 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,12 +15,12 @@ module dev::QiaraTokensCoreV33 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraTokensMetadataV33::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV33::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV33::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV33::{Self as TokensTiers};
-    use dev::QiaraTokensValidatorsV33::{Self as TokensValidators,  Access as TokensValidatorAccess};
-    use dev::QiaraTokensQiaraV33::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV34::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV34::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV34::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV34::{Self as TokensTiers};
+    use dev::QiaraTokensValidatorsV34::{Self as TokensValidators,  Access as TokensValidatorAccess};
+    use dev::QiaraTokensQiaraV34::{Self as TokensQiara,  Access as TokensQiaraAccess};
     use dev::QiaraChainTypesV19::{Self as ChainTypes};
     use dev::QiaraTokenTypesV19::{Self as TokensType};
 
@@ -477,28 +477,27 @@ module dev::QiaraTokensCoreV33 {
 
 
     #[view]
-    public fun ensure_fees(validator: address, symbol: String, chain: String, amount: u64): u64{
+    public fun ensure_fees(validator: address, symbol: String, chain: String, amount: u256): u256{ // change to u256 for security overflows
         let metadata = TokensMetadata::get_coin_metadata_by_symbol(symbol);
         let tier = TokensMetadata::get_coin_metadata_tier(&metadata);
-        let flat_fee = TokensTiers::flat_usd_fee(tier); // 0.0002$
-        let transfer_fee = TokensTiers::transfer_fee(tier); // 0.00030%
+        let flat_fee = TokensTiers::flat_usd_fee(tier); // 0.0002$ -> zmenit na tak 0.001$
+        let transfer_fee = TokensTiers::transfer_fee(tier); // 0.00030% > zmenit na tak 0.00005%
 
         //27500000000 - transfer_fee // with 1$ size
         //10004001600 - flat fee // with 1$ size
 
         let token_value = TokensMetadata::getValueByCoin(symbol, (flat_fee as u256)*100_000_000);
-        return  (((transfer_fee as u64) * (amount*100))) + (token_value as u64) //
+
+        let total = (((transfer_fee as u256) * (amount*100))) + token_value;
+        if(total > amount){
+            return amount // to ensure fee doesnt overfload the actuall amount which would cause abort errors later on.
+        };
+        return total
     }
 
-    public entry fun ensure_accrue_fees(validator: address, symbol: String, chain: String, amount: u64) acquires Permissions{
-        let metadata = TokensMetadata::get_coin_metadata_by_symbol(symbol);
-        let tier = TokensMetadata::get_coin_metadata_tier(&metadata);
-        let flat_fee = (TokensTiers::flat_usd_fee(tier) as u256); 
-        let transfer_fee = (TokensTiers::transfer_fee(tier) as u256); 
-
-        let token_value = (TokensMetadata::getValueByCoin(symbol, (flat_fee*100_000_000)) as u256);
-        let value =  (transfer_fee * ((amount as u256)*100)) + token_value;
-        TokensValidators::ensure_and_accrue_validator_reward_balance(validator, symbol, chain, value, TokensValidators::give_permission(&borrow_global<Permissions>(@dev).tokens_validator_access))
+    public entry fun ensure_accrue_fees(validator: address, symbol: String, chain: String, amount: u256) acquires Permissions{
+        let fees = ensure_fees(validator, symbol, chain, amount);
+        TokensValidators::ensure_and_accrue_validator_reward_balance(validator, symbol, chain, (fees as u256), TokensValidators::give_permission(&borrow_global<Permissions>(@dev).tokens_validator_access))
 
     }
     #[view]

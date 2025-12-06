@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV33{
+module dev::QiaraTokensMetadataV34{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -9,11 +9,11 @@ module dev::QiaraTokensMetadataV33{
     use std::timestamp;
     use supra_framework::event;
 
-    use dev::QiaraStorageV34::{Self as storage};
+    use dev::QiaraStorageV35::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraTokensRatesV33::{Self as rates};
-    use dev::QiaraTokensTiersV33::{Self as tier};
+    use dev::QiaraTokensRatesV34::{Self as rates};
+    use dev::QiaraTokensTiersV34::{Self as tier};
 
 
 // === ERRORS === //
