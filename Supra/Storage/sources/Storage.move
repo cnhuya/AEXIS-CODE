@@ -165,6 +165,12 @@ module dev::QiaraStorageV35 {
     public entry fun change(admin: &signer) acquires ConstantDatabase, KeyRegistry{
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
         register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), 2, false, &give_permission(&give_access(admin)));
+
+        register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"), 5, false, &give_permission(&give_access(admin))); // 5
+        register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"), 5, false, &give_permission(&give_access(admin))); // 5
+        register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT"), 10_000, false, &give_permission(&give_access(admin))); // 10000$
+        register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTING_POWER"), 100_000_000, false, &give_permission(&give_access(admin))); // 100$
+
        // change_constant(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), new_value: vector<u8>, permission: &Permission)
     }
 
