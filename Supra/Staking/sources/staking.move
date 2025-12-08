@@ -1,4 +1,4 @@
-module dev::QiaraStakingV6{
+module dev::QiaraStakingV8{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,10 +11,10 @@ module dev::QiaraStakingV6{
     use supra_framework::object::{Self as object, Object};
     use std::table::{Self, Table};
 
-    use dev::QiaraTokensMetadataV33::{Self as TokensMetadata};
-    use dev::QiaraTokensCoreV33::{Self as TokensCore};
-    use dev::QiaraTokensStoragesV33::{Self as TokensStorages};
-    use dev::QiaraStakingThirdPartyV2::{Self as StakingThirdParty};
+    use dev::QiaraTokensMetadataV38::{Self as TokensMetadata};
+    use dev::QiaraTokensCoreV38::{Self as TokensCore};
+    use dev::QiaraTokensStoragesV38::{Self as TokensStorages};
+    use dev::QiaraStakingThirdPartyV3::{Self as StakingThirdParty};
 
     use dev::QiaraChainTypesV19::{Self as ChainTypes};
     use dev::QiaraTokenTypesV19::{Self as TokensType};
@@ -136,8 +136,8 @@ module dev::QiaraStakingV6{
             let fa = TokensCore::withdraw(wallet, amount, chain);
             let fee_fa = fungible_asset::extract(&mut fa, (staking_fee_amount as u64));
 
-            let user_stake = find_user(borrow_global_mut<UserTracker>(@dev), signer::address_of(signer), token, chain);
-            *user_stake = *user_stake + amount;
+            find_user(borrow_global_mut<UserTracker>(@dev), signer::address_of(signer), token, chain, amount);
+
             TokensCore::deposit(stake_storage, fa, chain);
             TokensCore::deposit(revenue_storage, fee_fa, chain);
 
@@ -153,8 +153,7 @@ module dev::QiaraStakingV6{
         public entry fun unstake(signer: &signer, token: String, chain: String, amount: u64) acquires StakingStorage, UserTracker {
             ensure_storages_exists(borrow_global_mut<StakingStorage>(@dev), token, chain);
 
-            let user_stake = find_user(borrow_global_mut<UserTracker>(@dev), signer::address_of(signer), token, chain);
-            *user_stake = *user_stake - amount;
+            find_user(borrow_global_mut<UserTracker>(@dev), signer::address_of(signer), token, chain, amount);
 
             let requests = find_user_requests(borrow_global_mut<UserTracker>(@dev), signer, token, chain);
             let request = UnstakeRequest {
@@ -191,7 +190,7 @@ module dev::QiaraStakingV6{
 
 
 // === HELPER FUNCTIONS === //
-    fun find_user(tracker: &mut UserTracker, address: address, token: String, chain: String): &mut u64 {
+    fun find_user(tracker: &mut UserTracker, address: address, token: String, chain: String, value: u64) {
         
         // Check if address exists in the tracker
         if (!table::contains(&tracker.tracker, address)) {
@@ -219,7 +218,7 @@ module dev::QiaraStakingV6{
         };
         
         // Return mutable reference to the u64 value
-        map::borrow_mut(chain_map, &chain)
+        map::upsert(chain_map, chain, value);
     }
 
     fun find_user_requests(tracker: &mut UserTracker, user: &signer,  token: String, chain: String): &mut vector<UnstakeRequest> {
