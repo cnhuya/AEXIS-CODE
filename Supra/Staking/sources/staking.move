@@ -1,4 +1,4 @@
-module dev::QiaraStakingV8{
+module dev::QiaraStakingV9{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,9 +11,9 @@ module dev::QiaraStakingV8{
     use supra_framework::object::{Self as object, Object};
     use std::table::{Self, Table};
 
-    use dev::QiaraTokensMetadataV38::{Self as TokensMetadata};
-    use dev::QiaraTokensCoreV38::{Self as TokensCore};
-    use dev::QiaraTokensStoragesV38::{Self as TokensStorages};
+    use dev::QiaraTokensMetadataV39::{Self as TokensMetadata};
+    use dev::QiaraTokensCoreV39::{Self as TokensCore};
+    use dev::QiaraTokensStoragesV39::{Self as TokensStorages};
     use dev::QiaraStakingThirdPartyV3::{Self as StakingThirdParty};
 
     use dev::QiaraChainTypesV19::{Self as ChainTypes};
