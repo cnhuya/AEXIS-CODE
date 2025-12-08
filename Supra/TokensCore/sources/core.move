@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV38 {
+module dev::QiaraTokensCoreV39 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,12 +15,11 @@ module dev::QiaraTokensCoreV38 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraTokensMetadataV38::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV38::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV38::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV38::{Self as TokensTiers};
-    use dev::QiaraTokensValidatorsV38::{Self as TokensValidators,  Access as TokensValidatorAccess};
-    use dev::QiaraTokensQiaraV38::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV39::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV39::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV39::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV39::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV39::{Self as TokensQiara,  Access as TokensQiaraAccess};
     use dev::QiaraChainTypesV19::{Self as ChainTypes};
     use dev::QiaraTokenTypesV19::{Self as TokensType};
 
@@ -50,7 +49,6 @@ module dev::QiaraTokensCoreV38 {
 // === STRUCTS === //
     struct Permissions has key {
         tokens_omnichain_access: TokensOmnichainAccess,
-        tokens_validator_access: TokensValidatorAccess,
         tokens_qiara_access: TokensQiaraAccess,
     }
 
@@ -113,7 +111,7 @@ module dev::QiaraTokensCoreV38 {
     fun init_module(admin: &signer){
 
         if (!exists<Permissions>(@dev)) {
-            move_to(admin, Permissions { tokens_omnichain_access: TokensOmnichain::give_access(admin), tokens_validator_access: TokensValidators::give_access(admin), tokens_qiara_access: TokensQiara::give_access(admin)});
+            move_to(admin, Permissions { tokens_omnichain_access: TokensOmnichain::give_access(admin), tokens_qiara_access: TokensQiara::give_access(admin)});
         };
     }
 
@@ -291,6 +289,13 @@ module dev::QiaraTokensCoreV38 {
         internal_mint(symbol, chain, amount, authorized_borrow_refs(symbol))
     }
 
+    public fun mint_to(address: address, symbol: String, chain: String, amount: u64, cap: Permission) acquires Permissions, ManagedFungibleAsset {
+        let asset = get_metadata(symbol);
+        let managed = authorized_borrow_refs(symbol);
+        let fa = internal_mint(symbol, chain, amount, managed);
+        let to = primary_fungible_store::ensure_primary_store_exists(address,asset);
+        internal_deposit(to, fa, chain, managed);
+    }
 
     public entry fun transfer(sender:&signer, to: address, symbol: String, chain: String, amount: u64) acquires ManagedFungibleAsset,Permissions {
         ensure_safety(symbol, chain);
@@ -502,9 +507,8 @@ module dev::QiaraTokensCoreV38 {
         return (((total/100_000_000)+1), total) 
     }
 
-    public fun ensure_accrue_fees(validator: address, symbol: String, chain: String, amount: u256): u256 acquires Permissions{
+    public fun ensure_accrue_fees(validator: address, symbol: String, chain: String, amount: u256): u256{
         let (fee, validator_reward) = ensure_fees(validator, symbol, chain, amount);
-        TokensValidators::ensure_and_accrue_validator_reward_balance(validator, symbol, chain, (validator_reward as u256), TokensValidators::give_permission(&borrow_global<Permissions>(@dev).tokens_validator_access));
         return (amount-fee)
     }
     #[view]

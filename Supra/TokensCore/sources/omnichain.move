@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV38{
+module dev::QiaraTokensOmnichainV39{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -227,6 +227,11 @@ if(isMint){
 
 // === VIEW FUNCTIONS === //
     
+    #[view]
+    public fun return_registry():  Map<String, vector<String>> acquires TokensChains {
+        borrow_global<TokensChains>(@dev).book
+    }
+
     #[view]
     public fun return_supported_chains(token:String): vector<String> acquires TokensChains {
         let book = borrow_global<TokensChains>(@dev);

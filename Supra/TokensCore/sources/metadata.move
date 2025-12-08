@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV38{
+module dev::QiaraTokensMetadataV39{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -12,8 +12,8 @@ module dev::QiaraTokensMetadataV38{
     use dev::QiaraStorageV35::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraTokensRatesV38::{Self as rates};
-    use dev::QiaraTokensTiersV38::{Self as tier};
+    use dev::QiaraTokensRatesV39::{Self as rates};
+    use dev::QiaraTokensTiersV39::{Self as tier};
 
 
 // === ERRORS === //
@@ -37,6 +37,11 @@ module dev::QiaraTokensMetadataV38{
     }
 
 // === STRUCTS === //
+    // Registry of all listed chains and supported tokens on that chain
+    //struct Registry has key, store, copy{
+    //    list: Map<String, vector<String>>,
+   // }
+
     struct Tokens has key, store, copy{
         list: vector<Metadata>,
     }
@@ -108,6 +113,9 @@ module dev::QiaraTokensMetadataV38{
     fun init_module(admin: &signer){
         let deploy_addr = signer::address_of(admin);
 
+       // if (!exists<Registry>(deploy_addr)) {
+       //     move_to(admin, Registry { registry: map::new<String, vector<String>>() });
+       // };
         if (!exists<Tokens>(deploy_addr)) {
             move_to(admin, Tokens { list: vector::empty<Metadata>() });
         };
@@ -119,6 +127,17 @@ module dev::QiaraTokensMetadataV38{
     public entry fun create_metadata(admin: &signer, symbol: String, creation: u64,oracleID: u32, max_supply: u128, circulating_supply: u128, total_supply: u128, stable:u8) acquires Tokens {
        
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
+
+//        let tokens_registry = borrow_global_mut<Registry>(@dev);
+
+//        if (!map::contains_key(&tokens_registry.registry, &symbol)) {
+//            map::upsert(&mut tokens_registry.registry, symbol, vector::empty<String>());
+//        };
+
+//        let c = map::borrow_mut(&mut tokens_registry.registry, &symbol);
+//        if (!vector::contains(c, &chain_type)) {
+//            vector::push_back(c, chain_type);
+ //       };
 
         let vault_list = borrow_global_mut<Tokens>(signer::address_of(admin));
 
