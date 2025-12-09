@@ -1,4 +1,4 @@
-module dev::QiaraTokensStoragesV39 {
+module dev::QiaraTokensStoragesV40 {
     use std::signer;
     use std::string::{Self as string, String, utf8};
     use std::table::{Self, Table};

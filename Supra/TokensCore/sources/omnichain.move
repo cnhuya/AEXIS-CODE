@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV39{
+module dev::QiaraTokensOmnichainV40{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -11,6 +11,8 @@ module dev::QiaraTokensOmnichainV39{
     use supra_framework::primary_fungible_store;
     use supra_framework::object::{Self, Object};
     use supra_framework::event;
+
+  //  use dev::QiaraTokensSharedV39::{Self as TokensShared};
 
     use dev::QiaraChainTypesV19::{Self as ChainTypes};
     use dev::QiaraTokenTypesV19::{Self as TokensType};
@@ -139,57 +141,58 @@ module dev::QiaraTokensOmnichainV39{
             map::upsert(token_book, chain_type, (amount as u256));
         }   
     }
-public fun change_UserTokenSupply(
-    token: String, 
-    chain: String, 
-    address: vector<u8>, 
-    amount: u64, 
-    isMint: bool, 
-    perm: Permission
-) acquires UserCrosschainBook, TokensChains {
-    
-    let book = borrow_global_mut<UserCrosschainBook>(@dev);
-    let chains = borrow_global_mut<TokensChains>(@dev);
-    let token_type = token;
-    let chain_type = chain;
 
-    if (!map::contains_key(&chains.book, &token_type)) {
-        map::upsert(&mut chains.book, token_type, vector::empty<String>());
-    };
-    let c = map::borrow_mut(&mut chains.book, &token_type);
-    
-    if (!vector::contains(c, &chain_type)) {
-        vector::push_back(c, chain_type);
-    };
+  //  public fun shared_change_UserTokenSupply(token: String, chain: String, owner: vector<u8>, address: vector<u8>, amount: u64, isMint: bool, perm: Permission) acquires UserCrosschainBook, TokensChains {
+  //      if(TokensShared::assert_is_sub_owner(owmer, address)){
+  //          change_UserTokenSupply(token, chain, owner, amount, isMint, perm);
+  //      }
+  // }
 
-    if (!table::contains(&book.book, address)) {
-      //  tttta(100);
-        table::add(&mut book.book, address, table::new<String, Map<String, u256>>());
-    };
+    public fun change_UserTokenSupply(token: String, chain: String, address: vector<u8>, amount: u64, isMint: bool, perm: Permission) acquires UserCrosschainBook, TokensChains {
+        
 
-    let user_book = table::borrow_mut(&mut book.book, address);
-    
-    if(!table::contains(user_book, token_type)) {
-        table::add(user_book, token_type, map::new<String, u256>());
+        let book = borrow_global_mut<UserCrosschainBook>(@dev);
+        let chains = borrow_global_mut<TokensChains>(@dev);
+        let token_type = token;
+        let chain_type = chain;
+
+        if (!map::contains_key(&chains.book, &token_type)) {
+            map::upsert(&mut chains.book, token_type, vector::empty<String>());
+        };
+        let c = map::borrow_mut(&mut chains.book, &token_type);
+        
+        if (!vector::contains(c, &chain_type)) {
+            vector::push_back(c, chain_type);
+        };
+
+        if (!table::contains(&book.book, address)) {
+        //  tttta(100);
+            table::add(&mut book.book, address, table::new<String, Map<String, u256>>());
+        };
+
+        let user_book = table::borrow_mut(&mut book.book, address);
+        
+        if(!table::contains(user_book, token_type)) {
+            table::add(user_book, token_type, map::new<String, u256>());
+        };
+        
+    if(isMint){
+                event::emit(MintEvent {
+                address: address,
+                token: token,
+                chain: chain,
+                amount: amount,
+                time: timestamp::now_seconds() 
+            });
+    } else {
+                event::emit(BurnEvent {
+                address: address,
+                token: token,
+                chain: chain,
+                amount: amount,
+                time: timestamp::now_seconds() 
+            });
     };
-    
-if(isMint){
-            event::emit(MintEvent {
-            address: address,
-            token: token,
-            chain: chain,
-            amount: amount,
-            time: timestamp::now_seconds() 
-        });
-} else {
-            event::emit(BurnEvent {
-            address: address,
-            token: token,
-            chain: chain,
-            amount: amount,
-            time: timestamp::now_seconds() 
-        });
-};
     
     let user = table::borrow_mut(user_book, token_type);
    // tttta(1);

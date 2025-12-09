@@ -1,4 +1,4 @@
-module dev::QiaraTokensRatesV39 {
+module dev::QiaraTokensRatesV40 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::signer;
