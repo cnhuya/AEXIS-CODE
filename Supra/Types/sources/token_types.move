@@ -2,7 +2,7 @@ module dev::QiaraTokenTypesV19 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
 
-const TOKEN_PREFIX: vector<u8> = b"Qiara25 ";
+const TOKEN_PREFIX: vector<u8> = b"Qiara26 ";
 const SYMBOL_PREFIX: vector<u8> = b"Q";
 
 // === ERRORS === //
@@ -55,7 +55,7 @@ public fun ensure_valid_token(token: &String): String {
     } else if (token == &utf8(b"USDT")){
         string::append_utf8(&mut full_token_name, b"USDT");        
     } else if (token == &utf8(b"Qiara")){
-        return utf8(b"Qiara25")
+        return utf8(b"Qiara26")
     } else {
         abort(ERROR_INVALID_TOKEN);   
     };
@@ -68,27 +68,27 @@ public fun convert_token_to_symbol(token: &String): String {
     
     let symbol = string::utf8(SYMBOL_PREFIX);
     
-    if(token == &utf8(b"Qiara25 Bitcoin")){
+    if(token == &utf8(b"Qiara26 Bitcoin")){
         string::append_utf8(&mut symbol, b"BTC");
-    } else if (token == &utf8(b"Qiara25 Ethereum")){
+    } else if (token == &utf8(b"Qiara26 Ethereum")){
         string::append_utf8(&mut symbol, b"ETH");        
-    } else if (token == &utf8(b"Qiara25 Solana")){
+    } else if (token == &utf8(b"Qiara26 Solana")){
         string::append_utf8(&mut symbol, b"SOL");        
-    } else if (token == &utf8(b"Qiara25 Sui")){
+    } else if (token == &utf8(b"Qiara26 Sui")){
         string::append_utf8(&mut symbol, b"SUI"); 
-    } else if (token == &utf8(b"Qiara25 Virtuals")){
+    } else if (token == &utf8(b"Qiara26 Virtuals")){
         string::append_utf8(&mut symbol, b"VIRTUALS");        
-    } else if (token == &utf8(b"Qiara25 Deepbook")){
+    } else if (token == &utf8(b"Qiara26 Deepbook")){
         string::append_utf8(&mut symbol, b"DEEP");        
-    } else if (token == &utf8(b"Qiara25 Supra")){
+    } else if (token == &utf8(b"Qiara26 Supra")){
         string::append_utf8(&mut symbol, b"SUPRA");        
-    } else if (token == &utf8(b"Qiara25 Injective")){
+    } else if (token == &utf8(b"Qiara26 Injective")){
         string::append_utf8(&mut symbol, b"INJ");        
-    } else if (token == &utf8(b"Qiara25 USDC")){
+    } else if (token == &utf8(b"Qiara26 USDC")){
         string::append_utf8(&mut symbol, b"USDC");        
-    } else if (token == &utf8(b"Qiara25 USDT")){
+    } else if (token == &utf8(b"Qiara26 USDT")){
         string::append_utf8(&mut symbol, b"USDT");   
-    } else if (token == &utf8(b"Qiara25")){
+    } else if (token == &utf8(b"Qiara26")){
         return utf8(b"QIARA")       
     } else {
         abort(ERROR_INVALID_CONVERT_TOKEN);   
