@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV41{
+module dev::QiaraTokensOmnichainV42{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -14,8 +14,8 @@ module dev::QiaraTokensOmnichainV41{
 
   //  use dev::QiaraTokensSharedV39::{Self as TokensShared};
 
-    use dev::QiaraChainTypesV19::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV19::{Self as TokensType};
+    use dev::QiaraChainTypesV20::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV20::{Self as TokensType};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
