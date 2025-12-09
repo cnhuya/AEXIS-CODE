@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV40 {
+module dev::QiaraTokensCoreV41 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,11 +15,11 @@ module dev::QiaraTokensCoreV40 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraTokensMetadataV40::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV40::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV40::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV40::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV40::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV41::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV41::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV41::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV41::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV41::{Self as TokensQiara,  Access as TokensQiaraAccess};
     use dev::QiaraChainTypesV19::{Self as ChainTypes};
     use dev::QiaraTokenTypesV19::{Self as TokensType};
 

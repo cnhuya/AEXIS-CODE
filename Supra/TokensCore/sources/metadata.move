@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV40{
+module dev::QiaraTokensMetadataV41{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -12,8 +12,8 @@ module dev::QiaraTokensMetadataV40{
     use dev::QiaraStorageV35::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraTokensRatesV40::{Self as rates};
-    use dev::QiaraTokensTiersV40::{Self as tier};
+    use dev::QiaraTokensRatesV41::{Self as rates};
+    use dev::QiaraTokensTiersV41::{Self as tier};
 
 
 // === ERRORS === //
@@ -485,13 +485,13 @@ module dev::QiaraTokensMetadataV40{
             storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MIN_LEND_APR_FACTOR"))) + (metadata.full_tier.multiplier * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MIN_LEND_APR_FACTOR"))))/1000
         }
 
-    /*    public fun get_coin_metadata_market_rate(metadata: &VMetadata): u64 {
+       public fun get_coin_metadata_market_rate(metadata: &VMetadata, chain: String): u64 {
             
             let min_rate = get_coin_metadata_min_lend_apr(metadata);
-            let rate_scale = (rates::get_vault_lend_rate(rates::get_vault_rate(metadata.symbol)) as u64);
+            let rate_scale = (rates::get_vault_lend_rate(rates::get_vault_rate(metadata.symbol, chain)) as u64);
             
             min_rate + rate_scale
-        }*/
+        }
 
         public fun get_coin_metadata_market_w_fee(metadata: &VMetadata): u64 {
             
