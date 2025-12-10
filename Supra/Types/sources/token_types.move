@@ -1,11 +1,11 @@
-module dev::QiaraTokenTypesV24 {
+module dev::QiaraTokenTypesV25 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::table::{Self, Table};
 
-    use dev::QiaraChainTypesV24::{Self as ChainTypes};
+    use dev::QiaraChainTypesV25::{Self as ChainTypes};
 
 const TOKEN_PREFIX: vector<u8> = b"Qiara30 ";
 const SYMBOL_PREFIX: vector<u8> = b"Q";
@@ -36,7 +36,7 @@ const SYMBOL_PREFIX: vector<u8> = b"Q";
 
 
     fun x_init(signer: &signer) acquires Tokens{
-        register_token_with_chains(signer, utf8(b"Qiara30"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Qiara"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
         register_token_with_chains(signer, utf8(b"Qiara30 USDC"), utf8(b"USDC"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
         register_token_with_chains(signer, utf8(b"Qiara30 USDT"), utf8(b"USDT"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
         register_token_with_chains(signer, utf8(b"Qiara30 Ethereum"), utf8(b"Ethereum"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
