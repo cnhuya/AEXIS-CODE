@@ -1,11 +1,11 @@
-module dev::QiaraTokenTypesV22 {
+module dev::QiaraTokenTypesV24 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::table::{Self, Table};
 
-    use dev::QiaraChainTypesV22::{Self as ChainTypes};
+    use dev::QiaraChainTypesV24::{Self as ChainTypes};
 
 const TOKEN_PREFIX: vector<u8> = b"Qiara30 ";
 const SYMBOL_PREFIX: vector<u8> = b"Q";
@@ -39,14 +39,14 @@ const SYMBOL_PREFIX: vector<u8> = b"Q";
         register_token_with_chains(signer, utf8(b"Qiara30"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
         register_token_with_chains(signer, utf8(b"Qiara30 USDC"), utf8(b"USDC"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
         register_token_with_chains(signer, utf8(b"Qiara30 USDT"), utf8(b"USDT"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara30 Ethereum"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara30 Bitcoin"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara30 Solana"), utf8(b"Qiara"), vector[utf8(b"Solana"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara30 Supra"), utf8(b"Qiara"), vector[utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara30 Injective"), utf8(b"Qiara"), vector[utf8(b"Injective"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara30 Sui"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara30 Deepbook"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara30 Virtuals"), utf8(b"Qiara"), vector[utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Ethereum"), utf8(b"Ethereum"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Bitcoin"), utf8(b"Bitcoin"), vector[utf8(b"Sui"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Solana"), utf8(b"Solana"), vector[utf8(b"Solana"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Supra"), utf8(b"Supra"), vector[utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Injective"), utf8(b"QiaInjectivera"), vector[utf8(b"Injective"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Sui"), utf8(b"Sui"), vector[utf8(b"Sui"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Deepbook"), utf8(b"Deepbook"), vector[utf8(b"Sui"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Virtuals"), utf8(b"Virtuals"), vector[utf8(b"Base"),utf8(b"Supra")]);
     } 
 
 // === FUNCTIONS === //
@@ -99,39 +99,43 @@ const SYMBOL_PREFIX: vector<u8> = b"Q";
 
     // Define constants at the module level
 
-    public fun convert_token_nickName_to_name(nick_name: &String): String acquires Tokens{
+    #[view]
+    public fun convert_token_nickName_to_name(nick_name: String): String acquires Tokens{
         
         let tokens = borrow_global_mut<Tokens>(@dev);
 
-        if (!map::contains_key(&tokens.nick_names, nick_name)) {
-            abort ERROR_INVALID_TOKEN
-        };
-
-        let token_name = map::borrow(&tokens.nick_names, nick_name);
-        let full_token_name = string::utf8(TOKEN_PREFIX);
-        string::append_utf8(&mut full_token_name, *string::bytes(token_name));
-
-        full_token_name
-    }
-
-    public fun convert_token_name_to_nickName(token_name: &String): String acquires Tokens{
-        
-        let tokens = borrow_global_mut<Tokens>(@dev);
-
-        if (!map::contains_key(&tokens.nick_names, token_name)) {
-            abort ERROR_INVALID_TOKEN
-        };
-
-        let names = map::values(&tokens.nick_names);
         let nick_names = map::values(&tokens.nick_names);
-        let len = vector::length(&names);
+        assert!(vector::contains(&nick_names, &nick_name), ERROR_INVALID_TOKEN);
+       // if (!map::contains_key(&tokens.nick_names, &nick_name)) {
+       //     abort ERROR_INVALID_TOKEN
+       // };
+
+        let len = vector::length(&nick_names);
         while(len>0){
-            let name = vector::borrow(&names, len-1);
-            if(name == token_name){
-                let symbol = string::utf8(SYMBOL_PREFIX);
+            let name = vector::borrow(&nick_names, len-1);
+            if(*name == nick_name){
+                let symbol = string::utf8(TOKEN_PREFIX);
                 string::append_utf8(&mut symbol, *string::bytes(vector::borrow(&nick_names, len-1)));
 
                 return symbol
+            };
+        len=len-1;
+        };
+        abort ERROR_INVALID_TOKEN
+    }
+    #[view]
+    public fun convert_token_name_to_nickName(token_name: String): String acquires Tokens{
+        
+        let tokens = borrow_global_mut<Tokens>(@dev);
+
+        let names = map::keys(&tokens.nick_names);
+        let nick_names = map::values(&tokens.nick_names);
+        assert!(vector::contains(&names, &token_name), ERROR_INVALID_TOKEN);
+        let len = vector::length(&names);
+        while(len>0){
+            let name = vector::borrow(&names, len-1);
+            if(*name == token_name){
+                return *vector::borrow(&nick_names, len-1);
             };
         len=len-1;
         };
