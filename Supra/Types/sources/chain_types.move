@@ -1,9 +1,14 @@
-module dev::QiaraChainTypesV20 {
+module dev::QiaraChainTypesV21 {
     use std::string::{Self as string, String, utf8};
-
+    use std::vector;
+    use std::signer;
+    use aptos_std::simple_map::{Self as map, SimpleMap as Map};
+    use std::table::{Self, Table};
 
 // === ERRORS === //
     const ERROR_INVALID_CHAIN: u64 = 1;
+    const ERROR_CHAIN_NAME_ALREADY_REGISTERED: u64 = 2;
+    const ERROR_CHAIN_ID_ALREADY_REGISTERED: u64 = 3;
 
 // === CONSTANTS === //
     const CHAIN_SUPRA: u8 = 1;
@@ -11,75 +16,71 @@ module dev::QiaraChainTypesV20 {
     const CHAIN_BASE: u8 = 3;
     const CHAIN_INJECTIVE: u8 = 4;
     const CHAIN_SOLANA: u8 = 5;
+// === STRUCTS === //
+
+    struct Chains has key{
+        map: Map<String, u16>
+    }
+
+// === INIT === //
+    fun init_module(admin: &signer) acquires Chains {
+        assert!(signer::address_of(admin) == @dev, 1);
+
+        if (!exists<Chains>(@dev)) {
+            move_to(admin, Chains { map: map::new<String, u16>() });
+        };
+        x_init(admin);
+    }
+
+    fun x_init(signer: &signer) acquires Chains{
+        register_chain(signer, utf8(b"Supra"), 0);
+        register_chain(signer, utf8(b"Sui"), 1);
+        register_chain(signer, utf8(b"Base"), 2);
+        register_chain(signer, utf8(b"Solana"), 3);
+        register_chain(signer, utf8(b"Injective"), 4);
+    } 
 
 // === FUNCTIONS === //
+    public entry fun register_chain(signer: &signer, chain_name: String, chain_id: u16) acquires Chains {
+        let chains = borrow_global_mut<Chains>(@dev);
+        let keys = map::keys(&chains.map);
+        let values = map::values(&chains.map);
+
+        assert!(!vector::contains(&keys, &chain_name), ERROR_CHAIN_NAME_ALREADY_REGISTERED);
+        assert!(!vector::contains(&values, &chain_id), ERROR_CHAIN_ID_ALREADY_REGISTERED);
+
+        if (!map::contains_key(&chains.map, &chain_name)) {
+            map::upsert(&mut chains.map, chain_name, chain_id);
+        };
+
+    }
+
     #[view]
-    public fun return_all_chain_types(): vector<String> {
-        vector[
-            utf8(b"Supra"),
-            utf8(b"Sui"), 
-            utf8(b"Base"),
-            utf8(b"Injective"),
-            utf8(b"Solana")
-        ]
+    public fun return_all_chain(): Map<String, u16> acquires Chains  {
+        borrow_global_mut<Chains>(@dev).map
     }
+
     #[view]
-    public fun return_all_chain_ids(): vector<u8> {
-        vector[CHAIN_SUPRA, CHAIN_SUI, CHAIN_BASE, CHAIN_INJECTIVE, CHAIN_SOLANA]
+    public fun return_all_chain_names(): vector<String> acquires Chains{
+        let chains = borrow_global<Chains>(@dev).map;
+        map::keys(&chains)
     }
 
-    public fun convert_chain_type_to_string(id: u8): String {
-        if (id == CHAIN_SUPRA) {
-            utf8(b"Supra")
-        } else if (id == CHAIN_SUI) {
-            utf8(b"Sui")  // Fixed: was "Supra"
-        } else if (id == CHAIN_BASE) {
-            utf8(b"Base")
-        } else if (id == CHAIN_INJECTIVE) {
-            utf8(b"Injective")
-        } else if (id == CHAIN_SOLANA) {
-            utf8(b"Solana")
-        } else {
-            utf8(b"Unknown")
-        }
-        // Don't call ensure_valid_chain here - "Unknown" is valid output for invalid IDs
+    #[view]
+    public fun return_all_chain_ids(): vector<u16> acquires Chains {
+        let chains = borrow_global<Chains>(@dev).map;
+        map::values(&chains)
     }
 
-    public fun convert_string_to_chain_type(chain: &String): u8 {
-        if (chain == &utf8(b"Supra")) {
-            CHAIN_SUPRA
-        } else if (chain == &utf8(b"Sui")) {
-            CHAIN_SUI
-        } else if (chain == &utf8(b"Base")) {
-            CHAIN_BASE
-        } else if (chain == &utf8(b"Injective")) {
-            CHAIN_INJECTIVE
-        } else if (chain == &utf8(b"Solana")) {
-            CHAIN_SOLANA
-        } else {
-            abort(ERROR_INVALID_CHAIN)  // Better than returning 0
-        }
+
+    public fun ensure_valid_chain_id(chain_id: u16) acquires Chains{
+        let map = borrow_global_mut<Chains>(@dev).map;
+        assert!(vector::contains(&map::values(&map), &chain_id), ERROR_INVALID_CHAIN);
     }
 
-    public fun ensure_valid_chain_id(chain_id: u8) {
-        assert!(
-            chain_id == CHAIN_SUPRA ||
-            chain_id == CHAIN_SUI ||
-            chain_id == CHAIN_BASE || 
-            chain_id == CHAIN_INJECTIVE ||
-            chain_id == CHAIN_SOLANA,
-            ERROR_INVALID_CHAIN
-        )
+    public fun ensure_valid_chain_name(chain_name: String) acquires Chains{
+        let map = borrow_global_mut<Chains>(@dev).map;
+        assert!(vector::contains(&map::keys(&map), &chain_name), ERROR_INVALID_CHAIN);
     }
 
-    public fun ensure_valid_chain_name(chain: &String) {
-        assert!(
-            chain == &utf8(b"Supra") ||
-            chain == &utf8(b"Sui") ||
-            chain == &utf8(b"Base") ||
-            chain == &utf8(b"Injective") ||
-            chain == &utf8(b"Solana"),
-            ERROR_INVALID_CHAIN
-        )
-    }
 }
