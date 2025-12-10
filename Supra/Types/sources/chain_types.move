@@ -1,4 +1,4 @@
-module dev::QiaraChainTypesV21 {
+module dev::QiaraChainTypesV22 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
@@ -9,13 +9,6 @@ module dev::QiaraChainTypesV21 {
     const ERROR_INVALID_CHAIN: u64 = 1;
     const ERROR_CHAIN_NAME_ALREADY_REGISTERED: u64 = 2;
     const ERROR_CHAIN_ID_ALREADY_REGISTERED: u64 = 3;
-
-// === CONSTANTS === //
-    const CHAIN_SUPRA: u8 = 1;
-    const CHAIN_SUI: u8 = 2;
-    const CHAIN_BASE: u8 = 3;
-    const CHAIN_INJECTIVE: u8 = 4;
-    const CHAIN_SOLANA: u8 = 5;
 // === STRUCTS === //
 
     struct Chains has key{

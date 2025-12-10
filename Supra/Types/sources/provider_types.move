@@ -1,4 +1,4 @@
-module dev::QiaraProviderTypesV21 {
+module dev::QiaraProviderTypesV22 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
@@ -11,7 +11,7 @@ module dev::QiaraProviderTypesV21 {
 
 // provider -> chain -> tokens
     struct Providers has key{
-        table: Table<String, Map<String, vector<String>>>
+        table: Map<String, Map<String, vector<String>>>
     }
 
 // === INIT === //
@@ -19,7 +19,7 @@ module dev::QiaraProviderTypesV21 {
         assert!(signer::address_of(admin) == @dev, 1);
 
         if (!exists<Providers>(@dev)) {
-            move_to(admin, Providers { table: table::new<String, Map<String, vector<String>>>() });
+            move_to(admin, Providers { table: map::new<String, Map<String, vector<String>>>() });
         };
 
         x_init(admin);
@@ -51,11 +51,11 @@ module dev::QiaraProviderTypesV21 {
     public entry fun register_new_provider(signer: &signer, provider: String, chain: String) acquires Providers{
         let provider_table = borrow_global_mut<Providers>(@dev);
         
-        if (!table::contains(&provider_table.table, provider)) {
-            table::add(&mut provider_table.table, provider, map::new<String, vector<String>>());
+        if (!map::contains_key(&provider_table.table, &provider)) {
+            map::upsert(&mut provider_table.table, provider, map::new<String, vector<String>>());
         };
 
-        let chains_map = table::borrow_mut(&mut provider_table.table, provider);
+        let chains_map = map::borrow_mut(&mut provider_table.table, &provider);
 
         if (!map::contains_key(chains_map, &chain)) {
             map::upsert(chains_map, chain, vector::empty<String>());
@@ -66,7 +66,7 @@ module dev::QiaraProviderTypesV21 {
         register_new_provider(signer, provider, chain);
 
         let provider_table = borrow_global_mut<Providers>(@dev);
-        let chains_map = table::borrow_mut(&mut provider_table.table, provider);
+        let chains_map = map::borrow_mut(&mut provider_table.table, &provider);
         let tokens = map::borrow_mut(chains_map, &chain);
         
         let tokens_len = vector::length(&new_tokens);
@@ -81,24 +81,7 @@ module dev::QiaraProviderTypesV21 {
 
 // === FUNCTIONS === //
     #[view]
-    public fun return_all_providers(): vector<String> {
-        vector[
-            utf8(b"Morpho"), // BASE
-            utf8(b"Moonwell"), // BASE
-            utf8(b"Navi"), // SUI
-            utf8(b"Suilend"), // SUI
-            utf8(b"Alphalend"), // SUI
-            utf8(b"Neptune"), // INJECTIVE
-            utf8(b"Supralend"), // SUPRA
-            utf8(b"SupraStaking"), // SUPRA - native staking
-            utf8(b"Juplend"), // SOLANA
-            utf8(b"Kamino"), // SOLANA
-            utf8(b"Save"), // SOLANA
-        ]
+    public fun return_all_providers(): Map<String, Map<String, vector<String>>> acquires Providers{
+        borrow_global_mut<Providers>(@dev).table
     }
-
-    public fun ensure_valid_provider(provider: &String) {
-        assert!(vector::contains(&return_all_providers(), provider), ERROR_INVALID_PROVIDER);
-    }
-
 }

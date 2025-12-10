@@ -1,13 +1,13 @@
-module dev::QiaraTokenTypesV21 {
+module dev::QiaraTokenTypesV22 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::table::{Self, Table};
 
-    use dev::QiaraChainTypesV21::{Self as ChainTypes};
+    use dev::QiaraChainTypesV22::{Self as ChainTypes};
 
-const TOKEN_PREFIX: vector<u8> = b"Qiara29 ";
+const TOKEN_PREFIX: vector<u8> = b"Qiara30 ";
 const SYMBOL_PREFIX: vector<u8> = b"Q";
 
 // === ERRORS === //
@@ -36,17 +36,17 @@ const SYMBOL_PREFIX: vector<u8> = b"Q";
 
 
     fun x_init(signer: &signer) acquires Tokens{
-        register_token_with_chains(signer, utf8(b"Qiara29"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara29 USDC"), utf8(b"USDC"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara29 USDT"), utf8(b"USDT"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara29 Ethereum"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara29 Bitcoin"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara29 Solana"), utf8(b"Qiara"), vector[utf8(b"Solana"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara29 Supra"), utf8(b"Qiara"), vector[utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara29 Injective"), utf8(b"Qiara"), vector[utf8(b"Injective"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara29 Sui"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara29 Deepbook"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara29 Virtuals"), utf8(b"Qiara"), vector[utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 USDC"), utf8(b"USDC"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 USDT"), utf8(b"USDT"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Ethereum"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Bitcoin"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Solana"), utf8(b"Qiara"), vector[utf8(b"Solana"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Supra"), utf8(b"Qiara"), vector[utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Injective"), utf8(b"Qiara"), vector[utf8(b"Injective"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Sui"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Deepbook"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara30 Virtuals"), utf8(b"Qiara"), vector[utf8(b"Base"),utf8(b"Supra")]);
     } 
 
 // === FUNCTIONS === //
@@ -71,9 +71,19 @@ const SYMBOL_PREFIX: vector<u8> = b"Q";
     }
 
     #[view]
-    public fun return_all_tokens(): vector<vector<String>> acquires Tokens{
+    public fun return_all_tokens(): Map<String, vector<String>> acquires Tokens{
+        borrow_global_mut<Tokens>(@dev).map
+    }
+
+    #[view]
+    public fun return_full_tokens_list(): vector<String> acquires Tokens{
         let tokens = borrow_global_mut<Tokens>(@dev);
-        map::values(&tokens.map)
+        map::keys(&tokens.map)
+    }
+
+    #[view]
+    public fun return_full_nick_names(): Map<String, String>acquires Tokens{
+        borrow_global_mut<Tokens>(@dev).nick_names
     }
 
     public fun ensure_token_supported_for_chain(token: String, chain: String) acquires Tokens{
