@@ -109,6 +109,14 @@ module dev::QiaraTokensSharedV45{
         assert!(table::contains(&shared.storage,owner),ERROR_SHARED_STORAGE_DOESNT_EXISTS_FOR_THIS_ADDRESS );
         *table::borrow_mut(&mut shared.storage, owner)
     }
+
+    #[view]
+    public fun assert_has_shared_storage(address: address): bool acquires SharedStorage{
+        let shared = borrow_global_mut<SharedStorage>(@dev);
+        assert!(table::contains(&shared.storage,bcs::to_bytes(&address)),ERROR_SHARED_STORAGE_DOESNT_EXISTS_FOR_THIS_ADDRESS );
+        return true
+    }
+
     #[view]
     public fun assert_is_sub_owner(owner: vector<u8>, sub_owner: vector<u8>): bool acquires SharedStorage{
         let shared = borrow_global_mut<SharedStorage>(@dev);
