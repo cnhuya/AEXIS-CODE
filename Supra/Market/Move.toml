@@ -4,7 +4,7 @@
     authors = []
 
     [addresses]
-    dev = "0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0"
+    dev = "0xd4fcdba413ff103eec996a07b795847a8b4ce5c328d35d9843dc5ec2230de605"
     supra_framework = "0x1"
     std = "0x1"
     aptos_std = "0x1"
@@ -26,17 +26,12 @@
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
 
-    [dependencies.QiaraTypesV14]
-    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
-    rev = 'main'
-    subdir = 'Supra/Types'
-
-    [dependencies.QiaraStorageV30]
+    [dependencies.QiaraStorageV35]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraMarginV48]
+    [dependencies.QiaraMarginV53]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
@@ -46,9 +41,14 @@
     rev = 'main'
     subdir = 'Supra/Math'
 
-    [dependencies.QiaraVerifiedTokensV44]
+    [dependencies.QiaraTokensV45]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
-    subdir = 'Supra/VerifiedTokens'
+    subdir = 'Supra/TokensCore'
+
+    [dependencies.QiaraTypesV27]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Types'
 
     [dev-dependencies]
