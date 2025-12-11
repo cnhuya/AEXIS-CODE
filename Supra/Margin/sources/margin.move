@@ -342,7 +342,7 @@ public fun get_user_total_usd(owner: vector<u8>): (u256, u256, u256, u256, u256,
     }
 
     #[view]
-    public fun get_user_raw_balance(owner: vector<u8>, token: String, chain: String, provider: String,): (u256, u256, u256, u256, u256, u256, u64) acquires TokenHoldings {
+    public fun get_user_raw_balance(owner: vector<u8>, token: String, chain: String, provider: String): (u256, u256, u256, u256, u256, u256, u64) acquires TokenHoldings {
         let balance  = *find_balance(borrow_global_mut<TokenHoldings>(@dev),owner, token, chain, provider);
         return (balance.deposited, balance.borrowed, balance.rewards, balance.reward_index_snapshot, balance.interest, balance.interest_index_snapshot, balance.last_update)
     }
