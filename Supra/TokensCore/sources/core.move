@@ -272,6 +272,11 @@ module dev::QiaraTokensCoreV45 {
         TokensOmnichain::change_TokenSupply(symbol, chain,amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
         return fungible_asset::mint(&managed.mint_ref, amount)
     }
+
+    fun internal_burn(symbol: String, chain: String, fa: FungibleAsset, managed: &ManagedFungibleAsset) acquires Permissions {
+        TokensOmnichain::change_TokenSupply(symbol, chain,fungible_asset::amount(&fa), false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
+        fungible_asset::burn(&managed.burn_ref, fa);
+    }
  
 // === OVERWRITE FUNCTIONS === //
     public fun c_deposit<T: key>(store: Object<T>,fa: FungibleAsset, transfer_ref: &TransferRef) {
@@ -290,10 +295,13 @@ module dev::QiaraTokensCoreV45 {
         let wallet = primary_fungible_store::primary_store(signer::address_of(signer), get_metadata(symbol));
         let managed = authorized_borrow_refs(symbol);
         let fa = internal_withdraw(wallet, amount, chain, managed);
-        TokensOmnichain::change_TokenSupply(symbol, chain, fungible_asset::amount(&fa), false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
-        fungible_asset::burn(&managed.burn_ref, fa);
+        internal_burn(symbol, chain, fa, managed);
     }
 
+
+    public fun burn_fa(symbol: String, chain: String, fa: FungibleAsset, cap: Permission) acquires Permissions, ManagedFungibleAsset {
+        internal_burn(symbol, chain, fa, authorized_borrow_refs(symbol))
+    }
     // Only allowed modules are allowed to call mint function, 
     // in this scenario we allow only the module bridge_handler to be able to call this function.
     public fun mint(symbol: String, chain: String, amount: u64, cap: Permission): FungibleAsset acquires Permissions, ManagedFungibleAsset {
