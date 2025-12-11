@@ -1,4 +1,4 @@
-module dev::QiaraRIV54{
+module dev::QiaraRIV55{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -97,18 +97,18 @@ module dev::QiaraRIV54{
 // === PUBLIC VIEWS === //
 
     #[view]
-    public fun get_user_ri(owner: vector<u8>, token: String, chain: String , provider: String,): RI acquires UsersRI {
+    public fun get_user_ri(owner: vector<u8>): RI acquires UsersRI {
         *find_user_RI(borrow_global_mut<UsersRI>(@dev),owner)
     }
 
     #[view]
-    public fun get_user_raw_rewards(owner: vector<u8>, token: String, chain: String , provider: String,): (String, String, String) acquires UsersRI {
+    public fun get_user_raw_rewards(owner: vector<u8>): (String, String, String) acquires UsersRI {
         let ri = find_user_RI(borrow_global_mut<UsersRI>(@dev),owner);
         return (ri.rewards.token, ri.rewards.chain, ri.rewards.provider)
     }
 
     #[view]
-    public fun get_user_raw_interests(owner: vector<u8>, token: String, chain: String , provider: String,): (String, String, String) acquires UsersRI {
+    public fun get_user_raw_interests(owner: vector<u8>): (String, String, String) acquires UsersRI {
         let ri = find_user_RI(borrow_global_mut<UsersRI>(@dev),owner);
         return (ri.interests.token, ri.interests.chain, ri.interests.provider)
     }
