@@ -82,6 +82,12 @@ const SYMBOL_PREFIX: vector<u8> = b"Q";
     }
 
     #[view]
+    public fun return_full_nick_names_list(): vector<String> acquires Tokens{
+        let tokens = borrow_global_mut<Tokens>(@dev);
+        map::values(&tokens.nick_names)
+    }
+
+    #[view]
     public fun return_full_nick_names(): Map<String, String>acquires Tokens{
         borrow_global_mut<Tokens>(@dev).nick_names
     }
