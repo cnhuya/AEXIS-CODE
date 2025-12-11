@@ -1,4 +1,4 @@
-module dev::QiaraStakingV9{
+module dev::QiaraStakingV10{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,13 +11,13 @@ module dev::QiaraStakingV9{
     use supra_framework::object::{Self as object, Object};
     use std::table::{Self, Table};
 
-    use dev::QiaraTokensMetadataV39::{Self as TokensMetadata};
-    use dev::QiaraTokensCoreV39::{Self as TokensCore};
-    use dev::QiaraTokensStoragesV39::{Self as TokensStorages};
+    use dev::QiaraTokensMetadataV45::{Self as TokensMetadata};
+    use dev::QiaraTokensCoreV45::{Self as TokensCore};
+    use dev::QiaraTokensStoragesV45::{Self as TokensStorages};
     use dev::QiaraStakingThirdPartyV3::{Self as StakingThirdParty};
 
-    use dev::QiaraChainTypesV19::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV19::{Self as TokensType};
+    use dev::QiaraChainTypesV27::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV27::{Self as TokensType};
 
     // For simplicity constant undecentralized unlock period due to re-dependancy loop cycle that would occur,
     // due to the fact that governance is using this module for voting power.
@@ -49,6 +49,7 @@ module dev::QiaraStakingV9{
 // === STRUCTS === //
 
     // Stores all staking stores for different tokens on a specific chain
+    // token -> chain -> storage
     struct StakingStorage has key {
         balances: Table<String, Map<String, Object<FungibleStore>>>
     }
@@ -107,7 +108,7 @@ module dev::QiaraStakingV9{
 // === FUNCTIONS === //
 
     public fun ensure_storages_exists(staking_storage: &mut StakingStorage, token: String, chain: String): Object<FungibleStore>{
-        ChainTypes::ensure_valid_chain_name(&chain);
+        ChainTypes::ensure_valid_chain_name(chain);
         
         let metadata = TokensCore::get_metadata(token);
 
@@ -218,7 +219,8 @@ module dev::QiaraStakingV9{
         };
         
         // Return mutable reference to the u64 value
-        map::upsert(chain_map, chain, value);
+        let previous = map::borrow(chain_map, &chain);
+        map::upsert(chain_map, copy chain, *previous+value);
     }
 
     fun find_user_requests(tracker: &mut UserTracker, user: &signer,  token: String, chain: String): &mut vector<UnstakeRequest> {
@@ -269,41 +271,60 @@ module dev::QiaraStakingV9{
         return (staking_fee*amount)/1_000_000/100 
     }
 
-    fun calculate_total_vote_power(table: &Table<String,Map<String, u64>>): u256{
-
-        let total_vote_power: u256 = 0;
-        let tokens = TokensType::return_all_tokens();
-        let len_tokens = vector::length(&tokens);
-
-        let base_weight = (StakingThirdParty::return_base_weight() as u256);
-
-        while(len_tokens>0){ // checking for each token
-            let token = vector::borrow(&tokens, len_tokens-1);
-            let map = table::borrow(table, *token);
-            let chains = map::keys(map); // chains
+fun calculate_total_vote_power(table: &Table<String, Map<String, u64>>): u256 {
+    let total_vote_power: u256 = 0;
+    let tokens = TokensType::return_full_nick_names_list();
+    let token_count = vector::length(&tokens);
+    let i = 0;
+    
+    // Loop through all tokens
+    while (i < token_count) {
+        let token = vector::borrow(&tokens, i);
         
-
-            let len_chains = vector::length(&chains);
-
-
+        // Check if this token exists in the table
+        if (table::contains(table, *token)) {
+            let map = table::borrow(table, *token);
+            let chains = map::keys(map);
+            let chain_count = vector::length(&chains);
+            let j = 0;
+            
             let metadata = TokensMetadata::get_coin_metadata_by_symbol(*token);
-            while(len_chains > 0){ // checking for each chain
-                let key = vector::borrow(&chains, len_chains-1);
-                let value = (*map::borrow(map, key) as u256);
-                if(*token != utf8(b"Qiara")){
-                    let usd_value  = value * TokensMetadata::get_coin_metadata_price(&metadata);
-                    let additional_power = staking_vote_weight((TokensMetadata::get_coin_metadata_tier_efficiency(&metadata) as u256), (usd_value/TokensMetadata::get_coin_metadata_denom(&metadata)));
-                    total_vote_power = total_vote_power + ((additional_power as u256)/10000);
-                } else if (*token == utf8(b"Qiara")){
+            let metadata_denom = TokensMetadata::get_coin_metadata_denom(&metadata);
+            
+            // Avoid division by zero
+            assert!(metadata_denom > 0, 25565);
+            
+            // Loop through all chains for this token
+            while (j < chain_count) {
+                let chain = vector::borrow(&chains, j);
+                let value = (*map::borrow(map, chain) as u256);
+                
+                if (*token != utf8(b"Qiara")) {
+                    // Calculate USD value
+                    let price = TokensMetadata::get_coin_metadata_price(&metadata);
+                    let usd_value = value * (price as u256);
+                    
+                    // Calculate power with safe division
+                    if (usd_value > 0 && metadata_denom > 0) {
+                        let x = usd_value / (metadata_denom as u256);
+                        let tier_efficiency = (TokensMetadata::get_coin_metadata_tier_efficiency(&metadata) as u256);
+                        let additional_power = staking_vote_weight(tier_efficiency, x);
+                        total_vote_power = total_vote_power + (additional_power / 10000);
+                    };
+                } else {
+                    // Qiara token - add raw value
                     total_vote_power = total_vote_power + value;
                 };
-                len_chains = len_chains-1;
+                
+                j = j + 1;
             };
-            len_tokens = len_tokens-1;
         };
-
-        return base_weight+total_vote_power
-    }
+        
+        i = i + 1;
+    };
+    
+    return total_vote_power
+}
 // === VIEW FUNCTIONS === //
     #[view]
         public fun get_voting_power(address: address): u256 acquires UserTracker{

@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraStakingV9"
+    name = "QiaraStakingV10"
     version = "2.1.1"
     authors = []
 
@@ -26,12 +26,12 @@
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
 
-    [dependencies.QiaraTypesV19]
+    [dependencies.QiaraTypesV27]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
 
-    [dependencies.QiaraTokensV39]
+    [dependencies.QiaraTokensV45]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/TokensCore'
