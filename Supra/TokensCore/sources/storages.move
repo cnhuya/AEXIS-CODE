@@ -1,4 +1,4 @@
-module dev::QiaraTokensStoragesV42 {
+module dev::QiaraTokensStoragesV45 {
     use std::signer;
     use std::string::{Self as string, String, utf8};
     use std::table::{Self, Table};
@@ -6,8 +6,8 @@ module dev::QiaraTokensStoragesV42 {
     use supra_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore};
     use supra_framework::primary_fungible_store;
     use supra_framework::object::{Self, Object};
-    use dev::QiaraTokensRouterV2::{Self as TokensRouter};
-    use dev::QiaraChainTypesV20::{Self as ChainTypes};
+    use dev::QiaraTokensRouterV5::{Self as TokensRouter};
+    use dev::QiaraChainTypesV27::{Self as ChainTypes};
 
 
     // === ERRORS === //
@@ -58,7 +58,7 @@ module dev::QiaraTokensStoragesV42 {
 
     // Initialize storages for a specific token and chain
     public fun ensure_storages_exists(token: String, chain: String) acquires FeeStorage, LockStorage {
-        ChainTypes::ensure_valid_chain_name(&chain);
+        ChainTypes::ensure_valid_chain_name(chain);
         
         let metadata = TokensRouter::get_metadata(token);
 
@@ -113,7 +113,7 @@ module dev::QiaraTokensStoragesV42 {
 
     #[view]
     public fun return_lock_balance(token: String, chain: String): u64 acquires LockStorage {
-        ChainTypes::ensure_valid_chain_name(&chain);
+        ChainTypes::ensure_valid_chain_name(chain);
 
         let lock_storage = borrow_global<LockStorage>(@dev);
         let lock = table::borrow(&lock_storage.balances, token);
@@ -123,7 +123,7 @@ module dev::QiaraTokensStoragesV42 {
 
     #[view]
     public fun return_fee_balance(token: String, chain: String): u64 acquires FeeStorage {
-        ChainTypes::ensure_valid_chain_name(&chain);
+        ChainTypes::ensure_valid_chain_name(chain);
 
         let fee_storage = borrow_global<FeeStorage>(@dev);
         let fee = table::borrow(&fee_storage.balances, token);

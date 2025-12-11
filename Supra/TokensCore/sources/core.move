@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV42 {
+module dev::QiaraTokensCoreV45 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,13 +15,13 @@ module dev::QiaraTokensCoreV42 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraTokensMetadataV42::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV42::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV42::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV42::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV42::{Self as TokensQiara,  Access as TokensQiaraAccess};
-    use dev::QiaraChainTypesV20::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV20::{Self as TokensType};
+    use dev::QiaraTokensMetadataV45::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV45::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV45::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV45::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV45::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraChainTypesV27::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV27::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
@@ -119,10 +119,14 @@ module dev::QiaraTokensCoreV42 {
     public entry fun inits(admin: &signer){
         init_token(admin, utf8(b"Ethereum"), utf8(b"QETH"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ethereum.webp"), 1_438_269_983, 1, 120_698_129, 120_698_129, 120_698_129, 1);
         init_token(admin, utf8(b"Bitcoin"), utf8(b"QBTC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/bitcoin.webp"), 1_231_006_505, 0, 21_000_000, 19_941_253, 19_941_253, 1);
+         //         tttta(1);
         init_token(admin, utf8(b"Solana"), utf8(b"QSOL"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/solana.webp"), 1_584_316_800, 10, 614_655_961, 559_139_255, 614_655_961, 1);
         init_token(admin, utf8(b"Sui"), utf8(b"QSUI"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/sui.webp"), 1_683_062_400, 90, 10_000_000_000, 3_680_742_933, 10_000_000_000, 1);
+   //     tttta(99);
         init_token(admin, utf8(b"Deepbook"), utf8(b"QDEEP"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/deepbook.webp"),  1_683_072_000, 491, 10_000_000_000, 4_368_147_611, 10_000_000_000, 1);
+        //     tttta(2);
         init_token(admin, utf8(b"Injective"), utf8(b"QINJ"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/injective.webp"), 1_636_416_000, 121, 100_000_000, 100_000_000, 100_000_000, 1);
+      //  tttta(147);
         init_token(admin, utf8(b"Virtuals"), utf8(b"QVIRTUALS"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/virtuals.webp"), 1_614_556_800, 524, 1_000_000_000, 656_082_020, 1_000_000_000, 1);
         init_token(admin, utf8(b"Supra"), utf8(b"QSUPRA"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/supra.webp"), 1_732_598_400, 500, 100_000_000_000, 21_000_700_000, 80_600_180_397, 1);
         init_token(admin, utf8(b"USDT"), utf8(b"QUSDT"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt.webp"), 0, 47, 185_977_352_465, 185_977_352_465, 185_977_352_465, 255);
@@ -134,20 +138,22 @@ module dev::QiaraTokensCoreV42 {
 
     public entry fun init_depo(signer: &signer) acquires ManagedFungibleAsset, Permissions{
         ma_drilla_lul(signer, utf8(b"Ethereum"), utf8(b"Base"));
-      //  tttta(9);
         ma_drilla_lul(signer, utf8(b"Ethereum"), utf8(b"Sui"));
-        ma_drilla_lul(signer, utf8(b"Bitcoin"), utf8(b"Base"));
-        ma_drilla_lul(signer, utf8(b"Solana"), utf8(b"Solana"));
+      //  tttta(10101);
         ma_drilla_lul(signer, utf8(b"Sui"), utf8(b"Sui"));
         ma_drilla_lul(signer, utf8(b"Deepbook"), utf8(b"Sui"));
         ma_drilla_lul(signer, utf8(b"Injective"), utf8(b"Injective"));
-       // tttta(1);
+      //  tttta(10101);
+        ma_drilla_lul(signer, utf8(b"Bitcoin"), utf8(b"Sui"));
+        ma_drilla_lul(signer, utf8(b"Solana"), utf8(b"Solana"));
+      //  tttta(10101);
         ma_drilla_lul(signer, utf8(b"Virtuals"), utf8(b"Base"));
         ma_drilla_lul(signer, utf8(b"Supra"), utf8(b"Supra"));
         ma_drilla_lul(signer, utf8(b"USDT"), utf8(b"Base"));
         ma_drilla_lul(signer, utf8(b"USDC"), utf8(b"Base"));
         ma_drilla_lul(signer, utf8(b"USDC"), utf8(b"Sui"));
         ma_drilla_lul(signer, utf8(b"Qiara"), utf8(b"Supra"));
+        //        tttta(9);
     }
 
     fun ma_drilla_lul(signer:&signer, token: String, chain: String) acquires ManagedFungibleAsset, Permissions{
@@ -158,24 +164,25 @@ module dev::QiaraTokensCoreV42 {
        // tttta(1000);
         let asset = get_metadata(token);
         let store = primary_fungible_store::ensure_primary_store_exists(signer::address_of(signer),asset);
-       // tttta(1);
         deposit(store, fa, chain);
     }
 
 
     fun init_token(admin: &signer, name: String, symbol: String, icon: String, creation: u64,oracleID: u32, max_supply: u128, circulating_supply: u128, total_supply: u128, stable:u8 ){
-        let constructor_ref = &object::create_named_object(admin, bcs::to_bytes(&TokensType::ensure_valid_token(&name)));
+        let constructor_ref = &object::create_named_object(admin, bcs::to_bytes(&TokensType::convert_token_nickName_to_name(name))); // Ethereum -> Qiara31 Ethereum
         primary_fungible_store::create_primary_store_enabled_fungible_asset(
             constructor_ref,
             option::none(),
-            TokensType::ensure_valid_token(&name),
+            name,
             symbol, 
             6, 
             icon,
             utf8(b"https://x.com/QiaraProtocol"),
         );
         fungible_asset::set_untransferable(constructor_ref);
+        
         let asset = get_metadata(name);
+         //           tttta(111109);
         // Create mint/burn/transfer refs to allow creator to manage the fungible asset.
         let mint_ref = fungible_asset::generate_mint_ref(constructor_ref);
         let transfer_ref = fungible_asset::generate_transfer_ref(constructor_ref);
@@ -184,8 +191,8 @@ module dev::QiaraTokensCoreV42 {
         let metadata_object_signer = object::generate_signer(constructor_ref);
 
 
-
-        let asset_address = object::create_object_address(&ADMIN, bcs::to_bytes(&TokensType::ensure_valid_token(&name)));
+       // tttta(109);
+        let asset_address = object::create_object_address(&ADMIN, bcs::to_bytes(&TokensType::convert_token_nickName_to_name(name))); // Ethereum -> Qiara31 Ethereum
         assert!(fungible_asset::is_untransferable(asset),1);
         let sign_wallet = primary_fungible_store::ensure_primary_store_exists(signer::address_of(admin),asset);
 
@@ -219,42 +226,46 @@ module dev::QiaraTokensCoreV42 {
     }
 // === PUBLIC FUNCTIONS === //
     public fun deposit<T: key>(store: Object<T>,fa: FungibleAsset, chain: String) acquires Permissions, ManagedFungibleAsset{
-        internal_deposit<T>(store, fa, chain, authorized_borrow_refs(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store)))))
+        //           tttta(5);
+        internal_deposit<T>(store, fa, chain, authorized_borrow_refs((fungible_asset::name(fungible_asset::store_metadata(store)))));
+        //    tttta(1999);
     }
     public fun withdraw<T: key>(store: Object<T>,amount: u64, chain: String): FungibleAsset acquires Permissions, ManagedFungibleAsset {
-        internal_withdraw<T>(store, amount, chain, authorized_borrow_refs(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store)))))
+        internal_withdraw<T>(store, amount, chain, authorized_borrow_refs((fungible_asset::name(fungible_asset::store_metadata(store)))))
     }
  
 // === INTERNAL FUNCTIONS === //
     fun internal_deposit<T: key>(store: Object<T>,fa: FungibleAsset, chain: String, managed: &ManagedFungibleAsset) acquires Permissions{
-        ChainTypes::ensure_valid_chain_name(&chain);
+       //               tttta(12);
+        ChainTypes::ensure_valid_chain_name(chain);
         fungible_asset::set_frozen_flag(&managed.transfer_ref, store, true);
         if(fungible_asset::amount(&fa) == 0){
            fungible_asset::destroy_zero(fa);
            return
         };
-        TokensOmnichain::change_UserTokenSupply(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store))), chain, bcs::to_bytes(&object::owner(store)), fungible_asset::amount(&fa), true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&object::owner(store)), fungible_asset::amount(&fa), true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        //tttta(147);
         fungible_asset::deposit_with_ref(&managed.transfer_ref, store, fa);
     }
     fun internal_withdraw<T: key>(store: Object<T>,amount: u64, chain: String, managed: &ManagedFungibleAsset): FungibleAsset acquires Permissions {
-        ChainTypes::ensure_valid_chain_name(&chain);
+        ChainTypes::ensure_valid_chain_name(chain);
         fungible_asset::set_frozen_flag(&managed.transfer_ref, store, true);
-        if(fungible_asset::symbol(fungible_asset::store_metadata(store)) == utf8(b"QIARA")){
+        if(fungible_asset::name(fungible_asset::store_metadata(store)) == utf8(b"QIARA")){
             let fee = calculate_qiara_fees(amount);
              //   tttta(fee); // aborts
             if(fee >= amount){ // amount is going to be 0 - CHECK FAILS?
                 amount = 0;
-                TokensOmnichain::change_UserTokenSupply(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store))), chain, bcs::to_bytes(&object::owner(store)), fee, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+                TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&object::owner(store)), fee, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
                 fungible_asset::burn(&managed.burn_ref, fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, fee));               
             } else {
                 amount = amount - fee;
-                TokensOmnichain::change_UserTokenSupply(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store))), chain, bcs::to_bytes(&object::owner(store)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+                TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&object::owner(store)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
                 fungible_asset::burn(&managed.burn_ref, fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, fee));
             };
             return fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, amount)
         };
 
-        TokensOmnichain::change_UserTokenSupply(TokensType::convert_symbol_to_token(&fungible_asset::symbol(fungible_asset::store_metadata(store))), chain, bcs::to_bytes(&object::owner(store)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&object::owner(store)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         return fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, amount)
     }
     fun internal_mint(symbol: String, chain: String, amount: u64, managed: &ManagedFungibleAsset): FungibleAsset acquires Permissions {
@@ -534,18 +545,26 @@ module dev::QiaraTokensCoreV42 {
 
 // === HELPFER FUNCTIONS === //
 
-    fun ensure_safety(token: String, chain: String): String{
-        ChainTypes::ensure_valid_chain_name(&chain);
-        return TokensType::ensure_valid_token(&token)
+    fun ensure_safety(token: String, chain: String){
+        ChainTypes::ensure_valid_chain_name(chain);
+        TokensType::ensure_token_supported_for_chain(TokensType::convert_token_nickName_to_name(token), chain)
     }
     // Borrow the immutable reference of the refs of `metadata`.
-    inline fun authorized_borrow_refs(symbol: String): &ManagedFungibleAsset acquires ManagedFungibleAsset {let asset = get_metadata(symbol); borrow_global<ManagedFungibleAsset>(object::object_address(&asset))}
+    inline fun authorized_borrow_refs(token_name: String): &ManagedFungibleAsset acquires ManagedFungibleAsset { let asset = get_metadata(token_name); borrow_global<ManagedFungibleAsset>(object::object_address(&asset))}
 
 // === VIEW FUNCTIONS === //
     #[view]
     /// Return the address of the managed fungible asset that's created when this module is deployed.
     public fun get_metadata(symbol:String): Object<Metadata> {
-        let asset_address = object::create_object_address(&ADMIN, bcs::to_bytes(&TokensType::ensure_valid_token(&symbol)));
+        let asset_address = object::create_object_address(&ADMIN, bcs::to_bytes(&TokensType::convert_token_nickName_to_name(symbol))); // Ethereum -> Qiara31 Ethereum
+        object::address_to_object<Metadata>(asset_address)
+    }
+
+    #[view]
+    /// Return the address of the managed fungible asset that's created when this module is deployed.
+    public fun get_metadata1(symbol:String): Object<Metadata> {
+        //tttta(999);
+        let asset_address = object::create_object_address(&ADMIN, bcs::to_bytes(&symbol));
         object::address_to_object<Metadata>(asset_address)
     }
 

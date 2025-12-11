@@ -1,4 +1,4 @@
-module dev::QiaraTokensSharedV42{
+module dev::QiaraTokensSharedV45{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;

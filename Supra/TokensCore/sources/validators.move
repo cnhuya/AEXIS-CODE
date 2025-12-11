@@ -1,4 +1,4 @@
-module dev::QiaraTokensValidatorsV42 {
+module dev::QiaraTokensValidatorsV45 {
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
@@ -6,8 +6,8 @@ module dev::QiaraTokensValidatorsV42 {
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::timestamp;
 
-    use dev::QiaraTokensCoreV42::{Self as TokensCore, Access as TokensCoreAccess};
-    use dev::QiaraTokensOmnichainV42::{Self as TokensOmnichain};
+    use dev::QiaraTokensCoreV45::{Self as TokensCore, Access as TokensCoreAccess};
+    use dev::QiaraTokensOmnichainV45::{Self as TokensOmnichain};
 
     // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
