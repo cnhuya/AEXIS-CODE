@@ -71,4 +71,17 @@ module dev::QiaraOracleV1 {
         return *map::borrow(&prices.map, &name)
 
     }
+
+    #[view]
+    public fun existsPrice(name: String): bool acquires Prices{
+
+        let prices = borrow_global_mut<Prices>(@dev);
+
+        if (!map::contains_key(&prices.map, &name)) {
+            return false
+        };
+
+        return true
+
+    }
 }
