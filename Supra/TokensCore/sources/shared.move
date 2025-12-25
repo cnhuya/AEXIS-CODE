@@ -9,6 +9,7 @@ module dev::QiaraTokensSharedV47{
     const ERROR_SHARED_STORAGE_DOESNT_EXISTS_FOR_THIS_ADDRESS:u64 = 1;
     const ERROR_THIS_SUB_OWNER_IS_NOT_ALLOWED_FOR_THIS_SHARED_STORAGE:u64 = 2;
     const ERROR_IS_ALREADY_SUB_OWNER: u64 = 3;
+    const ERROR_SUB_OWNER_DOESNT_EXISTS_IN_ANY_SHARED_STORAGE: u64 = 4;
 
 // === ACCESS === //
     struct Access has store, key, drop {}
@@ -128,10 +129,10 @@ module dev::QiaraTokensSharedV47{
     }
 
     #[view]
-    public fun return_sub_owners_registry(owner: vector<u8>): vector<vector<u8>> acquires SharedStorage{
+    public fun return_sub_owners_registry(sub_owner: vector<u8>): vector<vector<u8>> acquires SharedStorage{
         let shared = borrow_global_mut<SharedStorage>(@dev);
-        assert!(table::contains(&shared.storage_registry,owner),ERROR_SHARED_STORAGE_DOESNT_EXISTS_FOR_THIS_ADDRESS );
-        *table::borrow_mut(&mut shared.storage_registry, owner)
+        assert!(table::contains(&shared.storage_registry,sub_owner),ERROR_SUB_OWNER_DOESNT_EXISTS_IN_ANY_SHARED_STORAGE );
+        *table::borrow_mut(&mut shared.storage_registry, sub_owner)
     }
 
     //deprecated
