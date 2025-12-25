@@ -1,4 +1,4 @@
-module dev::QiaraTokensSharedV45{
+module dev::QiaraTokensSharedV47{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;
@@ -28,9 +28,11 @@ module dev::QiaraTokensSharedV45{
     struct Permissions has key {
     }
 
-    //owner -> allowed sub-owners
+    //STORAGE: owner -> allowed sub-owners
+    //STORAGE_REGISTRY: sub_owner -> shared storages registry, in which he is allowed as sub-owner
     struct SharedStorage has key{
-        storage: Table<vector<u8>, vector<vector<u8>>>
+        storage: Table<vector<u8>, vector<vector<u8>>>,
+        storage_registry: Table<vector<u8>, vector<vector<u8>>>
     }
 
     // ----------------------------------------------------------------
@@ -40,7 +42,7 @@ module dev::QiaraTokensSharedV45{
         assert!(signer::address_of(admin) == @dev, 1);
 
         if (!exists<SharedStorage>(@dev)) {
-            move_to(admin, SharedStorage { storage: table::new<vector<u8>, vector<vector<u8>>>() });
+            move_to(admin, SharedStorage { storage: table::new<vector<u8>, vector<vector<u8>>>(), storage_registry: table::new<vector<u8>, vector<vector<u8>>>() });
         };
     }
 
@@ -59,9 +61,14 @@ module dev::QiaraTokensSharedV45{
         if (!table::contains(&shared.storage, bcs::to_bytes(&signer::address_of(signer)))) {
             table::add(&mut shared.storage,  bcs::to_bytes(&signer::address_of(signer)), vector::empty<vector<u8>>());
         };
+        if (!table::contains(&shared.storage_registry, sub_owner)) {
+            table::add(&mut shared.storage_registry, sub_owner, vector::empty<vector<u8>>());
+        };
 
         let sub_owners = table::borrow_mut(&mut shared.storage, bcs::to_bytes(&signer::address_of(signer)));
         vector::push_back(sub_owners, sub_owner);
+        let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
+        vector::push_back(sub_owners_registry, bcs::to_bytes(&signer::address_of(signer)));
     }
 
     public entry fun remove_sub_owner(signer: &signer, sub_owner: vector<u8>) acquires SharedStorage{
@@ -71,6 +78,8 @@ module dev::QiaraTokensSharedV45{
         let sub_owners = table::borrow_mut(&mut shared.storage, bcs::to_bytes(&signer::address_of(signer)));
         assert!(vector::contains(sub_owners, &bcs::to_bytes(&signer::address_of(signer))), ERROR_THIS_SUB_OWNER_IS_NOT_ALLOWED_FOR_THIS_SHARED_STORAGE);
         vector::remove_value(sub_owners, &sub_owner);
+        let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
+        vector::remove_value(sub_owners_registry, &bcs::to_bytes(&signer::address_of(signer)));
     }
 
 // PERMISSIONELESS INTERFACE
@@ -80,6 +89,7 @@ module dev::QiaraTokensSharedV45{
         if (!table::contains(&shared.storage, owner)) {
             table::add(&mut shared.storage, owner, vector::empty<vector<u8>>());
         };
+
     }
 
     public entry fun p_allow_sub_owner(validator: &signer, owner: vector<u8>, sub_owner: vector<u8>) acquires SharedStorage{
@@ -88,10 +98,15 @@ module dev::QiaraTokensSharedV45{
         if (!table::contains(&shared.storage, owner)) {
             table::add(&mut shared.storage, owner, vector::empty<vector<u8>>());
         };
+        if (!table::contains(&shared.storage_registry, owner)) {
+            table::add(&mut shared.storage_registry, owner, vector::empty<vector<u8>>());
+        };
 
         let sub_owners = table::borrow_mut(&mut shared.storage, owner);
         assert!(vector::contains(sub_owners, &owner), ERROR_IS_ALREADY_SUB_OWNER);
         vector::push_back(sub_owners, sub_owner);
+        let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
+        vector::push_back(sub_owners_registry, owner);
     }
 
     public entry fun p_remove_sub_owner(validator: &signer, owner: vector<u8>, sub_owner: vector<u8>) acquires SharedStorage{
@@ -101,6 +116,8 @@ module dev::QiaraTokensSharedV45{
         let sub_owners = table::borrow_mut(&mut shared.storage, owner);
         assert!(vector::contains(sub_owners, &owner), ERROR_THIS_SUB_OWNER_IS_NOT_ALLOWED_FOR_THIS_SHARED_STORAGE);
         vector::remove_value(sub_owners, &sub_owner);
+        let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
+        vector::remove_value(sub_owners_registry, &owner);
     }
 
     #[view]
@@ -108,6 +125,13 @@ module dev::QiaraTokensSharedV45{
         let shared = borrow_global_mut<SharedStorage>(@dev);
         assert!(table::contains(&shared.storage,owner),ERROR_SHARED_STORAGE_DOESNT_EXISTS_FOR_THIS_ADDRESS );
         *table::borrow_mut(&mut shared.storage, owner)
+    }
+
+    #[view]
+    public fun return_sub_owners_registry(owner: vector<u8>): vector<vector<u8>> acquires SharedStorage{
+        let shared = borrow_global_mut<SharedStorage>(@dev);
+        assert!(table::contains(&shared.storage_registry,owner),ERROR_SHARED_STORAGE_DOESNT_EXISTS_FOR_THIS_ADDRESS );
+        *table::borrow_mut(&mut shared.storage_registry, owner)
     }
 
     //deprecated

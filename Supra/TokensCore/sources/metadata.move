@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV45{
+module dev::QiaraTokensMetadataV47{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -12,9 +12,10 @@ module dev::QiaraTokensMetadataV45{
     use dev::QiaraStorageV35::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraTokensRatesV45::{Self as rates};
-    use dev::QiaraTokensTiersV45::{Self as tier};
+    use dev::QiaraTokensRatesV47::{Self as rates};
+    use dev::QiaraTokensTiersV47::{Self as tier};
 
+    use dev::QiaraOracleV1::{Self as oracle, Access as OracleAccess};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -41,6 +42,10 @@ module dev::QiaraTokensMetadataV45{
     //struct Registry has key, store, copy{
     //    list: Map<String, vector<String>>,
    // }
+
+    struct Permissions has key {
+        oracle_access: OracleAccess,
+    }
 
     struct Tokens has key, store, copy{
         list: vector<Metadata>,
@@ -113,9 +118,10 @@ module dev::QiaraTokensMetadataV45{
     fun init_module(admin: &signer){
         let deploy_addr = signer::address_of(admin);
 
-       // if (!exists<Registry>(deploy_addr)) {
-       //     move_to(admin, Registry { registry: map::new<String, vector<String>>() });
-       // };
+        if (!exists<Permissions>(@dev)) {
+            move_to(admin, Permissions { oracle_access: oracle::give_access(admin)});
+        };
+
         if (!exists<Tokens>(deploy_addr)) {
             move_to(admin, Tokens { list: vector::empty<Metadata>() });
         };
@@ -259,6 +265,80 @@ module dev::QiaraTokensMetadataV45{
         let x: u256 = ((mc + mc) + (mc*(days_u128))) - (fdv*2);
 
         (x, mc, fdv, (creation as u256), x)
+    }
+
+  public entry fun test_impact(token: String, size: u256, liquidity: u256, isPositive: bool, type: String) acquires Permissions, Tokens{
+
+
+        let metadata = get_coin_metadata_by_symbol(token);
+        let oracleID = get_coin_metadata_oracleID(&metadata);
+
+        let fdvUSD = get_coin_metadata_fdv(&metadata);
+        let valueUSD = getValue(token, size);
+        let liquidityUSD = getValue(token, liquidity);
+
+        // this needs to be done to assure that price exists in map (it sets the price to current price from oracle, which is enough for initialization)
+        if(!oracle::existsPrice(token)){
+            oracle::impact_price(token, (oracleID as u64), 0, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+        };
+
+        let current_price = oracle::viewPrice(token);
+
+        let impact = 0;
+        if(type == utf8(b"perps")){
+            // 50$* 50$ / 100$
+            // = 2,5 -> 250% impact
+
+            //  5000$ / (2500$ - 3000$) / 3000$ -> 166% impact
+            // pridat safety check kde total open margin nemuze bejt vetsi nez FDV? 
+            impact = valueUSD  / ((fdvUSD as u256) - liquidityUSD) / liquidityUSD;
+
+        } else if (type == utf8(b"spot")){
+            // 50$ / 100$
+            // = 0,5 -> 50% impact
+            impact = valueUSD  / liquidityUSD;
+        };
+
+        // impact needs to be *100 to convert it to % from decimal    
+        oracle::impact_price(token, (oracleID as u64), current_price*(impact*100), isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+
+    }
+
+    public fun impact(token: String, size: u256, liquidity: u256, isPositive: bool, type: String, perm: Permission) acquires Permissions, Tokens{
+
+
+        let metadata = get_coin_metadata_by_symbol(token);
+        let oracleID = get_coin_metadata_oracleID(&metadata);
+
+        let fdvUSD = get_coin_metadata_fdv(&metadata);
+        let valueUSD = getValue(token, size);
+        let liquidityUSD = getValue(token, liquidity);
+
+        // this needs to be done to assure that price exists in map (it sets the price to current price from oracle, which is enough for initialization)
+        if(!oracle::existsPrice(token)){
+            oracle::impact_price(token, (oracleID as u64), 0, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+        };
+
+        let current_price = oracle::viewPrice(token);
+
+        let impact = 0;
+        if(type == utf8(b"perps")){
+            // 50$* 50$ / 100$
+            // = 2,5 -> 250% impact
+
+            //  5000$ / (2500$ - 3000$) / 3000$ -> 166% impact
+            // pridat safety check kde total open margin nemuze bejt vetsi nez FDV? 
+            impact = valueUSD  / ((fdvUSD as u256) - liquidityUSD) / liquidityUSD;
+
+        } else if (type == utf8(b"spot")){
+            // 50$ / 100$
+            // = 0,5 -> 50% impact
+            impact = valueUSD  / liquidityUSD;
+        };
+
+        // impact needs to be *100 to convert it to % from decimal    
+        oracle::impact_price(token, (oracleID as u64), current_price*(impact*100), isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+
     }
 
     fun associate_tier(credit: u256, stable: u8): u8{
