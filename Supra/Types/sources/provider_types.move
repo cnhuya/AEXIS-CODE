@@ -1,4 +1,4 @@
-module dev::QiaraProviderTypesV27 {
+module dev::QiaraProviderTypesV28 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
@@ -84,4 +84,5 @@ module dev::QiaraProviderTypesV27 {
     public fun return_all_providers(): Map<String, Map<String, vector<String>>> acquires Providers{
         borrow_global_mut<Providers>(@dev).table
     }
+
 }
