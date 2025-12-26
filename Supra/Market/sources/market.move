@@ -19,7 +19,7 @@ module dev::QiaraVaultsV39 {
     use dev::QiaraTokensSharedV47::{Self as TokensShared};
     use dev::QiaraTokensRatesV47::{Self as TokensRates, Access as TokensRatesAccess};
     use dev::QiaraTokensOmnichainV47::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    
+
     use dev::QiaraMarginV56::{Self as Margin, Access as MarginAccess};
     use dev::QiaraRIV56::{Self as RI};
 
@@ -145,7 +145,8 @@ module dev::QiaraVaultsV39 {
         validator: address,
         type: String,
         amount: u64,
-        address: address,
+        sender: vector<u8>,
+        shared_storage: vector<u8>,
         to: vector<u8>,
         token: String,
         chain: String,
@@ -194,6 +195,7 @@ module dev::QiaraVaultsV39 {
             type: utf8(b"Deposit"),
             amount: amount,
             sender: sender,
+            shared_storage: shared_storage,
             to: shared_storage,
             token: token,
             chain: chain,
@@ -220,6 +222,7 @@ module dev::QiaraVaultsV39 {
             type: utf8(b"Withdraw"),
             amount: amount,
             sender: sender,
+            shared_storage: shared_storage,
             to: bcs::to_bytes(&recipient),
             token: token,
             chain: chain,
@@ -245,12 +248,12 @@ module dev::QiaraVaultsV39 {
 
         accrue(provider_vault, shared_storage,sender, token, chain, provider);
 
-        event::emit(BridgeVaultEvent {
+        event::emit(VaultEvent {
             validator: signer::address_of(validator),
             type: utf8(b"Borrow"),
-            validator: signer::address_of(validator),
             amount: amount,
             sender: sender,
+            shared_storage: shared_storage, 
             to: bcs::to_bytes(&recipient),
             token: token,
             chain: chain,
@@ -277,6 +280,7 @@ module dev::QiaraVaultsV39 {
             type: utf8(b"Repay"),
             amount: amount,
             sender: sender,
+            shared_storage: shared_storage,
             to: bcs::to_bytes(&utf8(b"0x0")),
             token: token,
             chain: chain,
@@ -319,6 +323,7 @@ module dev::QiaraVaultsV39 {
             amount: amount_in,
             sender: sender,
             to: sender,
+            shared_storage: shared_storage,
             token: tokenFrom,
             chain: chainFrom,
             provider: providerFrom,
@@ -362,10 +367,11 @@ module dev::QiaraVaultsV39 {
             TokensOmnichain::change_UserTokenSupply(token, chain, sender, (reward as u64), true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain)); 
           
             event::emit(VaultEvent {
-                validator: utf8(b"0x0"),
+                validator: signer::address_of(validator),
                 type: utf8(b"Claim Rewards"),
                 amount: (reward as u64),
                 sender: sender,
+                shared_storage: shared_storage,
                 to: sender,
                 token: token,
                 chain: chain,
@@ -383,12 +389,13 @@ module dev::QiaraVaultsV39 {
             let fa = TokensCore::mint(token, chain, (interest as u64), TokensCore::give_permission(&borrow_global<Permissions>(@dev).tokens_core)); 
             TokensCore::deposit(provider_vault.balance, fa, chain);
 
-            event::emit(BridgeVaultEvent {
-                type: utf8(b"Pay Interest"),
+            event::emit(VaultEvent {
                 validator: signer::address_of(validator),
+                type: utf8(b"Pay Interest"),
                 amount: (interest as u64),
                 sender: sender,
-                to: bcs::to_bytes(&utf8(b"0x0")),
+                shared_storage: shared_storage,
+                to: bcs::to_bytes(&utf8(b"0x0")), // repaying (interest > rewards)
                 token: token,
                 chain: chain,
                 provider: provider,
@@ -425,10 +432,11 @@ module dev::QiaraVaultsV39 {
         };
 
         event::emit(VaultEvent {
-            validator: utf8(b"0x0"),
+            validator: @0x0,
             type: utf8(b"Swap"),
             amount: amount,
-            address: signer::address_of(signer),
+            sender: bcs::to_bytes(&signer::address_of(signer)),
+            shared_storage: shared_storage,
             to: shared_storage,
             token: tokenFrom,
             chain: chainFrom,
@@ -462,10 +470,11 @@ module dev::QiaraVaultsV39 {
         accrue(provider_vault,shared_storage, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider);
 
         event::emit(VaultEvent {
-            validator: utf8(b"0x0"),
+            validator: @0x0,
             type: utf8(b"Deposit"),
             amount: amount,
-            address: signer::address_of(signer),
+            sender: bcs::to_bytes(&signer::address_of(signer)),
+            shared_storage: shared_storage,
             to: shared_storage,
             token: token,
             chain: chain,
@@ -489,10 +498,11 @@ module dev::QiaraVaultsV39 {
         accrue(provider_vault, shared_storage, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider);
 
         event::emit(VaultEvent {
-            validator: utf8(b"0x0"),
+            validator: @0x0,
             type: utf8(b"Withdraw"),
             amount: amount,
-            address: signer::address_of(signer),
+            sender: bcs::to_bytes(&signer::address_of(signer)),
+            shared_storage: shared_storage,
             to: bcs::to_bytes(&to),
             token: token,
             chain: chain,
@@ -520,10 +530,11 @@ module dev::QiaraVaultsV39 {
 
         accrue(provider_vault, shared_storage, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider);
         event::emit(VaultEvent {
-            validator: utf8(b"0x0"),
+            validator: @0x0,
             type: utf8(b"Borrow"),
             amount: amount,
-            address: signer::address_of(signer),
+            sender: bcs::to_bytes(&signer::address_of(signer)),
+            shared_storage: shared_storage,
             to: bcs::to_bytes(&to),
             token: token,
             chain: chain,
@@ -546,10 +557,11 @@ module dev::QiaraVaultsV39 {
 
         accrue(provider_vault, shared_storage, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider);
         event::emit(VaultEvent {
-            validator: utf8(b"0x0"),
+            validator: @0x0,
             type: utf8(b"Repay"),
             amount: amount,
-            address: signer::address_of(signer),
+            sender: bcs::to_bytes(&signer::address_of(signer)),
+            shared_storage: shared_storage,
             to: bcs::to_bytes(&utf8(b"0x0")),
             token: token,
             chain: chain,
@@ -579,10 +591,11 @@ module dev::QiaraVaultsV39 {
             let fa = TokensCore::withdraw(provider_vault.balance, (reward as u64), chain);
             TokensCore::deposit(primary_fungible_store::ensure_primary_store_exists(signer::address_of(signer),TokensCore::get_metadata(token)), fa, chain);
             event::emit(VaultEvent {
-                validator: utf8(b"0x0"),
+                validator: @0x0,
                 type: utf8(b"Claim Rewards"),
                 amount: (reward as u64),
-                address: signer::address_of(signer),
+            sender: bcs::to_bytes(&signer::address_of(signer)),
+                shared_storage: shared_storage,
                 to: bcs::to_bytes(&signer::address_of(signer)),
                 token: token,
                 chain: chain,
@@ -601,10 +614,11 @@ module dev::QiaraVaultsV39 {
             TokensCore::deposit(provider_vault.balance, fa, chain);
 
             event::emit(VaultEvent {
-            validator: utf8(b"0x0"),
+                validator: @0x0,
                 type: utf8(b"Pay Interest"),
                 amount: (interest as u64),
-                address: signer::address_of(signer),
+                sender: bcs::to_bytes(&signer::address_of(signer)),
+                shared_storage: shared_storage,
                 to: bcs::to_bytes(&utf8(b"0x0")),
                 token: token,
                 chain: chain,
