@@ -1,4 +1,4 @@
-module dev::QiaraRIV56{
+module dev::QiaraRIV57{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -31,6 +31,7 @@ module dev::QiaraRIV56{
     // (shared storage owner) -> RI
     struct UsersRI has key {
         ri: Table<vector<u8>, RI>,
+        perp_credit_profit: Table<vector<u8>, bool>,
     }
 
     struct RI has key, store, copy, drop{
@@ -53,7 +54,7 @@ module dev::QiaraRIV56{
 // === INIT === //
     fun init_module(admin: &signer){
         if (!exists<UsersRI>(@dev)) {
-            move_to(admin,UsersRI {ri: table::new<vector<u8>, RI>()});
+            move_to(admin,UsersRI {ri: table::new<vector<u8>, RI>(), perp_credit_profit: table::new<vector<u8>, bool>()});
         };
 
     }
@@ -93,6 +94,16 @@ module dev::QiaraRIV56{
         ri.interests = Interest { token: token, chain: chain, provider: provider };
     }
 
+    public fun change_perp_credit_profit(owner: vector<u8>, sub_owner: vector<u8>, is_perp_credit: bool) acquires UsersRI{
+        TokensShared::assert_shared_storage(owner);
+        TokensShared::assert_is_sub_owner(owner, sub_owner);
+
+        let ri_table = borrow_global_mut<UsersRI>(@dev);
+
+        let ri = table::borrow_mut(&mut ri_table.perp_credit_profit, owner);
+        *ri = is_perp_credit;
+    }
+
 
 // === PUBLIC VIEWS === //
 
@@ -113,6 +124,12 @@ module dev::QiaraRIV56{
         return (ri.interests.token, ri.interests.chain, ri.interests.provider)
     }
 
+    #[view]
+    public fun get_user_perp_isCredit(owner: vector<u8>): bool acquires UsersRI {
+        let ri = find_user_perp_credit(borrow_global_mut<UsersRI>(@dev),owner);
+        return ri
+    }
+
 // === MUT RETURNS === //
     fun find_user_RI(ri_table: &mut UsersRI,owner: vector<u8>): &mut RI {
         {
@@ -124,6 +141,17 @@ module dev::QiaraRIV56{
         let ri = table::borrow_mut(&mut ri_table.ri, owner);
         assert_safety(*ri);
         return ri
+    }
+
+    fun find_user_perp_credit(ri_table: &mut UsersRI,owner: vector<u8>): bool {
+        {
+            if (!table::contains(&ri_table.perp_credit_profit, owner)) {
+                abort ERROR_USER_DID_NOT_INITIALIZE_HIS_RI_YET
+            };
+        };
+
+        let ri = table::borrow_mut(&mut ri_table.perp_credit_profit, owner);
+        return *ri
     }
 
     fun assert_safety(ri: RI){

@@ -1,4 +1,4 @@
-module dev::QiaraMarginV56{
+module dev::QiaraMarginV57{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -36,7 +36,14 @@ module dev::QiaraMarginV56{
     struct TokenHoldings has key {
         // address(shared storage owner), token, chain, provider
         holdings: Table<vector<u8>, Table<String,Map<String, Map<String, Credit>>>>,
+        credit: Table<vector<u8>, Integer>, // universal "credit" ($ value essentially), per user (shared_storage) | this is used for perpetual profits... and more in the future
     }
+
+    struct Integer has key, store {
+        value: u256,
+        isPositive: bool,
+    }
+
     struct Credit has key, store, copy, drop{
         deposited: u256,
         borrowed: u256,
@@ -61,7 +68,7 @@ module dev::QiaraMarginV56{
         };
 
         if (!exists<TokenHoldings>(@dev)) {
-            move_to(admin,TokenHoldings {holdings: table::new<vector<u8>, Table<String, Map<String, Map<String, Credit>>>>()});
+            move_to(admin,TokenHoldings {holdings: table::new<vector<u8>, Table<String, Map<String, Map<String, Credit>>>>(), credit: table::new<vector<u8>, Integer>(),});
         };
 
     }
@@ -83,6 +90,29 @@ module dev::QiaraMarginV56{
         abort(number);
     }
 
+
+    public fun add_credit(owner: vector<u8>, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings{
+        TokensShared::assert_is_sub_owner(owner, sub_owner);
+        let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),owner);
+        credit.value = credit.value + value;
+    }
+
+    public fun remove_credit(owner: vector<u8>, sub_owner: vector<u8>, value: u256) acquires TokenHoldings {
+        TokensShared::assert_is_sub_owner(owner, sub_owner);
+        let holdings = borrow_global_mut<TokenHoldings>(@dev);
+        let credit = find_credit(holdings, owner);
+
+        if (credit.isPositive) {
+            if (value > credit.value) {
+                credit.value = value - credit.value;
+                credit.isPositive = false;
+            } else {
+                credit.value = credit.value - value;
+            };
+        } else {
+            credit.value = credit.value + value;
+        };
+    }
 
     public fun update_time(owner: vector<u8>, sub_owner: vector<u8>, token: String, chain: String, provider: String, cap: Permission) acquires TokenHoldings{
         TokensShared::assert_is_sub_owner(owner, sub_owner);
@@ -313,6 +343,24 @@ public fun get_user_total_usd(owner: vector<u8>): (u256, u256, u256, u256, u256,
                 false,
                 5
             );
+            let credit = find_credit(tokens_holdings, owner);
+
+            if (credit.isPositive) {
+                total_available = total_available + credit.value;
+                total_margin = total_margin + credit.value;
+            } else {
+                if (total_available > credit.value) {
+                    total_available = total_available - credit.value;
+                } else {
+                    total_available = 0;
+                };
+
+                if (total_margin > credit.value) {
+                    total_margin = total_margin - credit.value;
+                } else {
+                    total_margin = 0;
+                };
+            };
 
             total_staked = total_staked + staked_usd;
             total_dep = total_dep + dep_usd;
@@ -330,6 +378,7 @@ public fun get_user_total_usd(owner: vector<u8>): (u256, u256, u256, u256, u256,
 
     let avg_interest = if (total_dep == 0) 0 else total_expected_interest / total_dep;
     let deducted_margin = if (total_margin > total_staked) { total_margin - total_staked } else {0u256};
+
 
     (
         total_dep,
@@ -406,6 +455,16 @@ public fun get_user_total_usd(owner: vector<u8>): (u256, u256, u256, u256, u256,
         };
 
         map::borrow_mut(a, &provider)
+    }
+
+    fun find_credit(feature_table: &mut TokenHoldings,owner: vector<u8>): &mut Integer {
+        {
+            if (!table::contains(&feature_table.credit, owner)) {
+                table::add(&mut feature_table.credit, owner, Integer { value: 0, isPositive: true });
+            };
+        };
+
+        return table::borrow_mut(&mut feature_table.credit, owner)
     }
 
 
