@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV39 {
+module dev::QiaraVaultsV40 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -20,8 +20,8 @@ module dev::QiaraVaultsV39 {
     use dev::QiaraTokensRatesV47::{Self as TokensRates, Access as TokensRatesAccess};
     use dev::QiaraTokensOmnichainV47::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
-    use dev::QiaraMarginV56::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraRIV56::{Self as RI};
+    use dev::QiaraMarginV57::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraRIV57::{Self as RI};
 
    // use dev::QiaraFeeVaultV10::{Self as fee};
 

@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraMarketV39"
+    name = "QiaraMarketV40"
     version = "2.1.1"
     authors = []
 
@@ -31,7 +31,7 @@
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraMarginV56]
+    [dependencies.QiaraMarginV57]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
