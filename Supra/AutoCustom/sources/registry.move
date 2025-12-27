@@ -1,4 +1,4 @@
-module dev::QiaraAutomationV4 {
+module dev::QiaraAutomationV5 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::timestamp;
@@ -8,7 +8,7 @@ module dev::QiaraAutomationV4 {
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use supra_framework::event;
 
-    use dev::QiaraTokensSharedV45::{Self as TokensShared};
+    use dev::QiaraTokensSharedV47::{Self as TokensShared};
 
 
 // === ACCESS === //
@@ -239,7 +239,7 @@ module dev::QiaraAutomationV4 {
 
         }
 
-    public entry fun execute(validator:signer, owned_storage: vector<u8>, function_id: u8, counter: u128) acquires AutomatedTransactionsTracker {
+    public fun execute(validator:signer, owned_storage: vector<u8>, function_id: u8, counter: u128, perm: Permission) acquires AutomatedTransactionsTracker {
         let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);
 
         if (!table::contains(&tracker_bookshelf.tracker, owned_storage)) {

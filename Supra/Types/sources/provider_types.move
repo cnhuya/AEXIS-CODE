@@ -85,4 +85,13 @@ module dev::QiaraProviderTypesV28 {
         borrow_global_mut<Providers>(@dev).table
     }
 
+    public fun ensure_valid_provider(provider: String) acquires Providers{
+        let provider_table = borrow_global_mut<Providers>(@dev);
+
+        if (map::contains_key(&provider_table.table, &provider)) {
+            return;
+        };
+
+        abort ERROR_INVALID_PROVIDER;   
+    }
 }

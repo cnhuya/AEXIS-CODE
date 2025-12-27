@@ -126,7 +126,7 @@ const SYMBOL_PREFIX: vector<u8> = b"Q";
                 return symbol
             };
         len=len-1;
-        };
+        }; 
         abort ERROR_INVALID_TOKEN
     }
     #[view]
@@ -146,5 +146,12 @@ const SYMBOL_PREFIX: vector<u8> = b"Q";
         len=len-1;
         };
         abort ERROR_INVALID_TOKEN
+    }
+
+    public fun ensure_valid_token_nick_name(token_name: String) acquires Tokens{
+        let tokens = borrow_global_mut<Tokens>(@dev);
+
+        let names = map::keys(&tokens.nick_names);
+        assert!(vector::contains(&names, &token_name), ERROR_INVALID_TOKEN);
     }
 }
