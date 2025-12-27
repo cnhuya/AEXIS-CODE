@@ -1,4 +1,4 @@
-module dev::QiaraMarginV57{
+module dev::QiaraMarginV58{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -97,7 +97,7 @@ module dev::QiaraMarginV57{
         credit.value = credit.value + value;
     }
 
-    public fun remove_credit(owner: vector<u8>, sub_owner: vector<u8>, value: u256) acquires TokenHoldings {
+    public fun remove_credit(owner: vector<u8>, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings {
         TokensShared::assert_is_sub_owner(owner, sub_owner);
         let holdings = borrow_global_mut<TokenHoldings>(@dev);
         let credit = find_credit(holdings, owner);
