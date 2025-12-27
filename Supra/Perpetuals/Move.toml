@@ -1,10 +1,10 @@
     [package]
-    name = "QiaraPerpsV34"
+    name = "QiaraPerpsV35"
     version = "2.1.1"
     authors = []
 
     [addresses]
-    dev = "0xad4689eb401dbd7cff34d47ce1f2c236375ae7481cdaca884a0c2cdb35b339b0"
+    dev = "0xd4fcdba413ff103eec996a07b795847a8b4ce5c328d35d9843dc5ec2230de605"
     supra_framework = "0x1"
     std = "0x1"
     aptos_std = "0x1"
@@ -26,12 +26,12 @@
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
 
-    [dependencies.QiaraVerifiedTokensV44]
+    [dependencies.QiaraTokensV47]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
-    subdir = 'Supra/VerifiedTokens'
-
-    [dependencies.QiaraTypesV14]
+    subdir = 'Supra/TokensCore'
+    
+    [dependencies.QiaraTypesV28]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
@@ -41,9 +41,14 @@
     rev = 'main'
     subdir = 'Supra/Math'
 
-    [dependencies.QiaraMarginV48]
+    [dependencies.QiaraMarginV58]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
+
+    [dependencies.QiaraAutomationV5]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/AutoCustom'
 
     [dev-dependencies]

@@ -1,16 +1,23 @@
-module dev::QiaraPerpsV34{
+module dev::QiaraPerpsV35{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
-    use std::type_info::{Self, TypeInfo};
     use std::table;
     use std::timestamp;
+    use std::bcs;
     use supra_framework::event;
-    use dev::QiaraMarginV48::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraVerifiedTokensV44::{Self as VerifiedTokens};
-    use dev::QiaraFeatureTypesV14::{Self as FeatureTypes, Perpetuals};
-    use dev::QiaraPerpTypesV14::{Self as PerpTypes, Bitcoin, Ethereum, Solana, Sui, Deepbook, Injective, Virtuals, Supra};
+    use aptos_std::simple_map::{Self as map, SimpleMap as Map};
+
+    use dev::QiaraMarginV58::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraRIV58::{Self as RI};
+
+    use dev::QiaraTokensMetadataV47::{Self as TokensMetadata, VMetadata};
+    use dev::QiaraTokensSharedV47::{Self as TokensShared};
+
+    use dev::QiaraTokenTypesV28::{Self as TokensTypes};
+
     use dev::QiaraMathV9::{Self as QiaraMath};
+
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_MARKET_ALREADY_EXISTS: u64 = 2;
@@ -35,7 +42,7 @@ module dev::QiaraPerpsV34{
         margin: MarginAccess
     }
 
-    struct Asset has store, key{
+    struct Asset has store, key, drop{
         asset: String,
         shorts: u256,
         longs: u256,
@@ -54,7 +61,7 @@ module dev::QiaraPerpsV34{
         denom: u256,
     }
 
-    struct Position<T> has copy, drop, store, key {
+    struct Position has copy, drop, store, key {
         size: u256,
         entry_price: u256,
         is_long: bool,
@@ -77,11 +84,11 @@ module dev::QiaraPerpsV34{
     }
 
     struct AssetBook has key, store {
-        book: table::Table<String, Asset>,
+        book: Map<String, Asset>,
     }
 
-    struct UserBook<T> has key, store {
-        book: table::Table<address, Position<T>>,
+    struct UserBook has key, store {
+        book: table::Table<vector<u8>, Map<String, Position>>,
     }
 
     struct Markets has key, store{
@@ -91,7 +98,8 @@ module dev::QiaraPerpsV34{
 // === EVENTS === //
     #[event]
     struct Trade has copy, drop, store {
-        trader: address,
+        validator: address,
+        trader: vector<u8>, // i.e shared storage?
         is_long: bool,
         size: u256,
         leverage:u64,
@@ -103,21 +111,6 @@ module dev::QiaraPerpsV34{
         time: u64
     }
 
-    #[event]
-    struct TradeReg has copy, drop, store {
-        trader: address,
-        is_long: bool,
-        size: u256,
-        leverage:u64,
-        used_margin: u256,
-        asset: String,
-        type: String,
-        entry_price: u256,
-        desired_price: u256,
-        fee: u256,
-        time: u64,
-        success: bool,
-    }
 
 /// === INIT ===
     fun init_module(admin: &signer) acquires Markets, AssetBook{
@@ -127,35 +120,37 @@ module dev::QiaraPerpsV34{
         };
 
         if (!exists<AssetBook>(@dev)) {
-            move_to(admin, AssetBook { book: table::new<String, Asset>()});
+            move_to(admin, AssetBook { book: map::new<String, Asset>()});
         };
 
         if (!exists<Permissions>(@dev)) {
             move_to(admin, Permissions { margin: Margin::give_access(admin),});
         };
 
-        create_market<Bitcoin>(admin);
-        create_market<Ethereum>(admin);
-        create_market<Solana>(admin);
-        create_market<Sui>(admin);
-        create_market<Injective>(admin);
-        create_market<Virtuals>(admin);
-        create_market<Deepbook>(admin);
-        create_market<Supra>(admin);
+        create_market(admin, utf8(b"Bitcoin"));
+        create_market(admin, utf8(b"Solana"));
+        create_market(admin, utf8(b"Sui"));
+        create_market(admin, utf8(b"Injective"));
+        create_market(admin, utf8(b"Virtuals"));
+        create_market(admin, utf8(b"Supra"));
+        create_market(admin, utf8(b"Deepbook"));
+
     }
 
 
 /// === ENTRY FUNCTIONS ===
-    public entry fun create_market<T: store>(admin: &signer) acquires Markets, AssetBook{
-        if (!exists<UserBook<T>>(@dev)) {
-            move_to(admin, UserBook<T> { book: table::new<address, Position<T>>()});
+    public entry fun create_market(admin: &signer, name: String) acquires Markets, AssetBook{
+        TokensTypes::ensure_valid_token_nick_name(name);
+
+        if (!exists<AssetBook>(@dev)) {
+            move_to(admin, AssetBook { book: map::new<String, Asset>()});
         };
 
         let asset_book = borrow_global_mut<AssetBook>(@dev);
 
-        if (!table::contains(&asset_book.book, type_info::type_name<T>())) {
-            table::add(&mut asset_book.book, type_info::type_name<T>(), Asset { 
-                asset:  type_info::type_name<T>(),
+        if (!map::contains_key(&asset_book.book, &name)) {
+            map::upsert(&mut asset_book.book, name, Asset { 
+                asset: name,
                 shorts: 0,
                 longs: 0,
                 leverage: 0,
@@ -163,24 +158,30 @@ module dev::QiaraPerpsV34{
         };
 
         let markets = borrow_global_mut<Markets>(@dev);
-        assert!(!vector::contains(&markets.list, &type_info::type_name<T>()),ERROR_MARKET_ALREADY_EXISTS);
-        vector::push_back(&mut markets.list, type_info::type_name<T>());
+        assert!(!vector::contains(&markets.list, &name),ERROR_MARKET_ALREADY_EXISTS);
+        vector::push_back(&mut markets.list, name);
     }
 
-    fun find_position<T: store>(user: address, user_book: &mut UserBook<T>): &mut Position<T> {
+    fun find_position(user: vector<u8>, name:String, user_book: &mut UserBook): &mut Position {
         if (!table::contains(&user_book.book, user)) {
-            table::add(&mut user_book.book, user, Position<T> { 
-                size: 0, 
-                entry_price: 0, 
-                is_long: false, 
-                leverage: 0 
+            table::add(&mut user_book.book, user, map::new<String, Position>());
+        };
+
+        let user_map = table::borrow_mut(&mut user_book.book, user);
+        if(!map::contains_key(user_map, &name)){
+            map::upsert(user_map, name, Position {
+                size: 0,
+                entry_price: 0,
+                is_long: false,
+                leverage: 0,
             });
         };
-        table::borrow_mut(&mut user_book.book, user)
+
+        map::borrow_mut(user_map, &name)
     }
 
-    fun find_asset<T: store>(asset_book: &mut AssetBook): &mut Asset {
-        table::borrow_mut(&mut asset_book.book, type_info::type_name<T>())
+    fun find_asset(asset: String, asset_book: &mut AssetBook): &mut Asset {
+        map::borrow_mut(&mut asset_book.book, &asset)
     }
 
     fun ttta(a: u64){
@@ -188,10 +189,13 @@ module dev::QiaraPerpsV34{
     }
 
 
-    public entry fun trade<T: store, A,B>(address: address, size:u256, leverage: u64, limit: u256, side: String, type: String) acquires UserBook, AssetBook, Permissions {
-        let position = find_position<T>(address,  borrow_global_mut<UserBook<T>>(@dev));
+
+
+
+    public entry fun trade(sender: vector<u8>, shared_storage: vector<u8>, asset: String, size:u256, leverage: u64, limit: u256, side: String, type: String) acquires UserBook, AssetBook, Permissions {
+        let position = find_position(sender, asset, borrow_global_mut<UserBook>(@dev));
         let asset_book = borrow_global_mut<AssetBook>(@dev);
-        let price = VerifiedTokens::get_coin_metadata_price(&VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>()));
+        let price = TokensMetadata::get_coin_metadata_price(&TokensMetadata::get_coin_metadata_by_symbol(asset));
         assert!(leverage >= 100, ERROR_LEVERAGE_TOO_LOW);
         let is_long: bool = false;
 
@@ -201,87 +205,101 @@ module dev::QiaraPerpsV34{
             } else if(side == utf8(b"short")){
                 is_long = false;
             };
-            let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, is_long, (price as u128), address);
-            handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+            let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, is_long, (price as u128), sender);
+            handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
         } else if (type == utf8(b"limit")) {
             if ((side == utf8(b"long")) && (limit >= price)) {
-                let (size_diff_usd, is_profit) = calculate_position(asset_book, position, size, leverage, true, (price as u128), address);
-                handle_pnl<T, A, B>(size_diff_usd, is_profit, address);
+                let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, is_long, (price as u128), sender);
+                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
             } else if ((side == utf8(b"short")) && (limit <= price)) {
-                let (size_diff_usd, is_profit) = calculate_position(asset_book, position, size, leverage, false, (price as u128), address);
-                handle_pnl<T, A, B>(size_diff_usd, is_profit, address);
+                let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, is_long, (price as u128), sender);
+                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
             };
         } else if(type == utf8(b"other")){
             if(side == utf8(b"flip") && (position.is_long)){
-                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size*2, leverage, false, (price as u128), address);
-                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+                let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size*2, leverage, false, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
             } else if(side == utf8(b"flip") && (!position.is_long)){
-                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size*2, leverage, true, (price as u128), address);
-                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+                let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size*2, leverage, true, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
             } else if(side == utf8(b"close") && (!position.is_long)){
-                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, true, (price as u128), address);
-                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+                let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, true, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
             } else if(side == utf8(b"close") && (position.is_long)){
-                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, false, (price as u128), address);
-                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+                let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, false, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
             } else if(side == utf8(b"double") && (position.is_long)){
-                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, true, (price as u128), address);
-                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+                let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, true, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
             } else if(side == utf8(b"double") && (!position.is_long)){
-                let (size_diff_usd, is_profit) = calculate_position(asset_book,position, size, leverage, false, (price as u128), address);
-                handle_pnl<T,A,B>(size_diff_usd, is_profit, address);
+                let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, false, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+            };
+        };
+    }
+
+    public fun p_trade(validator: &signer, sender: vector<u8>, shared_storage: vector<u8>, asset: String, size:u256, leverage: u64, limit: u256, side: String, type: String, perm: Permission) acquires UserBook, AssetBook, Permissions {
+        let position = find_position(sender, asset, borrow_global_mut<UserBook>(@dev));
+        let asset_book = borrow_global_mut<AssetBook>(@dev);
+        let price = TokensMetadata::get_coin_metadata_price(&TokensMetadata::get_coin_metadata_by_symbol(asset));
+        assert!(leverage >= 100, ERROR_LEVERAGE_TOO_LOW);
+        let is_long: bool = false;
+
+        if(type == utf8(b"market")){
+            if(side == utf8(b"long")){
+                is_long = true;
+            } else if(side == utf8(b"short")){
+                is_long = false;
+            };
+            let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size, leverage, is_long, (price as u128), sender);
+           handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+        } else if (type == utf8(b"limit")) {
+            if ((side == utf8(b"long")) && (limit >= price)) {
+                let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book, position, size, leverage, true, (price as u128), sender);
+                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+            } else if ((side == utf8(b"short")) && (limit <= price)) {
+                let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book, position, size, leverage, false, (price as u128), sender);
+                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+            };
+        } else if(type == utf8(b"other")){
+            if(side == utf8(b"flip") && (position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size*2, leverage, false, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+            } else if(side == utf8(b"flip") && (!position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size*2, leverage, true, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+            } else if(side == utf8(b"close") && (!position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size, leverage, true, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+            } else if(side == utf8(b"close") && (position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size, leverage, false, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+            } else if(side == utf8(b"double") && (position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size, leverage, true, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+            } else if(side == utf8(b"double") && (!position.is_long)){
+                let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size, leverage, false, (price as u128), sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
             };
         };
     }
 
 
-
 /// === HELPER FUNCTIONS ===
-fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquires Permissions {
-    if (pnl == 0) { 
-        return; 
-    };
-    
-    if (is_profit) {
-        let reward = getValueByCoin<T, A>(pnl);
-        Margin::add_rewards<T, Perpetuals>(user, reward, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-       // ttta(6);
-    } else {
-      //  ttta(7);
-        let interest = getValueByCoin<T, B>(pnl);
-       // ttta(8);
+    fun handle_pnl(asset: String, pnl: u256, is_profit: bool, shared_storage: vector<u8>, sub_owner: vector<u8>) acquires Permissions {
+        if (pnl == 0) { 
+            return; 
+        };
         
-        // Debug: Check if permissions exist
-        let permissions = borrow_global<Permissions>(@dev);
-       // ttta(888); // Should reach here
-        
-        // Debug: Check the margin permission
-        let cap = Margin::give_permission(&permissions.margin);
-       // ttta(889); // Should reach here
-        
-        // Try the call
-        Margin::add_interest<T, Perpetuals>(user, interest, cap);
-        //ttta(9);
-    };
-    //ttta(10);
-}
-
-   // converts usd back to coin value
-    fun getValueByCoin<T,B>(amount_in: u256): u256{
-
-        // Step 3: calculate output amount in Y (simple price * ratio example)
-        let metadata_in = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>());
-        let metadata_out = VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<B>());
-        let price_in =  VerifiedTokens::get_coin_metadata_price(&metadata_in);   // assumed in USD
-        let price_out =  VerifiedTokens::get_coin_metadata_price(&metadata_out); // assumed in USD
-
-        let amount_out = ((amount_in as u256) * price_in) / price_out;
-        //ttta(((amount_out/10000000) as u64));
-        return (amount_out) 
+        if (is_profit) {
+            Margin::add_credit(shared_storage, sub_owner, pnl, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        } else {
+            Margin::remove_credit(shared_storage, sub_owner, pnl, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        };
     }
 
-    fun calculate_position<T: store>(asset_book: &mut AssetBook,position: &mut Position<T>,added_size: u256,leverage: u64,is_long: bool,oracle_price: u128, address: address): (u256, bool){
-        let asset = find_asset<T>(asset_book);
+    fun calculate_position(validator: address, assetName: String, asset_book: &mut AssetBook,position: &mut Position,added_size: u256,leverage: u64,is_long: bool,oracle_price: u128, address: vector<u8>): (u256, bool){
+        let asset = find_asset(assetName, asset_book);
 
         let curr_size: u256 = (position.size as u256);
         let add_size: u256 = (added_size as u256);
@@ -298,12 +316,13 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
             update_asset_leverage(asset, add_size, lev, is_long, true);
 
             event::emit(Trade {
+                validator: validator,
                 trader: address,
                 is_long: is_long,
                 size: added_size,
                 leverage: leverage,
                 used_margin: (added_size/lev)*100,
-                asset: type_info::type_name<T>(),
+                asset: assetName,
                 type: utf8(b"Open Position"),
                 entry_price: price,
                 fee: 0,
@@ -335,12 +354,13 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
             update_asset_leverage(asset, add_size, lev, is_long, true);
 
             event::emit(Trade {
+                validator: validator,
                 trader: address,
                 is_long: is_long,
                 size: added_size,
                 leverage: leverage,
                 used_margin: (added_size/lev)*100,
-                asset: type_info::type_name<T>(),
+                asset: assetName,
                 type: utf8(b"Add Size"),
                 entry_price: price,
                 fee: 0,
@@ -371,12 +391,13 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
                 update_asset_leverage(asset, remaining_size, lev, is_long, true);
 
                 event::emit(Trade {
+                    validator: validator,
                     trader: address,
                     is_long: is_long,
                     size: added_size,
                     leverage: leverage,
                     used_margin: (added_size/lev)*100,
-                    asset: type_info::type_name<T>(),
+                    asset: assetName,
                     type: utf8(b"Reduce & Flip Side"),
                     entry_price: price,
                     fee: 0,
@@ -390,12 +411,13 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
                 position.entry_price = 0;
 
                 event::emit(Trade {
+                    validator: validator,
                     trader: address,
                     is_long: is_long,
                     size: added_size,
                     leverage: leverage,
                     used_margin: (added_size/lev)*100,
-                    asset: type_info::type_name<T>(),
+                    asset: assetName,
                     type: utf8(b"Close"),
                     entry_price: price,
                     fee: 0,
@@ -417,12 +439,13 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
             update_asset_leverage(asset, closed_size, curr_lev, position.is_long, false);
 
                 event::emit(Trade {
+                    validator: validator,
                     trader: address,
                     is_long: is_long,
                     size: added_size,
                     leverage: leverage,
                     used_margin: (added_size/lev)*100,
-                    asset: type_info::type_name<T>(),
+                    asset: assetName,
                     type: utf8(b"Partial Close"),
                     entry_price: price,
                     fee: 0,
@@ -498,8 +521,7 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
         }
     }
 
-
-    public fun estimate_pnl<T: store>(position: &Position<T>, current_price: u256): (u256, bool) {
+    public fun estimate_pnl(position: &Position, current_price: u256): (u256, bool) {
         if (position.size == 0) {
             return (0, true)
         };
@@ -524,42 +546,61 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
 
 /// === VIEW FUNCTIONS ===
     #[view]
-    public fun get_position<T: store>(user: address): Position<T> acquires UserBook {
-        let user_book = borrow_global<UserBook<T>>(@dev);
+    public fun get_positions(user: vector<u8>): Map<String, ViewPosition> acquires UserBook {
+        let user_book = borrow_global_mut<UserBook>(@dev);
 
+
+        let vect = map::new<String, ViewPosition>();
         if (!table::contains(&user_book.book, user)) {
-            return Position<T> { size:0, entry_price:0, is_long:false, leverage:0};
+            return vect
         };
 
-        let position = table::borrow(&user_book.book, user);
-        Position<T> { size: position.size , entry_price: position.entry_price, is_long:position.is_long, leverage:position.leverage}
+        let user_map = table::borrow_mut(&mut user_book.book, user);
+        let assets = map::keys(user_map);
+
+        let len = vector::length(&assets);
+        let i = 0;
+
+        while(len>0){
+            let asset = vector::borrow(&assets, i);
+            let position = get_position(*asset, user);
+            map::upsert(&mut vect, *asset, position);
+            len=len-1;
+        };
+
+       return vect
     }
 
     #[view]
-    public fun get_view_position<T: store>(user: address): ViewPosition acquires UserBook {
-        let user_book = borrow_global_mut<UserBook<T>>(@dev);
+    public fun get_position(asset:String, user: vector<u8>): ViewPosition acquires UserBook {
+        let user_book = borrow_global_mut<UserBook>(@dev);
 
-        let price = VerifiedTokens::get_coin_metadata_price(&VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>()));
-        let denom = VerifiedTokens::get_coin_metadata_denom(&VerifiedTokens::get_coin_metadata_by_res(type_info::type_name<T>()));
+        let price = TokensMetadata::get_coin_metadata_price(&TokensMetadata::get_coin_metadata_by_symbol(asset));
+        let denom = TokensMetadata::get_coin_metadata_denom(&TokensMetadata::get_coin_metadata_by_symbol(asset));
 
         if (!table::contains(&user_book.book, user)) {
-            return ViewPosition {asset: type_info::type_name<T>(), used_margin: 0, usd_size: 0, size:0, entry_price:0, price: price, is_long:false, leverage:0, pnl: 0, is_profit: false, denom: denom, profit_fee: 0};
+            return ViewPosition {asset: asset, used_margin: 0, usd_size: 0, size:0, entry_price:0, price: price, is_long:false, leverage:0, pnl: 0, is_profit: false, denom: denom, profit_fee: 0};
         };
-        let position = table::borrow_mut(&mut user_book.book, user);
-       // let coin_denom = VerifiedTokens::get_coin_denom<T>();
-        let (pnl, is_profit) = estimate_pnl<T>(position, (price as u256));
+
+        let user_map = table::borrow_mut(&mut user_book.book, user);
+        if(!map::contains_key(user_map, &asset)){
+            return ViewPosition {asset: asset, used_margin: 0, usd_size: 0, size:0, entry_price:0, price: price, is_long:false, leverage:0, pnl: 0, is_profit: false, denom: denom, profit_fee: 0};
+        };
+
+        let position = map::borrow_mut(user_map, &asset);
+
+        let (pnl, is_profit) = estimate_pnl(position, (price as u256));
         if(position.leverage == 0){
             position.leverage = 100;
         };
-        ViewPosition {asset: type_info::type_name<T>(), used_margin: ((position.size as u256)*(position.entry_price as u256) / (position.leverage as u256)), usd_size: (position.size as u256)*(position.entry_price as u256),  size: position.size , entry_price: position.entry_price, price: price, is_long:position.is_long, leverage:position.leverage, pnl: pnl, is_profit: is_profit, denom: denom, profit_fee: 0}
+        ViewPosition {asset:asset, used_margin: ((position.size as u256)*(position.entry_price as u256) / (position.leverage as u256)), usd_size: (position.size as u256)*(position.entry_price as u256),  size: position.size , entry_price: position.entry_price, price: price, is_long:position.is_long, leverage:position.leverage, pnl: pnl, is_profit: is_profit, denom: denom, profit_fee: 0}
     }
 
     #[view]
-    public fun get_market(res: String): ViewAsset acquires AssetBook {
-        let asset = borrow_global<AssetBook>(@dev);
-        let t = table::borrow(&asset.book, res);
-        let price = VerifiedTokens::get_coin_metadata_price(&VerifiedTokens::get_coin_metadata_by_res(res));
-        let denom = VerifiedTokens::get_coin_metadata_denom(&VerifiedTokens::get_coin_metadata_by_res(res));
+    public fun get_market(asset: String): ViewAsset acquires AssetBook {
+        let t = find_asset(asset, borrow_global_mut<AssetBook>(@dev));
+        let price = TokensMetadata::get_coin_metadata_price(&TokensMetadata::get_coin_metadata_by_symbol(asset));
+        let denom = TokensMetadata::get_coin_metadata_denom(&TokensMetadata::get_coin_metadata_by_symbol(asset));
         let oi = (t.shorts+t.longs)*price;
         ViewAsset { asset: t.asset, shorts: t.shorts,  longs: t.longs, oi:oi, leverage: t.leverage, liquidity:0, utilization:0, price: price , denom: denom }
     }
@@ -583,10 +624,4 @@ fun handle_pnl<T: store, A, B>(pnl: u256, is_profit: bool, user: address) acquir
         vect
     }
 
-    #[view]
-    public fun get_all_positions(address: address): vector<ViewPosition> acquires UserBook {
-        vector[get_view_position<Bitcoin>(address),get_view_position<Ethereum>(address),get_view_position<Solana>(address),
-        get_view_position<Sui>(address),get_view_position<Injective>(address),get_view_position<Deepbook>(address),
-        get_view_position<Virtuals>(address),get_view_position<Supra>(address)]
-    }
 }
