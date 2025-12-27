@@ -151,7 +151,7 @@ const SYMBOL_PREFIX: vector<u8> = b"Q";
     public fun ensure_valid_token_nick_name(token_name: String) acquires Tokens{
         let tokens = borrow_global_mut<Tokens>(@dev);
 
-        let names = map::keys(&tokens.nick_names);
+        let names = map::values(&tokens.nick_names);
         assert!(vector::contains(&names, &token_name), ERROR_INVALID_TOKEN);
     }
 }
