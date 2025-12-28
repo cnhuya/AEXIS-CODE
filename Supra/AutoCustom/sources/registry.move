@@ -246,11 +246,11 @@ module dev::QiaraAutomationV8 {
     fun assert_correct_arguments(function_id: u8, args: vector<vector<u8>>) {
 
          if (function_id == 1) { // swap trade
-             assert!(vector::length(&args) == 2, ERROR_ARGS_NOT_CORRECT_LENGTH);
+             assert!(vector::length(&args) == 11, ERROR_ARGS_NOT_CORRECT_LENGTH);
 
          }
         else if (function_id == 2) { // perps trade
-            assert!(vector::length(&args) == 3, ERROR_ARGS_NOT_CORRECT_LENGTH);
+            assert!(vector::length(&args) == 6, ERROR_ARGS_NOT_CORRECT_LENGTH);
         } else {
             abort ERROR_UNSPECIFIED_FUNCTION_ID;
         }
