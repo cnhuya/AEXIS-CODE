@@ -1,13 +1,13 @@
-module dev::QiaraRIV58{
+module dev::QiaraRIV59{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::table::{Self, Table};
 
-    use dev::QiaraTokensSharedV47::{Self as TokensShared};
+    use dev::QiaraTokensSharedV51::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV28::{Self as TokensType};
-    use dev::QiaraChainTypesV28::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV30::{Self as TokensType};
+    use dev::QiaraChainTypesV30::{Self as ChainTypes};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -61,9 +61,9 @@ module dev::QiaraRIV58{
 
 // === ENTRY FUN === //
 
-    public fun ensure_ri(owner: vector<u8>, sub_owner: vector<u8>) acquires UsersRI{
-        TokensShared::assert_shared_storage(owner);
-        TokensShared::assert_is_sub_owner(owner, sub_owner);
+    public fun ensure_ri(owner: vector<u8>, shared_storage_name:String, sub_owner: vector<u8>) acquires UsersRI{
+        //TokensShared::assert_shared_storage(owner);
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
 
         let ri_table = borrow_global_mut<UsersRI>(@dev);
 
@@ -72,9 +72,9 @@ module dev::QiaraRIV58{
         };
     }
 
-    public fun change_rewards(owner: vector<u8>, sub_owner: vector<u8>, token: String, chain: String, provider: String) acquires UsersRI{
-        TokensShared::assert_shared_storage(owner);
-        TokensShared::assert_is_sub_owner(owner, sub_owner);
+    public fun change_rewards(owner: vector<u8>, shared_storage_name:String, sub_owner: vector<u8>, token: String, chain: String, provider: String) acquires UsersRI{
+       // TokensShared::assert_shared_storage(owner);
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
         ChainTypes::ensure_valid_chain_name(chain);
 
         let ri_table = borrow_global_mut<UsersRI>(@dev);
@@ -83,9 +83,9 @@ module dev::QiaraRIV58{
         ri.rewards = Reward { token: token, chain: chain, provider: provider };
     }
 
-    public fun change_interests(owner: vector<u8>, sub_owner: vector<u8>, token: String, chain: String, provider: String) acquires UsersRI{
-        TokensShared::assert_shared_storage(owner);
-        TokensShared::assert_is_sub_owner(owner, sub_owner);
+    public fun change_interests(owner: vector<u8>, shared_storage_name:String, sub_owner: vector<u8>, token: String, chain: String, provider: String) acquires UsersRI{
+      //  TokensShared::assert_shared_storage(owner);
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
         ChainTypes::ensure_valid_chain_name(chain);
 
         let ri_table = borrow_global_mut<UsersRI>(@dev);
@@ -94,9 +94,9 @@ module dev::QiaraRIV58{
         ri.interests = Interest { token: token, chain: chain, provider: provider };
     }
 
-    public fun change_perp_credit_profit(owner: vector<u8>, sub_owner: vector<u8>, is_perp_credit: bool) acquires UsersRI{
-        TokensShared::assert_shared_storage(owner);
-        TokensShared::assert_is_sub_owner(owner, sub_owner);
+    public fun change_perp_credit_profit(owner: vector<u8>, shared_storage_name:String, sub_owner: vector<u8>, is_perp_credit: bool) acquires UsersRI{
+       // TokensShared::assert_shared_storage(owner);
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
 
         let ri_table = borrow_global_mut<UsersRI>(@dev);
 
