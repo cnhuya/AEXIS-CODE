@@ -1,11 +1,11 @@
-module dev::QiaraTokensRouterV6 {
+module dev::QiaraTokensRouterV7 {
     use std::type_info::{Self, TypeInfo};
     use std::bcs;
     use std::string::{Self as String, String, utf8};
     use supra_framework::object::{Self, Object};
     use supra_framework::fungible_asset::{Self, Metadata};
 
-    use dev::QiaraTokenTypesV28::{Self as TokensType};
+    use dev::QiaraTokenTypesV29::{Self as TokensType};
 
 // === HELPER FUNCTIONS === //
     #[view]
