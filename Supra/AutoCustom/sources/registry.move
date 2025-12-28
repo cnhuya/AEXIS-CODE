@@ -1,4 +1,4 @@
-module dev::QiaraAutomationV8 {
+module dev::QiaraAutomationV9 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::timestamp;
@@ -45,6 +45,11 @@ module dev::QiaraAutomationV8 {
         if (!exists<AutomatedTransactionsTracker>(@dev)) {
             move_to(admin, AutomatedTransactionsTracker { 
                 tracker: table::new<vector<u8>, Table<u8, Map<u128, vector<vector<u8>>>>>() 
+            });
+        };
+        if (!exists<AutomatedTransactionsCounter>(@dev)) {
+            move_to(admin, AutomatedTransactionsCounter { 
+                counter: table::new<vector<u8>, u128>()
             });
         };
     }
