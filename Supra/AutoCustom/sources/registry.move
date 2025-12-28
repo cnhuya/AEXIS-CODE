@@ -1,4 +1,4 @@
-module dev::QiaraAutomationV6 {
+module dev::QiaraAutomationV7 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::timestamp;
@@ -44,7 +44,7 @@ module dev::QiaraAutomationV6 {
     fun init_module(admin: &signer) {
         if (!exists<AutomatedTransactionsTracker>(@dev)) {
             move_to(admin, AutomatedTransactionsTracker { 
-                tracker: table::new<vector<u8>, Table<u8, Map<u128, Data>>>() 
+                tracker: table::new<vector<u8>, Table<u8, Map<u128, vector<vector<u8>>>>>() 
             });
         };
     }
@@ -52,13 +52,8 @@ module dev::QiaraAutomationV6 {
 /// === STRUCTS ===
 /// Address -> Function ID -> UID -> arguments for the function for validator
 
-    struct Data has key, copy, drop, store {
-        type_args: vector<String>,
-        args: vector<vector<u8>>
-    }
-
     struct AutomatedTransactionsTracker has key {
-        tracker: Table<vector<u8>, Table<u8, Map<u128, Data>>>
+        tracker: Table<vector<u8>, Table<u8, Map<u128, vector<vector<u8>>>>>
     }
 
     struct AutomatedTransactionsCounter has key {
@@ -71,7 +66,6 @@ module dev::QiaraAutomationV6 {
         address: vector<u8>,
         function_id: u8,
         uid: u128,
-        type_args: vector<String>,
         args: vector<vector<u8>>,
         time: u64
     }
@@ -81,17 +75,17 @@ module dev::QiaraAutomationV6 {
 
 /// === FUNCTIONS ===
     // Native Interface
-        public entry fun register_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, type_args: vector<String>, args: vector<vector<u8>>) acquires AutomatedTransactionsTracker, AutomatedTransactionsCounter {
+        public entry fun register_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, args: vector<vector<u8>>) acquires AutomatedTransactionsTracker, AutomatedTransactionsCounter {
             TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
             
-            assert_correct_arguments(function_id, type_args, args);
+            assert_correct_arguments(function_id, args);
             
             let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);
             let tracker_counter = borrow_global_mut<AutomatedTransactionsCounter>(@dev);
             
             // Initialize user's tracker table if not exists
             if (!table::contains(&tracker_bookshelf.tracker, owned_storage)) {
-                table::add(&mut tracker_bookshelf.tracker, owned_storage, table::new<u8, Map<u128, Data>>());
+                table::add(&mut tracker_bookshelf.tracker, owned_storage, table::new<u8, Map<u128, vector<vector<u8>>>>());
             };
 
             if (!table::contains(&tracker_counter.counter, owned_storage)) {
@@ -102,25 +96,22 @@ module dev::QiaraAutomationV6 {
             
             // Initialize function_id table if not exists
             if (!table::contains(user_tracker, function_id)) {
-                table::add(user_tracker, function_id, map::new<u128, Data>());
+                table::add(user_tracker, function_id, map::new<u128, vector<vector<u8>>>());
             };
             
             let function_table = table::borrow_mut(user_tracker, function_id);
             let counter = table::borrow_mut(&mut tracker_counter.counter, owned_storage);
             // Update or create the UID entry
             if (map::contains_key(function_table, &*counter)) {
-                // Replace existing args
-                let data = map::borrow_mut(function_table, counter);
-                data.args = args;
+                map::upsert(function_table, *counter, args);
             } else {
                 // Create new entry
-                map::add(function_table, *counter, Data {type_args: type_args, args: args});
+                map::add(function_table, *counter, args);
 
                 event::emit(AutomationRegisterEvent {
                     address: owned_storage,
                     function_id: function_id,
                     uid: *counter,
-                    type_args: type_args,
                     args: args,
                     time: timestamp::now_seconds()
                 })
@@ -130,7 +121,7 @@ module dev::QiaraAutomationV6 {
             *counter = *counter + 1;
         }
 
-        public entry fun update_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, counter: u128, type_args: vector<String>, args: vector<vector<u8>>) acquires AutomatedTransactionsTracker {
+        public entry fun update_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, counter: u128, args: vector<vector<u8>>) acquires AutomatedTransactionsTracker {
             TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));   
             
             let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);
@@ -150,26 +141,24 @@ module dev::QiaraAutomationV6 {
             let function_table = table::borrow_mut(user_tracker, function_id);
             // Update or create the UID entry
             if (map::contains_key(function_table, &counter)) {
-                // Replace existing args
-                let data = map::borrow_mut(function_table, &counter);
-                data.args = args;
+                map::upsert(function_table, counter, args);
             } else {
                 abort ERROR_AUTOMATED_TX_NOT_FOUND_UNDER_COUNTER
             };
 
         }
     // Permissionless Interface
-        public fun p_register_automation(validator: &signer, owned_storage: vector<u8>, sub_owner: vector<u8>, shared_storage_name:String, function_id: u8, type_args: vector<String>, args: vector<vector<u8>>, perm: Permission) acquires AutomatedTransactionsTracker, AutomatedTransactionsCounter {
+        public fun p_register_automation(validator: &signer, owned_storage: vector<u8>, sub_owner: vector<u8>, shared_storage_name:String, function_id: u8, args: vector<vector<u8>>, perm: Permission) acquires AutomatedTransactionsTracker, AutomatedTransactionsCounter {
             TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, sub_owner);   
             
-            assert_correct_arguments(function_id, type_args, args);
+            assert_correct_arguments(function_id, args);
             
             let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);
             let tracker_counter = borrow_global_mut<AutomatedTransactionsCounter>(@dev);
             
             // Initialize user's tracker table if not exists
             if (!table::contains(&tracker_bookshelf.tracker, owned_storage)) {
-                table::add(&mut tracker_bookshelf.tracker, owned_storage, table::new<u8, Map<u128, Data>>());
+                table::add(&mut tracker_bookshelf.tracker, owned_storage, table::new<u8, Map<u128, vector<vector<u8>>>>());
             };
 
             if (!table::contains(&tracker_counter.counter, owned_storage)) {
@@ -180,25 +169,22 @@ module dev::QiaraAutomationV6 {
             
             // Initialize function_id table if not exists
             if (!table::contains(user_tracker, function_id)) {
-                table::add(user_tracker, function_id, map::new<u128, Data>());
+                table::add(user_tracker, function_id, map::new<u128, vector<vector<u8>>>());
             };
             
             let function_table = table::borrow_mut(user_tracker, function_id);
             let counter = table::borrow_mut(&mut tracker_counter.counter, owned_storage);
             // Update or create the UID entry
             if (map::contains_key(function_table, &*counter)) {
-                // Replace existing args
-                let data = map::borrow_mut(function_table, counter);
-                data.args = args;
+                map::upsert(function_table, *counter, args);
             } else {
                 // Create new entry
-                map::add(function_table, *counter, Data {type_args: type_args, args: args});
+                map::add(function_table, *counter, args);
 
                 event::emit(AutomationRegisterEvent {
                     address: owned_storage,
                     function_id: function_id,
                     uid: *counter,
-                    type_args: type_args,
                     args: args,
                     time: timestamp::now_seconds()
                 })
@@ -208,10 +194,10 @@ module dev::QiaraAutomationV6 {
             *counter = *counter + 1;
         }
 
-        public fun p_update_automation(validator: &signer, owned_storage: vector<u8>, sub_owner: vector<u8>, shared_storage_name:String, function_id: u8, counter: u128, type_args: vector<String>, args: vector<vector<u8>>, perm: Permission) acquires AutomatedTransactionsTracker {
+        public fun p_update_automation(validator: &signer, owned_storage: vector<u8>, sub_owner: vector<u8>, shared_storage_name:String, function_id: u8, counter: u128, args: vector<vector<u8>>, perm: Permission) acquires AutomatedTransactionsTracker {
             TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, sub_owner);              
             
-            assert_correct_arguments(function_id, type_args, args);
+            assert_correct_arguments(function_id, args);
             
             let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);
             
@@ -230,9 +216,7 @@ module dev::QiaraAutomationV6 {
             let function_table = table::borrow_mut(user_tracker, function_id);
             // Update or create the UID entry
             if (map::contains_key(function_table, &counter)) {
-                // Replace existing args
-                let data = map::borrow_mut(function_table, &counter);
-                data.args = args;
+                map::upsert(function_table, counter, args);
             } else {
                 abort ERROR_AUTOMATED_TX_NOT_FOUND_UNDER_COUNTER
             };
@@ -259,30 +243,22 @@ module dev::QiaraAutomationV6 {
         }
     }
 
-    fun assert_correct_arguments(function_id: u8, type_args: vector<String>, args: vector<vector<u8>>) {
-        assert!(vector::length(&type_args) == vector::length(&args), ERROR_ARG_LENGHT_DOESNT_MATCH);
+    fun assert_correct_arguments(function_id: u8, args: vector<vector<u8>>) {
 
          if (function_id == 1) { // swap trade
-             assert!(vector::length(&type_args) == 2, ERROR_TYPE_ARGS_NOT_CORRECT_LENGTH);
              assert!(vector::length(&args) == 2, ERROR_ARGS_NOT_CORRECT_LENGTH);
 
-             assert!(*vector::borrow(&type_args, 0) == utf8(b"token"), ERROR_TYPE_ARG_1_INVALID);
-             assert!(*vector::borrow(&type_args, 1) == utf8(b"price"), ERROR_TYPE_ARG_2_INVALID);
          }
-            else if (function_id == 2) { // perps trade
-                assert!(vector::length(&type_args) == 3, ERROR_TYPE_ARGS_NOT_CORRECT_LENGTH);
-                assert!(vector::length(&args) == 3, ERROR_ARGS_NOT_CORRECT_LENGTH);
-
-                assert!(*vector::borrow(&type_args, 0) == utf8(b"token"), ERROR_TYPE_ARG_1_INVALID);
-                assert!(*vector::borrow(&type_args, 1) == utf8(b"price"), ERROR_TYPE_ARG_2_INVALID);
-                assert!(*vector::borrow(&type_args, 2) == utf8(b"leverage"), ERROR_TYPE_ARG_3_INVALID);
-            } else {
-                abort ERROR_UNSPECIFIED_FUNCTION_ID;
-            }
+        else if (function_id == 2) { // perps trade
+            assert!(vector::length(&args) == 3, ERROR_ARGS_NOT_CORRECT_LENGTH);
+        } else {
+            abort ERROR_UNSPECIFIED_FUNCTION_ID;
+        }
     }
 
+
     #[view]
-    public fun uid_exists(owned_storage: vector<u8>, function_id: u8, uid: u128): Data acquires AutomatedTransactionsTracker{
+    public fun return_arguments(owned_storage: vector<u8>, function_id: u8, uid: u128): vector<vector<u8>> acquires AutomatedTransactionsTracker{
         let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);        
         
         if (!table::contains(&tracker_bookshelf.tracker, owned_storage)) {
@@ -305,7 +281,7 @@ module dev::QiaraAutomationV6 {
     }
 
     #[view]
-    public fun get_all_uids(owned_storage: vector<u8>, function_id: u8): vector<u128> acquires AutomatedTransactionsTracker {
+    public fun return_all_UID_entries(owned_storage: vector<u8>, function_id: u8): vector<u128> acquires AutomatedTransactionsTracker {
         let tracker_bookshelf = borrow_global<AutomatedTransactionsTracker>(@dev);        
         
         if (!table::contains(&tracker_bookshelf.tracker, owned_storage)) {
@@ -323,7 +299,7 @@ module dev::QiaraAutomationV6 {
     }
 
     #[view]
-    public fun get_all_values(owned_storage: vector<u8>, function_id: u8): vector<Data> 
+    public fun return_all_storage_arguments(owned_storage: vector<u8>, function_id: u8): Map<u128, vector<vector<u8>>> 
     acquires AutomatedTransactionsTracker {
         let tracker_bookshelf = borrow_global<AutomatedTransactionsTracker>(@dev);        
         
@@ -337,8 +313,7 @@ module dev::QiaraAutomationV6 {
              abort ERROR_FUNCTION_ID_NOT_INIT
         };
         
-        let function_automations = table::borrow(user_tracker, function_id);
-        map::values(function_automations)
+        *table::borrow(user_tracker, function_id)
     }
 
 }
