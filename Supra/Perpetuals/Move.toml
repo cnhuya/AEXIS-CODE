@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraPerpsV37"
+    name = "QiaraPerpsV40"
     version = "2.1.1"
     authors = []
 
@@ -41,12 +41,12 @@
     rev = 'main'
     subdir = 'Supra/Math'
 
-    [dependencies.QiaraMarginV59]
+    [dependencies.QiaraMarginV60]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
 
-    [dependencies.QiaraAutomationV7]
+    [dependencies.QiaraAutomationV8]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/AutoCustom'
