@@ -1,4 +1,4 @@
-module dev::QiaraAutomationV7 {
+module dev::QiaraAutomationV8 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::timestamp;
@@ -75,7 +75,7 @@ module dev::QiaraAutomationV7 {
 
 /// === FUNCTIONS ===
     // Native Interface
-        public entry fun register_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, args: vector<vector<u8>>) acquires AutomatedTransactionsTracker, AutomatedTransactionsCounter {
+        public fun register_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, args: vector<vector<u8>>, perm: Permission) acquires AutomatedTransactionsTracker, AutomatedTransactionsCounter {
             TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
             
             assert_correct_arguments(function_id, args);
@@ -121,7 +121,7 @@ module dev::QiaraAutomationV7 {
             *counter = *counter + 1;
         }
 
-        public entry fun update_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, counter: u128, args: vector<vector<u8>>) acquires AutomatedTransactionsTracker {
+        public fun update_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, counter: u128, args: vector<vector<u8>>, perm: Permission) acquires AutomatedTransactionsTracker {
             TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));   
             
             let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);
