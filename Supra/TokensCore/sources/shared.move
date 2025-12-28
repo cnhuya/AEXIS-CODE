@@ -1,4 +1,4 @@
-module dev::QiaraTokensSharedV50{
+module dev::QiaraTokensSharedV51{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;
@@ -43,7 +43,7 @@ module dev::QiaraTokensSharedV50{
     //STORAGE_REGISTRY: sub_owner -> shared storages registry, in which he is allowed as sub-owner
     struct SharedStorage has key{
         storage: Table<vector<u8>, Map<String, Ownership>>,
-        storage_registry: Table<vector<u8>, vector<vector<u8>>> // change it to vector<vector>u8>> bcs names is kinda useeles, cant really view it eaasily...
+        storage_registry: Table<vector<u8>, Map<vector<u8>, vector<String>>> // change it to vector<vector>u8>> bcs names is kinda useeles, cant really view it eaasily...
     }
 
     // ----------------------------------------------------------------
@@ -53,7 +53,7 @@ module dev::QiaraTokensSharedV50{
         assert!(signer::address_of(admin) == @dev, 1);
 
         if (!exists<SharedStorage>(@dev)) {
-            move_to(admin, SharedStorage { storage: table::new<vector<u8>, Map<String, Ownership>>(), storage_registry: table::new<vector<u8>, vector<vector<u8>>>() });
+            move_to(admin, SharedStorage { storage: table::new<vector<u8>, Map<String, Ownership>>(), storage_registry: table::new<vector<u8>, Map<vector<u8>, vector<String>>>() });
         };
     }
 
@@ -95,11 +95,18 @@ public entry fun allow_sub_owner(signer: &signer, owner: vector<u8>, name: Strin
     
     vector::push_back(&mut ownership_record.sub_owners, sub_owner);
 
+    // sub_owners
     if (!table::contains(&shared.storage_registry, sub_owner)) {
-        table::add(&mut shared.storage_registry, sub_owner, vector::empty<vector<u8>>());
+        table::add(&mut shared.storage_registry, sub_owner, map::new<vector<u8>, vector<String>>());
     };
+
     let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
-    vector::push_back(sub_owners_registry, owner);
+
+    if (!map::contains_key(sub_owners_registry, &owner)) {
+        map::add(sub_owners_registry, owner, vector::empty<String>());
+    };
+    let vect = map::borrow_mut(sub_owners_registry, &owner);
+    vector::push_back(vect, name);
 }
 
     public entry fun remove_sub_owner(signer: &signer, name: String, sub_owner: vector<u8>) acquires SharedStorage{
@@ -109,9 +116,9 @@ public entry fun allow_sub_owner(signer: &signer, owner: vector<u8>, name: Strin
         let ownership_record = map::borrow_mut(map, &name);
         assert!(vector::contains(&ownership_record.sub_owners, &sub_owner), ERROR_THIS_SUB_OWNER_IS_NOT_ALLOWED_FOR_THIS_SHARED_STORAGE);
         vector::remove_value(&mut ownership_record.sub_owners, &sub_owner);
-
         let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
-        vector::remove_value(sub_owners_registry, &bcs::to_bytes(&signer::address_of(signer)));
+        let vect = map::borrow_mut(sub_owners_registry, &bcs::to_bytes(&signer::address_of(signer)));
+        vector::remove_value(vect, &name);
     }
 
 // PERMISSIONELESS INTERFACE
@@ -143,18 +150,23 @@ public entry fun allow_sub_owner(signer: &signer, owner: vector<u8>, name: Strin
 
         let map = table::borrow_mut(&mut shared.storage, owner);
 
-        if (!table::contains(&shared.storage_registry, owner)) {
-            table::add(&mut shared.storage_registry, owner, vector::empty<vector<u8>>());
-        };
-
-
         let ownership_record = map::borrow_mut(map, &name);
         
         vector::push_back(&mut ownership_record.sub_owners, sub_owner);
         assert!(vector::contains(&ownership_record.sub_owners, &owner), ERROR_IS_ALREADY_SUB_OWNER);
-        vector::push_back(&mut ownership_record.sub_owners, sub_owner);
+
+        // sub_owners
+        if (!table::contains(&shared.storage_registry, sub_owner)) {
+            table::add(&mut shared.storage_registry, sub_owner, map::new<vector<u8>, vector<String>>());
+        };
+
         let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
-        vector::push_back(sub_owners_registry, owner);
+
+        if (!map::contains_key(sub_owners_registry, &owner)) {
+            map::add(sub_owners_registry, owner, vector::empty<String>());
+        };
+        let vect = map::borrow_mut(sub_owners_registry, &owner);
+        vector::push_back(vect, name);
     }
 
     public entry fun p_remove_sub_owner(validator: &signer, name: String, owner: vector<u8>, sub_owner: vector<u8>) acquires SharedStorage{
@@ -165,7 +177,8 @@ public entry fun allow_sub_owner(signer: &signer, owner: vector<u8>, name: Strin
         assert!(vector::contains(&ownership_record.sub_owners, &owner), ERROR_THIS_SUB_OWNER_IS_NOT_ALLOWED_FOR_THIS_SHARED_STORAGE);
         vector::remove_value(&mut ownership_record.sub_owners, &sub_owner);
         let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
-        vector::remove_value(sub_owners_registry, &owner);
+        let vect = map::borrow_mut(sub_owners_registry, &owner);
+        vector::remove_value(vect, &name);
     }
 
     #[view]
@@ -175,18 +188,11 @@ public entry fun allow_sub_owner(signer: &signer, owner: vector<u8>, name: Strin
     }
 
     #[view]
-    public fun return_sub_owners_registry(sub_owner: vector<u8>): vector<vector<u8>> acquires SharedStorage{
+    public fun return_sub_owners_registry(sub_owner: vector<u8>): Map<vector<u8>, vector<String>> acquires SharedStorage{
         let shared = borrow_global_mut<SharedStorage>(@dev);
         assert!(table::contains(&shared.storage_registry,sub_owner),ERROR_SUB_OWNER_DOESNT_EXISTS_IN_ANY_SHARED_STORAGE );
         *table::borrow_mut(&mut shared.storage_registry, sub_owner)
     }
-
-    //deprecated
-   /* #[view]
-    public fun assert_has_shared_storage(address: address): bool acquires SharedStorage{
-        let shared = borrow_global_mut<SharedStorage>(@dev);
-        return true
-    }*/
 
     #[view]
     public fun assert_shared_storage(name: String): bool acquires SharedStorage{
@@ -194,40 +200,23 @@ public entry fun allow_sub_owner(signer: &signer, owner: vector<u8>, name: Strin
         return true
     }
 
-
-//0x307864346663646261343133666631303365656339393661303762373935383437613862346365356333323864333564393834336463356563323233306465363035
-
-//0x20d4fcdba413ff103eec996a07b795847a8b4ce5c328d35d9843dc5ec2230de605
     #[view]
-    public fun abcreturn(owner: vector<u8>): vector<u8>{
-        return bcs::to_bytes(&owner)
-    }
+    public fun assert_is_sub_owner(owner: vector<u8>, name: String, sub_owner: vector<u8>): bool acquires SharedStorage {
+        let shared = borrow_global<SharedStorage>(@dev);
 
-    #[view]
-    public fun abcreturna(addr: address): vector<u8>{
-        return bcs::to_bytes(&addr)
-    }
-
-    #[view]
-    public fun abcreturnaa(addr: vector<u8>): vector<u8>{
-        return from_bcs::to_bytes(addr)
-    }
-
-    #[view]
-    public fun abcreturnaaa(addr: vector<u8>): address{
-        return from_bcs::to_address(addr)
-    }
-
-   /* #[view]
-    public fun assert_is_sub_owner(owner: vector<u8>, sub_owner: vector<u8>): bool acquires SharedStorage{
-        let shared = borrow_global_mut<SharedStorage>(@dev);
-        assert!(table::contains(&shared.storage,owner),ERROR_SHARED_STORAGE_DOESNT_EXISTS_FOR_THIS_ADDRESS );
-        let sub_owners = table::borrow_mut(&mut shared.storage, owner);
-        if(vector::contains(sub_owners, &sub_owner)){
-            return true
-        } else {
+        if (!table::contains(&shared.storage, owner)) {
             return false
-        }
-    }*/
+        };
+
+        let user_map = table::borrow(&shared.storage, owner);
+
+        if (!map::contains_key(user_map, &name)) {
+            return false
+        };
+
+        let ownership_record = map::borrow(user_map, &name);
+
+        vector::contains(&ownership_record.sub_owners, &sub_owner)
+    }
 
 }
