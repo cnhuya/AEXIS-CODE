@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV47 {
+module dev::QiaraVaultsV48 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -20,8 +20,8 @@ module dev::QiaraVaultsV47 {
     use dev::QiaraTokensRatesV51::{Self as TokensRates, Access as TokensRatesAccess};
     use dev::QiaraTokensOmnichainV51::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
-    use dev::QiaraMarginV59::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraRIV59::{Self as RI};
+    use dev::QiaraMarginV60::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraRIV60::{Self as RI};
 
     use dev::QiaraAutomationV8::{Self as auto, Access as AutoAccess};
 
@@ -376,7 +376,7 @@ module dev::QiaraVaultsV47 {
         accrue(provider_vault,shared_storage_owner,sender, shared_storage_name,  token, chain, provider);
         let (rate, reward_index, interest_index, last_updated) = TokensRates::get_vault_raw(token, chain);
         //        return (balance.token, balance.deposited, balance.borrowed, balance.reward_index_snapshot, balance.interest_index_snapshot, balance.last_update)
-        let (user_deposited, user_borrowed, user_rewards, _, user_interest, _, _) = Margin::get_user_raw_balance(sender, token, chain, provider);
+        let (user_deposited, user_borrowed, user_rewards, _, user_interest, _, _) = Margin::get_user_raw_balance(shared_storage_name, token, chain, provider);
 
         let reward_amount = user_rewards;
         let interest_amount = user_interest;
@@ -623,7 +623,7 @@ module dev::QiaraVaultsV47 {
         accrue(provider_vault, shared_storage_owner, bcs::to_bytes(&signer::address_of(signer)),shared_storage_name,  token, chain, provider);
         let (rate, reward_index, interest_index, last_updated) = TokensRates::get_vault_raw(token, chain);
         //        return (balance.token, balance.deposited, balance.borrowed, balance.reward_index_snapshot, balance.interest_index_snapshot, balance.last_update)
-        let (user_deposited, user_borrowed, user_rewards, _, user_interest, _, _) = Margin::get_user_raw_balance(bcs::to_bytes(&signer::address_of(signer)), token, chain, provider);
+        let (user_deposited, user_borrowed, user_rewards, _, user_interest, _, _) = Margin::get_user_raw_balance(shared_storage_name, token, chain, provider);
 
         let reward_amount = user_rewards;
         let interest_amount = user_interest;
@@ -835,7 +835,7 @@ module dev::QiaraVaultsV47 {
         TokensRates::accrue_global(token, chain, (lend_rate as u256), (TokensMetadata::get_coin_metadata_rate_scale((&metadata), false) as u256), (utilization as u256), (fungible_asset::balance(vault.balance) as u256), (vault.total_borrowed as u256), TokensRates::give_permission(&borrow_global<Permissions>(@dev).tokens_rates));
 
         let scale: u128 = 1_000_000;
-        let (user_deposited, user_borrowed, user_rewards,user_reward_index, user_interest, user_interest_index, _) = Margin::get_user_raw_balance(owner, token, chain, provider); // CHECK
+        let (user_deposited, user_borrowed, user_rewards,user_reward_index, user_interest, user_interest_index, _) = Margin::get_user_raw_balance(shared_storage_name, token, chain, provider); // CHECK
 
 
         if ((reward_index) > (user_reward_index as u128)) {
