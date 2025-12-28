@@ -1,4 +1,4 @@
-module dev::QiaraPerpsV40{
+module dev::QiaraPerpsV41{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -16,7 +16,7 @@ module dev::QiaraPerpsV40{
 
     use dev::QiaraTokenTypesV30::{Self as TokensTypes};
 
-    use dev::QiaraAutomationV8::{Self as auto, Access as AutoAccess};
+    use dev::QiaraAutomationV9::{Self as auto, Access as AutoAccess};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
@@ -209,7 +209,7 @@ module dev::QiaraPerpsV40{
                 bcs::to_bytes(&side),
             ];
 
-            auto::register_automation(signer, shared_storage_owner, shared_storage_name,1, args, auto::give_permission(&borrow_global<Permissions>(@dev).auto))
+            auto::register_automation(signer, shared_storage_owner, shared_storage_name,2, args, auto::give_permission(&borrow_global<Permissions>(@dev).auto))
         }
 
         public entry fun trade_util(signer: &signer, sender: vector<u8>, shared_storage_owner: vector<u8>, shared_storage_name: String, asset: String, size:u256, leverage: u64, type:String) acquires Permissions, AssetBook, UserBook{
