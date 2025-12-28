@@ -1,4 +1,4 @@
-module dev::QiaraPerpsV35{
+module dev::QiaraPerpsV37{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -8,13 +8,15 @@ module dev::QiaraPerpsV35{
     use supra_framework::event;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 
-    use dev::QiaraMarginV58::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraRIV58::{Self as RI};
+    use dev::QiaraMarginV59::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraRIV59::{Self as RI};
 
-    use dev::QiaraTokensMetadataV47::{Self as TokensMetadata, VMetadata};
-    use dev::QiaraTokensSharedV47::{Self as TokensShared};
+    use dev::QiaraTokensMetadataV51::{Self as TokensMetadata, VMetadata};
+    use dev::QiaraTokensSharedV51::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV28::{Self as TokensTypes};
+    use dev::QiaraTokenTypesV30::{Self as TokensTypes};
+
+    use dev::QiaraAutomationV7::{Self as auto};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
@@ -192,7 +194,7 @@ module dev::QiaraPerpsV35{
 
 
 
-    public entry fun trade(sender: vector<u8>, shared_storage: vector<u8>, asset: String, size:u256, leverage: u64, limit: u256, side: String, type: String) acquires UserBook, AssetBook, Permissions {
+    public entry fun trade(sender: vector<u8>, shared_storage: vector<u8>, shared_storage_name: String, asset: String, size:u256, leverage: u64, limit: u256, side: String, type: String) acquires UserBook, AssetBook, Permissions {
         let position = find_position(sender, asset, borrow_global_mut<UserBook>(@dev));
         let asset_book = borrow_global_mut<AssetBook>(@dev);
         let price = TokensMetadata::get_coin_metadata_price(&TokensMetadata::get_coin_metadata_by_symbol(asset));
@@ -206,39 +208,39 @@ module dev::QiaraPerpsV35{
                 is_long = false;
             };
             let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, is_long, (price as u128), sender);
-            handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+            handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
         } else if (type == utf8(b"limit")) {
             if ((side == utf8(b"long")) && (limit >= price)) {
                 let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, is_long, (price as u128), sender);
-                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if ((side == utf8(b"short")) && (limit <= price)) {
                 let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, is_long, (price as u128), sender);
-                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             };
         } else if(type == utf8(b"other")){
             if(side == utf8(b"flip") && (position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size*2, leverage, false, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if(side == utf8(b"flip") && (!position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size*2, leverage, true, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if(side == utf8(b"close") && (!position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, true, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if(side == utf8(b"close") && (position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, false, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if(side == utf8(b"double") && (position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, true, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if(side == utf8(b"double") && (!position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(@0x0, asset, asset_book,position, size, leverage, false, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             };
         };
     }
 
-    public fun p_trade(validator: &signer, sender: vector<u8>, shared_storage: vector<u8>, asset: String, size:u256, leverage: u64, limit: u256, side: String, type: String, perm: Permission) acquires UserBook, AssetBook, Permissions {
+    public fun p_trade(validator: &signer, sender: vector<u8>, shared_storage: vector<u8>,  shared_storage_name: String,asset: String, size:u256, leverage: u64, limit: u256, side: String, type: String, perm: Permission) acquires UserBook, AssetBook, Permissions {
         let position = find_position(sender, asset, borrow_global_mut<UserBook>(@dev));
         let asset_book = borrow_global_mut<AssetBook>(@dev);
         let price = TokensMetadata::get_coin_metadata_price(&TokensMetadata::get_coin_metadata_by_symbol(asset));
@@ -252,49 +254,49 @@ module dev::QiaraPerpsV35{
                 is_long = false;
             };
             let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size, leverage, is_long, (price as u128), sender);
-           handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+           handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
         } else if (type == utf8(b"limit")) {
             if ((side == utf8(b"long")) && (limit >= price)) {
                 let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book, position, size, leverage, true, (price as u128), sender);
-                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if ((side == utf8(b"short")) && (limit <= price)) {
                 let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book, position, size, leverage, false, (price as u128), sender);
-                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+                handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             };
         } else if(type == utf8(b"other")){
             if(side == utf8(b"flip") && (position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size*2, leverage, false, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if(side == utf8(b"flip") && (!position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size*2, leverage, true, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if(side == utf8(b"close") && (!position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size, leverage, true, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if(side == utf8(b"close") && (position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size, leverage, false, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if(side == utf8(b"double") && (position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size, leverage, true, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             } else if(side == utf8(b"double") && (!position.is_long)){
                 let (size_diff_usd, is_profit) = calculate_position(signer::address_of(validator), asset, asset_book,position, size, leverage, false, (price as u128), sender);
-               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender);
+               handle_pnl(asset, size_diff_usd, is_profit, shared_storage, sender,shared_storage_name );
             };
         };
     }
 
 
 /// === HELPER FUNCTIONS ===
-    fun handle_pnl(asset: String, pnl: u256, is_profit: bool, shared_storage: vector<u8>, sub_owner: vector<u8>) acquires Permissions {
+    fun handle_pnl(asset: String, pnl: u256, is_profit: bool, shared_storage: vector<u8>, sub_owner: vector<u8>, shared_storage_name: String) acquires Permissions {
         if (pnl == 0) { 
             return; 
         };
         
         if (is_profit) {
-            Margin::add_credit(shared_storage, sub_owner, pnl, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+            Margin::add_credit(shared_storage, shared_storage_name,sub_owner, pnl, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         } else {
-            Margin::remove_credit(shared_storage, sub_owner, pnl, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+            Margin::remove_credit(shared_storage, shared_storage_name,sub_owner, pnl, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         };
     }
 
