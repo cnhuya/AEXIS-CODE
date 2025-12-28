@@ -81,8 +81,8 @@ module dev::QiaraAutomationV6 {
 
 /// === FUNCTIONS ===
     // Native Interface
-        public entry fun register_automation(signer: &signer, owned_storage: vector<u8>, function_id: u8, type_args: vector<String>, args: vector<vector<u8>>) acquires AutomatedTransactionsTracker, AutomatedTransactionsCounter {
-            TokensShared::assert_is_sub_owner(owned_storage, bcs::to_bytes(&signer::address_of(signer)));
+        public entry fun register_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, type_args: vector<String>, args: vector<vector<u8>>) acquires AutomatedTransactionsTracker, AutomatedTransactionsCounter {
+            TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
             
             assert_correct_arguments(function_id, type_args, args);
             
@@ -130,8 +130,8 @@ module dev::QiaraAutomationV6 {
             *counter = *counter + 1;
         }
 
-        public entry fun update_automation(signer: &signer, owned_storage: vector<u8>, function_id: u8, counter: u128, type_args: vector<String>, args: vector<vector<u8>>) acquires AutomatedTransactionsTracker {
-            TokensShared::assert_is_sub_owner(owned_storage, bcs::to_bytes(&signer::address_of(signer)));   
+        public entry fun update_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, counter: u128, type_args: vector<String>, args: vector<vector<u8>>) acquires AutomatedTransactionsTracker {
+            TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));   
             
             let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);
             
@@ -159,8 +159,8 @@ module dev::QiaraAutomationV6 {
 
         }
     // Permissionless Interface
-        public fun p_register_automation(validator: &signer, owned_storage: vector<u8>, sub_owner: vector<u8>, function_id: u8, type_args: vector<String>, args: vector<vector<u8>>, perm: Permission) acquires AutomatedTransactionsTracker, AutomatedTransactionsCounter {
-            TokensShared::assert_is_sub_owner(owned_storage, sub_owner);   
+        public fun p_register_automation(validator: &signer, owned_storage: vector<u8>, sub_owner: vector<u8>, shared_storage_name:String, function_id: u8, type_args: vector<String>, args: vector<vector<u8>>, perm: Permission) acquires AutomatedTransactionsTracker, AutomatedTransactionsCounter {
+            TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, sub_owner);   
             
             assert_correct_arguments(function_id, type_args, args);
             
@@ -208,8 +208,8 @@ module dev::QiaraAutomationV6 {
             *counter = *counter + 1;
         }
 
-        public fun p_update_automation(validator: &signer, owned_storage: vector<u8>, sub_owner: vector<u8>, function_id: u8, counter: u128, type_args: vector<String>, args: vector<vector<u8>>, perm: Permission) acquires AutomatedTransactionsTracker {
-            TokensShared::assert_is_sub_owner(owned_storage, sub_owner);              
+        public fun p_update_automation(validator: &signer, owned_storage: vector<u8>, sub_owner: vector<u8>, shared_storage_name:String, function_id: u8, counter: u128, type_args: vector<String>, args: vector<vector<u8>>, perm: Permission) acquires AutomatedTransactionsTracker {
+            TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, sub_owner);              
             
             assert_correct_arguments(function_id, type_args, args);
             
