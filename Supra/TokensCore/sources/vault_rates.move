@@ -97,7 +97,7 @@ module dev::QiaraTokensRatesV52 {
 
     public fun find_rate(x: &mut RateList, token: String, chain: String): &mut Rate {
         ChainTypes::ensure_valid_chain_name(chain);
-        TokensType::ensure_token_supported_for_chain(token, chain);
+        TokensType::ensure_token_supported_for_chain(TokensType::convert_token_nickName_to_name(token), chain);
         if (!table::contains(&x.rates, token)) {
             table::add(&mut x.rates, token, map::new<String, Rate>());
         };
