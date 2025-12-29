@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV48 {
+module dev::QiaraVaultsV50 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -14,16 +14,16 @@ module dev::QiaraVaultsV48 {
     use supra_framework::object::{Self, Object};
     use supra_framework::event;
 
-    use dev::QiaraTokensCoreV51::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
-    use dev::QiaraTokensMetadataV51::{Self as TokensMetadata, VMetadata};
-    use dev::QiaraTokensSharedV51::{Self as TokensShared};
-    use dev::QiaraTokensRatesV51::{Self as TokensRates, Access as TokensRatesAccess};
-    use dev::QiaraTokensOmnichainV51::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensCoreV52::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
+    use dev::QiaraTokensMetadataV52::{Self as TokensMetadata, VMetadata};
+    use dev::QiaraTokensSharedV52::{Self as TokensShared};
+    use dev::QiaraTokensRatesV52::{Self as TokensRates, Access as TokensRatesAccess};
+    use dev::QiaraTokensOmnichainV52::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
-    use dev::QiaraMarginV60::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraRIV60::{Self as RI};
+    use dev::QiaraMarginV61::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraRIV61::{Self as RI};
 
-    use dev::QiaraAutomationV8::{Self as auto, Access as AutoAccess};
+    use dev::QiaraAutomationV10::{Self as auto, Access as AutoAccess};
 
    // use dev::QiaraFeeVaultV10::{Self as fee};
 
@@ -58,6 +58,7 @@ module dev::QiaraVaultsV48 {
     const ERROR_INVALID_TOKEN: u64 = 17;
     const ERROR_TOKEN_NOT_INITIALIZED_FOR_THIS_CHAIN: u64 = 18;
     const ERROR_PROVIDER_DOESNT_SUPPORT_THIS_TOKEN_ON_THIS_CHAIN: u64 = 19;
+    const ERROR_SENDER_DOESNT_MATCH_SIGNER: u64 = 20;
 
 
     const ERROR_A: u64 = 101;
@@ -354,6 +355,7 @@ module dev::QiaraVaultsV48 {
     public fun bridge_limit_swap(validator: &signer, sender: vector<u8>,  shared_storage_owner:vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom: String,  tokenTo: String, chainTo: String, providerTo: String,permission: Permission, recipient: address, amount: u64, desired_price: u256) acquires Permissions {
 
         let args = vector[
+            bcs::to_bytes(&sender),
             bcs::to_bytes(&shared_storage_owner),
             bcs::to_bytes(&shared_storage_name),
             bcs::to_bytes(&amount),
@@ -435,6 +437,7 @@ module dev::QiaraVaultsV48 {
     public entry fun swap(signer: &signer, shared_storage_owner: vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom:String, amount: u64, tokenTo: String, chainTo:String, providerTo: String) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
+
         Margin::remove_deposit(shared_storage_owner,shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), tokenFrom, chainFrom, providerFrom, (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         
         let x = borrow_global_mut<GlobalVault>(@dev);
@@ -485,10 +488,12 @@ module dev::QiaraVaultsV48 {
 
     }
 
-    public entry fun limit_swap(signer: &signer, shared_storage_owner:vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom: String,  tokenTo: String, chainTo: String, providerTo: String, recipient: address, amount: u64, desired_price: u256) acquires Permissions {
-        TokensShared::assert_is_sub_owner(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
+    public entry fun limit_swap(signer: &signer, sender:vector<u8>, shared_storage_owner:vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom: String,  tokenTo: String, chainTo: String, providerTo: String, recipient: address, amount: u64, desired_price: u256) acquires Permissions {
+        assert!(bcs::to_bytes(&signer::address_of(signer)) == sender, ERROR_SENDER_DOESNT_MATCH_SIGNER);
+        TokensShared::assert_is_sub_owner(shared_storage_owner, shared_storage_name, sender);
         
         let args = vector[
+            bcs::to_bytes(&sender),
             bcs::to_bytes(&shared_storage_owner),
             bcs::to_bytes(&shared_storage_name),
             bcs::to_bytes(&amount),
