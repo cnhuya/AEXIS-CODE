@@ -27,9 +27,9 @@ module dev::QiaraVaultsV50 {
 
    // use dev::QiaraFeeVaultV10::{Self as fee};
 
-    use dev::QiaraTokenTypesV30::{Self as TokensTypes};
-    use dev::QiaraChainTypesV30::{Self as ChainTypes};
-    use dev::QiaraProviderTypesV30::{Self as ProviderTypes};
+    use dev::QiaraTokenTypesV31::{Self as TokensTypes};
+    use dev::QiaraChainTypesV31::{Self as ChainTypes};
+    use dev::QiaraProviderTypesV31::{Self as ProviderTypes};
 
     use dev::QiaraMathV9::{Self as QiaraMath};
 
