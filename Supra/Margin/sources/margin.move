@@ -1,4 +1,4 @@
-module dev::QiaraMarginV61{
+module dev::QiaraMarginV62{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -408,7 +408,7 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
     }
 
     #[view]
-    public fun get_user_balances(shared_storage_name: String, token: String, chain: String, provider: String,): Map<String, Map<String, Credit>> acquires TokenHoldings {
+    public fun get_user_balances(shared_storage_name: String, token: String): Map<String, Map<String, Credit>> acquires TokenHoldings {
         let th = borrow_global<TokenHoldings>(@dev);
         let inner = table::borrow(&th.holdings, shared_storage_name);
         *table::borrow(inner, token)
