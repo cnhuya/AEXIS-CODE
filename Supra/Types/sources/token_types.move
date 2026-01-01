@@ -1,11 +1,11 @@
-module dev::QiaraTokenTypesV1 {
+module dev::QiaraTokenTypesV2 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::table::{Self, Table};
 
-    use dev::QiaraChainTypesV1::{Self as ChainTypes};
+    use dev::QiaraChainTypesV2::{Self as ChainTypes};
 
 const TOKEN_PREFIX: vector<u8> = b"Qiara38 ";
 const SYMBOL_PREFIX: vector<u8> = b"Q";
@@ -36,17 +36,17 @@ const SYMBOL_PREFIX: vector<u8> = b"Q";
 
 
     fun x_init(signer: &signer) acquires Tokens{
-        register_token_with_chains(signer, utf8(b"Qiara37 Qiara"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara37 USDC"), utf8(b"USDC"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara37 USDT"), utf8(b"USDT"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara37 Ethereum"), utf8(b"Ethereum"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara37 Bitcoin"), utf8(b"Bitcoin"), vector[utf8(b"Sui"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara37 Solana"), utf8(b"Solana"), vector[utf8(b"Solana"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara37 Supra"), utf8(b"Supra"), vector[utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara37 Injective"), utf8(b"Injective"), vector[utf8(b"Injective"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara37 Sui"), utf8(b"Sui"), vector[utf8(b"Sui"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara37 Deepbook"), utf8(b"Deepbook"), vector[utf8(b"Sui"),utf8(b"Supra")]);
-        register_token_with_chains(signer, utf8(b"Qiara37 Virtuals"), utf8(b"Virtuals"), vector[utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara38 Qiara"), utf8(b"Qiara"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara38 USDC"), utf8(b"USDC"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara38 USDT"), utf8(b"USDT"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara38 Ethereum"), utf8(b"Ethereum"), vector[utf8(b"Sui"),utf8(b"Base"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara38 Bitcoin"), utf8(b"Bitcoin"), vector[utf8(b"Sui"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara38 Solana"), utf8(b"Solana"), vector[utf8(b"Solana"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara38 Supra"), utf8(b"Supra"), vector[utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara38 Injective"), utf8(b"Injective"), vector[utf8(b"Injective"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara38 Sui"), utf8(b"Sui"), vector[utf8(b"Sui"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara38 Deepbook"), utf8(b"Deepbook"), vector[utf8(b"Sui"),utf8(b"Supra")]);
+        register_token_with_chains(signer, utf8(b"Qiara38 Virtuals"), utf8(b"Virtuals"), vector[utf8(b"Base"),utf8(b"Supra")]);
     } 
 
 // === FUNCTIONS === //
