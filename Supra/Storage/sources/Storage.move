@@ -1,4 +1,4 @@
-module dev::QiaraStorageV35 {
+module dev::QiaraStorageV1 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -157,7 +157,6 @@ module dev::QiaraStorageV35 {
         register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_QUARUM_FOR_PROPOSAL_TO_PASS"), 500, true, &give_permission(&give_access(admin))); // 50.0%
         
         register_constant<u64>(admin, utf8(b"QiaraAuto"), utf8(b"MAX_DURATION"), 604_800, true, &give_permission(&give_access(admin)));
-        register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"FEE"), 100_000, true, &give_permission(&give_access(admin))); // 0.001%
         register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"UNLOCK_PERIOD"), 604_800, true, &give_permission(&give_access(admin)));
         register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"STAKING_FEE"), 1_000_000, true, &give_permission(&give_access(admin))); // 1%
     }
@@ -166,6 +165,13 @@ module dev::QiaraStorageV35 {
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
         register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), 2, false, &give_permission(&give_access(admin)));
 
+
+       // change_constant(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), new_value: vector<u8>, permission: &Permission)
+    }
+    public entry fun change2(admin: &signer) acquires ConstantDatabase, KeyRegistry{
+        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
+        
+        register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"FEE"), 100_000, true, &give_permission(&give_access(admin))); // 0.001%  
         register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"), 5, false, &give_permission(&give_access(admin))); // 5
         register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"), 5, false, &give_permission(&give_access(admin))); // 5
         register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT"), 10_000, false, &give_permission(&give_access(admin))); // 10000$
@@ -173,7 +179,6 @@ module dev::QiaraStorageV35 {
 
        // change_constant(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), new_value: vector<u8>, permission: &Permission)
     }
-
     fun register_constant<T: drop>(address: &signer, header: String, constant_name: String, value: T, editable: bool, permission: &Permission) acquires ConstantDatabase, KeyRegistry {
         assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
         let db = borrow_global_mut<ConstantDatabase>(OWNER);
