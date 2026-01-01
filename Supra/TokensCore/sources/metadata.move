@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV53{
+module dev::QiaraTokensMetadataV54{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -12,8 +12,8 @@ module dev::QiaraTokensMetadataV53{
     use dev::QiaraStorageV35::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraTokensRatesV53::{Self as rates};
-    use dev::QiaraTokensTiersV53::{Self as tier};
+    use dev::QiaraTokensRatesV54::{Self as rates};
+    use dev::QiaraTokensTiersV54::{Self as tier};
 
     use dev::QiaraOracleV1::{Self as oracle, Access as OracleAccess};
 
@@ -315,6 +315,9 @@ module dev::QiaraTokensMetadataV53{
         return ((impact/10_000_000_000_000_000), valueUSD, liquidityUSD, penalty, valued_price_impact_penalty, impact_percentage)
     }
 
+    //2982010000000000000000000000000000
+    //359923027659000000000000000000000000
+
     // deprecated
     #[view]
     public fun calculate_price_impact_second_new2(token: String, liquidity: u256, value: u256): (u256,u256,u256,u256,u256,u256,u256) acquires Tokens{
@@ -322,11 +325,11 @@ module dev::QiaraTokensMetadataV53{
         let metadata = get_coin_metadata_by_symbol(token);
         let valueUSD = getValue(token, value*1000000000000000000);
         let liquidityUSD = getValue(token, liquidity*1000000000000000000);
-        let fdvUSD = ((get_coin_metadata_fdv(&metadata) as u256)*1000000000000000000*1_000_000);
+        let fdvUSD = ((get_coin_metadata_fdv(&metadata) as u256)*1000000000000000000*1_000_000000);
 
         let price = getValue(token, 1*1000000000000000000);
 
-        assert!(valueUSD < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
+        assert!(valueUSD  < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
         assert!(valueUSD/1_000_000 >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); // essentially Value cant be higher than 10% of FDV
 
         let denominator = ((fdvUSD / 10) - valueUSD + (liquidityUSD * 2) - valueUSD);
@@ -372,12 +375,12 @@ module dev::QiaraTokensMetadataV53{
             penalty = base_penalty-((hours)*(hours)*(penalty_deductor));
         };
 
-        let valued_price_impact_penalty = (valueUSD*1_000_000  / liquidityUSD)*penalty; // percentage
-        let impact_percentage = (valueUSD*10000000000000000 / liquidityUSD)-valued_price_impact_penalty;
+        let valued_price_impact_penalty = (valueUSD*100_000_000  / liquidityUSD)*penalty; // percentage
+        let impact_percentage = (valueUSD*1000000000000000000 / liquidityUSD)-valued_price_impact_penalty;
         let current_price = oracle::viewPrice(token);
         let impact = impact_percentage*current_price;
 
-        return(impact/10_000_000_000_000_000)
+        return(impact/1_000_000_000_000)
     }
 
     #[view]
@@ -386,12 +389,12 @@ module dev::QiaraTokensMetadataV53{
         let metadata = get_coin_metadata_by_symbol(token);
         let valueUSD = getValue(token, value*1000000000000000000);
         let liquidityUSD = getValue(token, liquidity*1000000000000000000);
-        let fdvUSD = ((get_coin_metadata_fdv(&metadata) as u256)*1000000000000000000*1_000_000);
+        let fdvUSD = ((get_coin_metadata_fdv(&metadata) as u256)*1000000000000000000*10_000_000);
 
         let price = getValue(token, 1*1000000000000000000);
 
         assert!(valueUSD < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
-        assert!(valueUSD/1_000_000 >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); // essentially Value cant be higher than 10% of FDV
+        assert!(valueUSD >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); // essentially Value cant be higher than 10% of FDV
 
         let denominator = ((fdvUSD / 10) - valueUSD + (liquidityUSD * 2) - valueUSD);
 
@@ -399,14 +402,67 @@ module dev::QiaraTokensMetadataV53{
 
         // Standardize the result to 6 decimal places (1,000,000 = 100%)
         let impact = ((valueUSD * 1000000000000000000) / denominator);
-        return (price*impact)/1000000000000000000
+        return (price*impact)/1_000_000_000_000_000_000
+    }
+
+    //115792089237316195423570985008687907853269984665640564039457584007913129639935
+    //831186106198430210000000000000
+    #[view]
+    public fun calculate_impact_percentage(start:u256, end: u256): u256{
+        //3272526887572493807746-296254759609948020295/3272526887572493807746
+        //831186106198430210000000000000
+        return ((end-start)*1_000_000_000_000_000_000)/(end)
     }
 
 
     #[view]
-    public fun calculate_impact_percentage(start:u256, end: u256): u256{
-        return (end-start)/(end)
+    public fun calculate_impact_fee(token: String, size: u256, fee_percentage: u256): u256{
+        //3272526887572493807746-296254759609948020295/3272526887572493807746
+
+        let current_price = oracle::viewPrice(token);
+        let valueUSD = size*current_price;
+
+        let fee = (valueUSD*fee_percentage);
+        return fee/1000000000000000000
+
+        //32725236150456062352521922540000
     }
+
+    #[view]
+    public fun test_impact_view(token: String, size: u256, liquidity: u256, isPositive: bool, type: String): (u256,u256,u256,u256,u256,u256) acquires Permissions, Tokens{
+
+        let metadata = get_coin_metadata_by_symbol(token);
+        let oracleID = get_coin_metadata_oracleID(&metadata);
+        let tierID = get_coin_metadata_tier(&metadata);
+
+        let vault_listed = get_coin_metadata_listed(&metadata);
+
+
+        // this needs to be done to assure that price exists in map (it sets the price to current price from oracle, which is enough for initialization)
+        if(!oracle::existsPrice(token)){
+            oracle::impact_price(token, (oracleID as u64), 0, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+        };
+
+        let current_price = oracle::viewPrice(token);
+
+        let impact = 0;
+
+        if(type == utf8(b"perps")){
+            (impact) = calculate_price_impact_perp(token, liquidity, size);
+        } else if (type == utf8(b"spot")){
+            (impact) = calculate_price_impact_spot(token,(tier::price_impact_penalty(tierID) as u256),((vault_listed/3600) as u256), size, liquidity);
+        };
+  
+        let percentage_impact = calculate_impact_percentage(current_price, current_price+impact);
+        let fee = percentage_impact*size;
+        //oracle::impact_price(token, (oracleID as u64), impact, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+        return(percentage_impact, current_price, impact,fee,0, (vault_listed as u256))
+    }
+
+
+    //0.0001% fee
+    //100000
+    //99990
 
   public entry fun test_impact(token: String, size: u256, liquidity: u256, isPositive: bool, type: String) acquires Permissions, Tokens{
 

@@ -1,4 +1,4 @@
-module dev::QiaraTokensStoragesV53 {
+module dev::QiaraTokensStoragesV54 {
     use std::signer;
     use std::string::{Self as string, String, utf8};
     use std::table::{Self, Table};
@@ -6,8 +6,8 @@ module dev::QiaraTokensStoragesV53 {
     use supra_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore};
     use supra_framework::primary_fungible_store;
     use supra_framework::object::{Self, Object};
-    use dev::QiaraTokensRouterV10::{Self as TokensRouter};
-    use dev::QiaraChainTypesV32::{Self as ChainTypes};
+    use dev::QiaraTokensRouterV11::{Self as TokensRouter};
+    use dev::QiaraChainTypesV33::{Self as ChainTypes};
 
 
     // === ERRORS === //

@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV53 {
+module dev::QiaraTokensCoreV54 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,13 +15,13 @@ module dev::QiaraTokensCoreV53 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraTokensMetadataV53::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV53::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV53::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV53::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV53::{Self as TokensQiara,  Access as TokensQiaraAccess};
-    use dev::QiaraChainTypesV32::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV32::{Self as TokensType};
+    use dev::QiaraTokensMetadataV54::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV54::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV54::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV54::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV54::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraChainTypesV33::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV33::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
@@ -77,6 +77,8 @@ module dev::QiaraTokensCoreV53 {
         address: vector<u8>,
         token: String,
         chain: String,
+        tokenTo: String,
+        chainTo: String,
         amount: u64,
         time: u64
     }
@@ -337,7 +339,7 @@ module dev::QiaraTokensCoreV53 {
         internal_deposit(to, fa, chain, managed);
     }
 
-    public entry fun request_bridge(user: &signer, symbol: String, chain: String, amount: u64, symbolTo: String, chainTo: String,) acquires Permissions, ManagedFungibleAsset{
+    public entry fun request_bridge(user: &signer, symbol: String, chain: String, amount: u64, tokenTo: String, chainTo: String) acquires Permissions, ManagedFungibleAsset{
         ensure_safety(symbol, chain);
         let managed = authorized_borrow_refs(symbol);
         let wallet = primary_fungible_store::primary_store(signer::address_of(user), get_metadata(symbol));
@@ -352,6 +354,8 @@ module dev::QiaraTokensCoreV53 {
             address: bcs::to_bytes(&signer::address_of(user)),
             token: symbol,
             chain: chain,
+            tokenTo: tokenTo,
+            chainTo: chainTo,
             amount: amount,
             time: timestamp::now_seconds() 
         });
@@ -368,7 +372,7 @@ module dev::QiaraTokensCoreV53 {
 
     // Function to pre-"burn" tokens when bridging out, but the transaction isnt yet validated so the tokens arent really burned yet.
     // Later implement function to claim locked tokens if the bridge tx fails
-    public fun p_request_bridge(validator: &signer, user: vector<u8>, symbol: String, chain: String, amount: u64, perm: Permission) acquires Permissions{
+    public fun p_request_bridge(validator: &signer, user: vector<u8>, symbol: String, chain: String, amount: u64, tokenTo: String, chainTo: String,perm: Permission) acquires Permissions{
         ensure_safety(symbol, chain);
         let legit_amount = (TokensOmnichain::return_adress_balance(symbol, chain, user) as u64);
         assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
@@ -379,6 +383,8 @@ module dev::QiaraTokensCoreV53 {
             address: user,
             token: symbol,
             chain: chain,
+            tokenTo: tokenTo,
+            chainTo: chainTo,
             amount: amount,
             time: timestamp::now_seconds() 
         });
