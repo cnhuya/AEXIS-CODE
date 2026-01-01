@@ -1,13 +1,13 @@
-module dev::QiaraRIV62{
+module dev::QiaraRIV64{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::table::{Self, Table};
 
-    use dev::QiaraTokensSharedV52::{Self as TokensShared};
+    use dev::QiaraTokensSharedV54::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV31::{Self as TokensType};
-    use dev::QiaraChainTypesV31::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV33::{Self as TokensType};
+    use dev::QiaraChainTypesV33::{Self as ChainTypes};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;

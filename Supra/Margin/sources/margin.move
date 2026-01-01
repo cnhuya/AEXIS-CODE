@@ -1,4 +1,4 @@
-module dev::QiaraMarginV62{
+module dev::QiaraMarginV64{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -8,10 +8,10 @@ module dev::QiaraMarginV62{
     use supra_oracle::supra_oracle_storage;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 
-    use dev::QiaraTokensMetadataV52::{Self as TokensMetadata};
-    use dev::QiaraTokensSharedV52::{Self as TokensShared};
+    use dev::QiaraTokensMetadataV54::{Self as TokensMetadata};
+    use dev::QiaraTokensSharedV54::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV31::{Self as TokensType};
+    use dev::QiaraTokenTypesV33::{Self as TokensType};
     use dev::QiaraMathV9::{Self as QiaraMath};
 
 // === ERRORS === //
@@ -44,6 +44,11 @@ module dev::QiaraMarginV62{
         isPositive: bool,
     }
 
+   // struct LockedFee has key, store {
+   //     value: u128,
+   //     last_claim: u64,
+   // }
+
     struct Credit has key, store, copy, drop{
         deposited: u256,
         borrowed: u256,
@@ -53,6 +58,7 @@ module dev::QiaraMarginV62{
         reward_index_snapshot: u256,
         interest_index_snapshot: u256,
         last_update: u64,
+        locked_fee: u64,
     }
 
     struct Leverage has key, store, copy, drop{
@@ -89,6 +95,27 @@ module dev::QiaraMarginV62{
     fun tttta(number: u64){
         abort(number);
     }
+
+    public fun add_locked_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u64, cap: Permission) acquires TokenHoldings{
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+        {
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+            balance.locked_fee = balance.locked_fee + value;
+        };
+    }
+
+    public fun remove_locked_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u64, cap: Permission) acquires TokenHoldings{
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+        {
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+            if(value > balance.locked_fee){
+                balance.locked_fee = 0
+            } else {
+                balance.locked_fee = balance.locked_fee - value;
+            };
+        };
+    }
+
 
     public fun add_credit(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings{
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
@@ -237,7 +264,7 @@ module dev::QiaraMarginV62{
 // === PUBLIC VIEWS === //
 
 #[view]
-public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u256, u256, u256, u256, u256, u256, vector<Credit>) acquires TokenHoldings {
+public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u256, u256, u256, u256, u256, u256, u256, vector<Credit>) acquires TokenHoldings {
     let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
     let tokens = TokensType::return_full_nick_names_list();
 
@@ -248,6 +275,7 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
     let total_bor = 0u256;
     let total_rew = 0u256;
     let total_int = 0u256;
+    let total_locked_fees = 0u256;
     let total_expected_interest = 0u256;
 
     let len_tokens = vector::length(&tokens);
@@ -327,6 +355,7 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
             let current_raw_borrow = uv.borrowed * price / denom;
             let reward_usd = uv.rewards * price / denom;
             let interest_usd = uv.interest * price / denom;
+            let locked_fees_usd = (uv.locked_fee as u256) * price / denom;
             let staked_usd = uv.staked;
     
             let utilization = if (current_raw_borrow == 0) {
@@ -367,6 +396,7 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
             total_bor = total_bor + bor_usd;
             total_rew = total_rew + reward_usd;
             total_int = total_int + interest_usd;
+            total_locked_fees = total_locked_fees + locked_fees_usd;
             total_expected_interest = total_expected_interest + (margin_interest * dep_usd);
 
             j = j + 1;
@@ -389,6 +419,7 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
         total_int,
         avg_interest,
         total_staked,
+        total_locked_fees,
         vect
     )
 }
@@ -402,9 +433,9 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
     }
 
     #[view]
-    public fun get_user_raw_balance(shared_storage_name: String, token: String, chain: String, provider: String): (u256, u256, u256, u256, u256, u256, u64) acquires TokenHoldings {
+    public fun get_user_raw_balance(shared_storage_name: String, token: String, chain: String, provider: String): (u256, u256, u256, u256, u256, u256, u64, u64) acquires TokenHoldings {
         let balance  = *find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
-        return (balance.deposited, balance.borrowed, balance.rewards, balance.reward_index_snapshot, balance.interest, balance.interest_index_snapshot, balance.last_update)
+        return (balance.deposited, balance.borrowed, balance.rewards, balance.reward_index_snapshot, balance.interest, balance.interest_index_snapshot, balance.locked_fee, balance.last_update)
     }
 
     #[view]
@@ -447,6 +478,7 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
             reward_index_snapshot: 0,
             interest_index_snapshot: 0,
             last_update: 0,
+            locked_fee: 0
         };
 
         if (!map::contains_key(a, &provider)) {
@@ -471,7 +503,7 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
 // === HELPERS === //
 
     public fun get_utilization_ratio(shared_storage_name: String): u256 acquires TokenHoldings{
-        let (_, marginUSD, _, borrowUSD, _, _, _, _, _, _,) = get_user_total_usd(shared_storage_name);
+        let (_, marginUSD, _, borrowUSD, _, _, _, _, _, _,_,) = get_user_total_usd(shared_storage_name);
         if (marginUSD == 0) {
             0
         } else {
