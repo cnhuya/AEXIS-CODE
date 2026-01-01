@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV54{
+module dev::QiaraTokensMetadataV1{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -9,11 +9,11 @@ module dev::QiaraTokensMetadataV54{
     use std::timestamp;
     use supra_framework::event;
 
-    use dev::QiaraStorageV35::{Self as storage};
-    use dev::QiaraMathV9::{Self as Math};
+    use dev::QiaraStorageV1::{Self as storage};
+    use dev::QiaraMathV1::{Self as Math};
 
-    use dev::QiaraTokensRatesV54::{Self as rates};
-    use dev::QiaraTokensTiersV54::{Self as tier};
+    use dev::QiaraTokensRatesV1::{Self as rates};
+    use dev::QiaraTokensTiersV1::{Self as tier};
 
     use dev::QiaraOracleV1::{Self as oracle, Access as OracleAccess};
 
@@ -394,7 +394,7 @@ module dev::QiaraTokensMetadataV54{
         let price = getValue(token, 1*1000000000000000000);
 
         assert!(valueUSD < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
-        assert!(valueUSD >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); // essentially Value cant be higher than 10% of FDV
+        assert!(valueUSD >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); 
 
         let denominator = ((fdvUSD / 10) - valueUSD + (liquidityUSD * 2) - valueUSD);
 
