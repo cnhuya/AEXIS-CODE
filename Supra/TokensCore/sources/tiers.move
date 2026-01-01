@@ -1,4 +1,4 @@
-module dev::QiaraTokensTiersV52{
+module dev::QiaraTokensTiersV53{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -206,6 +206,17 @@ module dev::QiaraTokensTiersV52{
         #[view]
         public fun perps_rate_scale(id: u8): u64 {
             storage::expect_u64(storage::viewConstant(utf8(b"QiaraPerps"), utf8(b"PERPS_PERCENTAGE_SCALE"))) - ((id as u64)*1000)
+        }
+
+        #[view]
+        public fun price_impact_penalty(id: u8): u64 {
+
+            let base = 100;
+
+            // 100 * (9000 * 10) + 100_000_000 -> 100 * 90000 + 100_000_000 -> 109_000_000
+            return base*(tier_efficiency(id)*10)+(base*10_000)   
+
+        //    storage::expect_u64(storage::viewConstant(utf8(b"QiaraPerps"), utf8(b"PERPS_PERCENTAGE_SCALE"))) - ((id as u64)*1000)
         }
 
         #[view]

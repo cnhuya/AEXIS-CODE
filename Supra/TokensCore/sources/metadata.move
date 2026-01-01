@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV52{
+module dev::QiaraTokensMetadataV53{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -12,8 +12,8 @@ module dev::QiaraTokensMetadataV52{
     use dev::QiaraStorageV35::{Self as storage};
     use dev::QiaraMathV9::{Self as Math};
 
-    use dev::QiaraTokensRatesV52::{Self as rates};
-    use dev::QiaraTokensTiersV52::{Self as tier};
+    use dev::QiaraTokensRatesV53::{Self as rates};
+    use dev::QiaraTokensTiersV53::{Self as tier};
 
     use dev::QiaraOracleV1::{Self as oracle, Access as OracleAccess};
 
@@ -23,6 +23,8 @@ module dev::QiaraTokensMetadataV52{
     const ERROR_TIER_ALREADY_EXISTS: u64 = 3;
     const ERROR_COIN_ALREADY_ALLOWED: u64 = 4;
     const ERROR_TIER_NOT_FOUND: u64 = 5;
+    const ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV: u64 = 6;
+    const ERROR_MINIMUM_VALUE_NOT_MET: u64 = 7;
 
 // === ACCESS === //
     struct Access has store, key, drop {}
@@ -267,15 +269,153 @@ module dev::QiaraTokensMetadataV52{
         (x, mc, fdv, (creation as u256), x)
     }
 
-  public entry fun test_impact(token: String, size: u256, liquidity: u256, isPositive: bool, type: String) acquires Permissions, Tokens{
 
+    // deprecated
+    #[view]
+    public fun calculate_price_impact_penalty_final(token:String,penalty_deductor: u256, hours: u256, valueUSD: u256, liquidityUSD: u256): u256{
+        let base_penalty = 100*100_000_000;
+
+        let penalty = 0;
+        if((hours)*(hours)*(penalty_deductor) < base_penalty){
+            penalty = base_penalty-((hours)*(hours)*(penalty_deductor));
+        };
+
+        let valued_price_impact_penalty = (valueUSD*1_000_000  / liquidityUSD)*penalty;
+        let impact_percentage = (valueUSD*100_000_000*100_000_000  / liquidityUSD)-valued_price_impact_penalty;
+        //impact = impact_percentage*current_price;
+
+        let current_price = oracle::viewPrice(token);
+        let impact = (current_price * impact_percentage)/10000000000000000;
+        // 3999300000000000 40%
+        // 2520000000000000 = 25,2%
+        return impact
+    }
+    // deprecated
+    #[view]
+    public fun calculate_price_impact_penalty_final2(token:String,penalty_deductor: u256, hours: u256, value: u256, liquidity: u256): (u256,u256,u256,u256,u256,u256) acquires Tokens{
+        let base_penalty = 100*100_000_000;
+
+        let valueUSD = getValue(token, value*1000000000000000000);
+        let liquidityUSD = getValue(token, liquidity*1000000000000000000);
+
+        let penalty = 0;
+        if((hours)*(hours)*(penalty_deductor) < base_penalty){
+            penalty = base_penalty-((hours)*(hours)*(penalty_deductor));
+        };
+
+        // (2814400000000000000000*1000000)/7036000000000000000000)*400000 = 160000000000 
+        let valued_price_impact_penalty = (valueUSD*1_000_000  / liquidityUSD)*penalty; // percentage
+        let impact_percentage = (valueUSD*10000000000000000 / liquidityUSD)-valued_price_impact_penalty;
+        let current_price = oracle::viewPrice(token);
+        let impact = impact_percentage*current_price;
+
+       // let impact = (current_price * impact_percentage)/10000000000000000;
+        // 3999300000000000 40%
+        // 2520000000000000 = 25,2%
+        return ((impact/10_000_000_000_000_000), valueUSD, liquidityUSD, penalty, valued_price_impact_penalty, impact_percentage)
+    }
+
+    // deprecated
+    #[view]
+    public fun calculate_price_impact_second_new2(token: String, liquidity: u256, value: u256): (u256,u256,u256,u256,u256,u256,u256) acquires Tokens{
+
+        let metadata = get_coin_metadata_by_symbol(token);
+        let valueUSD = getValue(token, value*1000000000000000000);
+        let liquidityUSD = getValue(token, liquidity*1000000000000000000);
+        let fdvUSD = ((get_coin_metadata_fdv(&metadata) as u256)*1000000000000000000*1_000_000);
+
+        let price = getValue(token, 1*1000000000000000000);
+
+        assert!(valueUSD < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
+        assert!(valueUSD/1_000_000 >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); // essentially Value cant be higher than 10% of FDV
+
+        let denominator = ((fdvUSD / 10) - valueUSD + (liquidityUSD * 2) - valueUSD);
+
+        //(1402450*100_000_000_000_000)/1402449997195100
+
+        // Standardize the result to 6 decimal places (1,000,000 = 100%)
+        let impact = ((valueUSD * 1000000000000000000) / denominator);
+        return (impact,valueUSD, liquidityUSD, fdvUSD, price,(price*impact),denominator)
+    }
+    // deprecated
+    #[view]
+    public fun calculate_price_impact_final(token: String, liquidity: u256, value: u256): u256 acquires Tokens{
+
+        let metadata = get_coin_metadata_by_symbol(token);
+        let valueUSD = getValue(token, value*1000000000000000000);
+        let liquidityUSD = getValue(token, liquidity*1000000000000000000);
+        let fdvUSD = ((get_coin_metadata_fdv(&metadata) as u256)*1000000000000000000*1_000_000);
+
+        let price = getValue(token, 1*1000000000000000000);
+
+        assert!(valueUSD < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
+        assert!(valueUSD/1_000_000 >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); // essentially Value cant be higher than 10% of FDV
+
+        let denominator = ((fdvUSD / 10) - valueUSD + (liquidityUSD * 2) - valueUSD);
+
+        //(1402450*100_000_000_000_000)/1402449997195100
+
+        // Standardize the result to 6 decimal places (1,000,000 = 100%)
+        let impact = ((valueUSD * 1000000000000000000) / denominator);
+        return (price*impact)/1000000000000000000
+    }
+
+    #[view]
+    public fun calculate_price_impact_spot(token:String,penalty_deductor: u256, hours: u256, value: u256, liquidity: u256): (u256) acquires Tokens{
+        let base_penalty = 100*100_000_000;
+
+        let valueUSD = getValue(token, value*1000000000000000000);
+        let liquidityUSD = getValue(token, liquidity*1000000000000000000);
+
+        let penalty = 0;
+        if((hours)*(hours)*(penalty_deductor) < base_penalty){
+            penalty = base_penalty-((hours)*(hours)*(penalty_deductor));
+        };
+
+        let valued_price_impact_penalty = (valueUSD*1_000_000  / liquidityUSD)*penalty; // percentage
+        let impact_percentage = (valueUSD*10000000000000000 / liquidityUSD)-valued_price_impact_penalty;
+        let current_price = oracle::viewPrice(token);
+        let impact = impact_percentage*current_price;
+
+        return(impact/10_000_000_000_000_000)
+    }
+
+    #[view]
+    public fun calculate_price_impact_perp(token: String, liquidity: u256, value: u256): (u256) acquires Tokens{
+
+        let metadata = get_coin_metadata_by_symbol(token);
+        let valueUSD = getValue(token, value*1000000000000000000);
+        let liquidityUSD = getValue(token, liquidity*1000000000000000000);
+        let fdvUSD = ((get_coin_metadata_fdv(&metadata) as u256)*1000000000000000000*1_000_000);
+
+        let price = getValue(token, 1*1000000000000000000);
+
+        assert!(valueUSD < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
+        assert!(valueUSD/1_000_000 >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); // essentially Value cant be higher than 10% of FDV
+
+        let denominator = ((fdvUSD / 10) - valueUSD + (liquidityUSD * 2) - valueUSD);
+
+        //(1402450*100_000_000_000_000)/1402449997195100
+
+        // Standardize the result to 6 decimal places (1,000,000 = 100%)
+        let impact = ((valueUSD * 1000000000000000000) / denominator);
+        return (price*impact)/1000000000000000000
+    }
+
+
+    #[view]
+    public fun calculate_impact_percentage(start:u256, end: u256): u256{
+        return (end-start)/(end)
+    }
+
+  public entry fun test_impact(token: String, size: u256, liquidity: u256, isPositive: bool, type: String) acquires Permissions, Tokens{
 
         let metadata = get_coin_metadata_by_symbol(token);
         let oracleID = get_coin_metadata_oracleID(&metadata);
+        let tierID = get_coin_metadata_tier(&metadata);
 
-        let fdvUSD = get_coin_metadata_fdv(&metadata);
-        let valueUSD = getValue(token, size);
-        let liquidityUSD = getValue(token, liquidity);
+        let vault_listed = get_coin_metadata_listed(&metadata);
+
 
         // this needs to be done to assure that price exists in map (it sets the price to current price from oracle, which is enough for initialization)
         if(!oracle::existsPrice(token)){
@@ -285,22 +425,15 @@ module dev::QiaraTokensMetadataV52{
         let current_price = oracle::viewPrice(token);
 
         let impact = 0;
+
         if(type == utf8(b"perps")){
-            // 50$* 50$ / 100$
-            // = 2,5 -> 250% impact
-
-            //  5000$ / (2500$ - 3000$) / 3000$ -> 166% impact
-            // pridat safety check kde total open margin nemuze bejt vetsi nez FDV? 
-            impact = valueUSD  / ((fdvUSD as u256) - liquidityUSD) / liquidityUSD;
-
+            (impact) = calculate_price_impact_perp(token, liquidity, size);
         } else if (type == utf8(b"spot")){
-            // 50$ / 100$
-            // = 0,5 -> 50% impact
-            impact = valueUSD  / liquidityUSD;
+            (impact) = calculate_price_impact_spot(token,(tier::price_impact_penalty(tierID) as u256),((vault_listed/3600) as u256), size, liquidity);
         };
-
-        // impact needs to be *100 to convert it to % from decimal    
-        oracle::impact_price(token, (oracleID as u64), current_price*(impact*100), isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+  
+        calculate_impact_percentage(current_price, current_price+impact);
+        oracle::impact_price(token, (oracleID as u64), impact, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
 
     }
 
@@ -440,6 +573,10 @@ module dev::QiaraTokensMetadataV52{
 
         public fun get_coin_metadata_creation(metadata: &VMetadata): u64 {
             metadata.creation
+        }
+
+        public fun get_coin_metadata_listed(metadata: &VMetadata): u64 {
+            metadata.listed
         }
 
         public fun get_coin_metadata_credit(metadata: &VMetadata): u256 {

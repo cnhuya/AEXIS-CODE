@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV52 {
+module dev::QiaraTokensCoreV53 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,13 +15,13 @@ module dev::QiaraTokensCoreV52 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV9::{Self as Math};
-    use dev::QiaraTokensMetadataV52::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV52::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV52::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV52::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV52::{Self as TokensQiara,  Access as TokensQiaraAccess};
-    use dev::QiaraChainTypesV31::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV31::{Self as TokensType};
+    use dev::QiaraTokensMetadataV53::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV53::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV53::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV53::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV53::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraChainTypesV32::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV32::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
@@ -337,7 +337,7 @@ module dev::QiaraTokensCoreV52 {
         internal_deposit(to, fa, chain, managed);
     }
 
-    public entry fun request_bridge(user: &signer, symbol: String, chain: String, amount: u64) acquires Permissions, ManagedFungibleAsset{
+    public entry fun request_bridge(user: &signer, symbol: String, chain: String, amount: u64, symbolTo: String, chainTo: String,) acquires Permissions, ManagedFungibleAsset{
         ensure_safety(symbol, chain);
         let managed = authorized_borrow_refs(symbol);
         let wallet = primary_fungible_store::primary_store(signer::address_of(user), get_metadata(symbol));
