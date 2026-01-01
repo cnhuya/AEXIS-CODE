@@ -59,6 +59,58 @@ module dev::QiaraOracleV1 {
         return map::borrow_mut(&mut prices.map, &name)
     }
 
+
+
+    #[view]
+    public fun calculate_price_impact_penalty_spot(token:String,penalty_deductor: u256, hours: u256, value: u256, liquidity: u256): (u256,u256) acquires Tokens{
+        let base_penalty = 100*100_000_000;
+
+        let valueUSD = getValue(token, value*1000000000000000000);
+        let liquidityUSD = getValue(token, liquidity*1000000000000000000);
+
+        let penalty = 0;
+        if((hours)*(hours)*(penalty_deductor) < base_penalty){
+            penalty = base_penalty-((hours)*(hours)*(penalty_deductor));
+        };
+
+        let valued_price_impact_penalty = (valueUSD*1_000_000  / liquidityUSD)*penalty; // percentage
+        let impact_percentage = (valueUSD*10000000000000000 / liquidityUSD)-valued_price_impact_penalty;
+        let current_price = oracle::viewPrice(token);
+        let impact = impact_percentage*current_price;
+
+        return ((impact/10_000_000_000_000_000)impact_percentage)
+    }
+
+    #[view]
+    public fun calculate_price_impact_perp(token: String, liquidity: u256, value: u256): (u256,u256) acquires Tokens{
+
+        let metadata = get_coin_metadata_by_symbol(token);
+        let valueUSD = getValue(token, value*1000000000000000000);
+        let liquidityUSD = getValue(token, liquidity*1000000000000000000);
+        let fdvUSD = ((get_coin_metadata_fdv(&metadata) as u256)*1000000000000000000*1_000_000);
+
+        let price = getValue(token, 1*1000000000000000000);
+
+        assert!(valueUSD < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
+        assert!(valueUSD/1_000_000 >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); // essentially Value cant be higher than 10% of FDV
+
+        let denominator = ((fdvUSD / 10) - valueUSD + (liquidityUSD * 2) - valueUSD);
+
+        //(1402450*100_000_000_000_000)/1402449997195100
+
+        // Standardize the result to 6 decimal places (1,000,000 = 100%)
+        let impact = ((valueUSD * 1000000000000000000) / denominator);
+        return (price*impact)/1000000000000000000
+    }
+
+
+    #[view]
+    public fun viewAllPrices(name: String): Map<String, u256> acquires Prices{
+
+        borrow_global_mut<Prices>(@dev).map
+
+    }
+
     #[view]
     public fun viewPrice(name: String): u256 acquires Prices{
 
