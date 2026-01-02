@@ -1,4 +1,4 @@
-module dev::QiaraAutomationV3 {
+module dev::QiaraAutomationV4 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::timestamp;
@@ -8,7 +8,7 @@ module dev::QiaraAutomationV3 {
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use supra_framework::event;
 
-    use dev::QiaraTokensSharedV4::{Self as TokensShared};
+    use dev::QiaraTokensSharedV5::{Self as TokensShared};
 
 
 // === ACCESS === //
@@ -129,6 +129,8 @@ module dev::QiaraAutomationV3 {
         public fun update_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, counter: u128, args: vector<vector<u8>>, perm: Permission) acquires AutomatedTransactionsTracker {
             TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));   
             
+            assert_correct_arguments(function_id, args);
+            
             let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);
             
             // Initialize user's tracker table if not exists
@@ -147,6 +149,33 @@ module dev::QiaraAutomationV3 {
             // Update or create the UID entry
             if (map::contains_key(function_table, &counter)) {
                 map::upsert(function_table, counter, args);
+            } else {
+                abort ERROR_AUTOMATED_TX_NOT_FOUND_UNDER_COUNTER
+            };
+
+        }
+
+        public fun cancel_automation(signer: &signer, owned_storage: vector<u8>, shared_storage_name:String, function_id: u8, counter: u128, perm: Permission) acquires AutomatedTransactionsTracker {
+            TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));   
+            
+            let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);
+            
+            // Initialize user's tracker table if not exists
+            if (!table::contains(&tracker_bookshelf.tracker, owned_storage)) {
+                abort ERROR_ADDRESS_NOT_INIT
+            };
+            
+            let user_tracker = table::borrow_mut(&mut tracker_bookshelf.tracker, owned_storage);
+            
+            // Initialize function_id table if not exists
+            if (!table::contains(user_tracker, function_id)) {
+                abort ERROR_FUNCTION_ID_NOT_INIT
+            };
+            
+            let function_table = table::borrow_mut(user_tracker, function_id);
+            // Update or create the UID entry
+            if (map::contains_key(function_table, &counter)) {
+                map::remove(function_table, &counter);
             } else {
                 abort ERROR_AUTOMATED_TX_NOT_FOUND_UNDER_COUNTER
             };
@@ -228,6 +257,33 @@ module dev::QiaraAutomationV3 {
 
         }
 
+        public fun p_cancel_automation(validator: &signer, owned_storage: vector<u8>, sub_owner: vector<u8>, shared_storage_name:String, function_id: u8, counter: u128, perm: Permission) acquires AutomatedTransactionsTracker {
+            TokensShared::assert_is_sub_owner(owned_storage, shared_storage_name, sub_owner);              
+            
+            let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);
+            
+            // Initialize user's tracker table if not exists
+            if (!table::contains(&tracker_bookshelf.tracker, owned_storage)) {
+                abort ERROR_ADDRESS_NOT_INIT
+            };
+            
+            let user_tracker = table::borrow_mut(&mut tracker_bookshelf.tracker, owned_storage);
+            
+            // Initialize function_id table if not exists
+            if (!table::contains(user_tracker, function_id)) {
+                abort ERROR_FUNCTION_ID_NOT_INIT
+            };
+            
+            let function_table = table::borrow_mut(user_tracker, function_id);
+            // Update or create the UID entry
+            if (map::contains_key(function_table, &counter)) {
+                map::remove(function_table, &counter);
+            } else {
+                abort ERROR_AUTOMATED_TX_NOT_FOUND_UNDER_COUNTER
+            };
+
+        }
+
     public fun execute(validator:signer, owned_storage: vector<u8>, function_id: u8, counter: u128, perm: Permission) acquires AutomatedTransactionsTracker {
         let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);
 
@@ -261,7 +317,7 @@ module dev::QiaraAutomationV3 {
         }
     }
 
-
+/// === VIEWS ===
     #[view]
     public fun return_arguments(owned_storage: vector<u8>, function_id: u8, uid: u128): vector<vector<u8>> acquires AutomatedTransactionsTracker{
         let tracker_bookshelf = borrow_global_mut<AutomatedTransactionsTracker>(@dev);        
