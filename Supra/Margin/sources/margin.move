@@ -1,4 +1,4 @@
-module dev::QiaraMarginV4{
+module dev::QiaraMarginV5{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -61,7 +61,7 @@ module dev::QiaraMarginV4{
         reward_index_snapshot: u256,
         interest_index_snapshot: u256,
         last_update: u64,
-        locked_fee: u64,
+        locked_fee: u256,
     }
 
     struct Leverage has key, store, copy, drop{
@@ -99,7 +99,7 @@ module dev::QiaraMarginV4{
         abort(number);
     }
 
-    public fun add_locked_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun add_locked_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
         {
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
@@ -107,7 +107,7 @@ module dev::QiaraMarginV4{
         };
     }
 
-    public fun remove_locked_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u64, cap: Permission) acquires TokenHoldings{
+    public fun remove_locked_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
         {
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
@@ -460,7 +460,7 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
     }
 
     #[view]
-    public fun get_user_raw_balance(shared_storage_name: String, token: String, chain: String, provider: String): (u256, u256, u256, u256, u256, u256, u64, u64) acquires TokenHoldings {
+    public fun get_user_raw_balance(shared_storage_name: String, token: String, chain: String, provider: String): (u256, u256, u256, u256, u256, u256, u256, u64) acquires TokenHoldings {
         let balance  = *find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
         return (balance.deposited, balance.borrowed, balance.rewards, balance.reward_index_snapshot, balance.interest, balance.interest_index_snapshot, balance.locked_fee, balance.last_update)
     }
