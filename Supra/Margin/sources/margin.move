@@ -1,4 +1,4 @@
-module dev::QiaraMarginV2{
+module dev::QiaraMarginV3{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -37,6 +37,8 @@ module dev::QiaraMarginV2{
         // shared_storage_name, token, chain, provider
         holdings: Table<String, Table<String,Map<String, Map<String, Credit>>>>,
         credit: Table<String, Integer>, // universal "credit" ($ value essentially), per user (shared_storage) | this is used for perpetual profits... and more in the future
+        fee: Table<String, Integer>, // universal "fee" ($ value essentially), per user (shared_storage) | this is used for storing user fees with 18 decimals precision, i.e to make it users cant bypass fees by for example spamming small miniture deposits with lets say 0.001$ value.
+
     }
 
     struct Integer has key, store {
@@ -74,7 +76,7 @@ module dev::QiaraMarginV2{
         };
 
         if (!exists<TokenHoldings>(@dev)) {
-            move_to(admin,TokenHoldings {holdings: table::new<String, Table<String, Map<String, Map<String, Credit>>>>(), credit: table::new<String, Integer>(),});
+            move_to(admin,TokenHoldings {holdings: table::new<String, Table<String, Map<String, Map<String, Credit>>>>(), credit: table::new<String, Integer>(),fee: table::new<String, Integer>(),});
         };
 
     }
@@ -113,6 +115,30 @@ module dev::QiaraMarginV2{
             } else {
                 balance.locked_fee = balance.locked_fee - value;
             };
+        };
+    }
+
+
+    public fun add_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings{
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+        let fee = find_fee(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name);
+        fee.value = fee.value + value;
+    }
+
+    public fun remove_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings {
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+        let holdings = borrow_global_mut<TokenHoldings>(@dev);
+        let fee = find_fee(holdings, shared_storage_name);
+
+        if (fee.isPositive) {
+            if (value > fee.value) {
+                fee.value = value - fee.value;
+                fee.isPositive = false;
+            } else {
+                fee.value = fee.value - value;
+            };
+        } else {
+            fee.value = fee.value + value;
         };
     }
 
@@ -496,6 +522,16 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
         };
 
         return table::borrow_mut(&mut feature_table.credit, shared_storage_name)
+    }
+
+    fun find_fee(feature_table: &mut TokenHoldings,shared_storage_name: String): &mut Integer {
+        {
+            if (!table::contains(&feature_table.fee, shared_storage_name)) {
+                table::add(&mut feature_table.fee, shared_storage_name, Integer { value: 0, isPositive: true });
+            };
+        };
+
+        return table::borrow_mut(&mut feature_table.fee, shared_storage_name)
     }
 
 
