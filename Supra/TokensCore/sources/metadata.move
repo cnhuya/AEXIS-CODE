@@ -412,14 +412,6 @@ module dev::QiaraTokensMetadataV4{
         return (price*impact)/1_000_000_000_000_000_000
     }
 
-    //115792089237316195423570985008687907853269984665640564039457584007913129639935
-    //831186106198430210000000000000
-    #[view]
-    public fun calculate_impact_percentage(start:u256, end: u256): u256{
-        //3272526887572493807746-296254759609948020295/3272526887572493807746
-        //831186106198430210000000000000
-        return ((end-start)*1_000_000_000_000_000_000)/(end)
-    }
 
 
     #[view]
@@ -466,12 +458,7 @@ module dev::QiaraTokensMetadataV4{
         return(percentage_impact, current_price, impact,fee,0, (vault_listed as u256))
     }
 
-
-    //0.0001% fee
-    //100000
-    //99990
-
-  public entry fun test_impact(token: String, size: u256, liquidity: u256, isPositive: bool, type: String) acquires Permissions, Tokens{
+    public fun impact(token: String, size: u256, liquidity: u256, isPositive: bool, type: String, perm:Permission): (u256,u256) acquires Permissions, Tokens{
 
         let metadata = get_coin_metadata_by_symbol(token);
         let oracleID = get_coin_metadata_oracleID(&metadata);
@@ -495,47 +482,12 @@ module dev::QiaraTokensMetadataV4{
             (impact) = calculate_price_impact_spot(token,(tier::price_impact_penalty(tierID) as u256),((vault_listed/3600) as u256), size, liquidity);
         };
   
-        calculate_impact_percentage(current_price, current_price+impact);
-        oracle::impact_price(token, (oracleID as u64), impact, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+        let percentage_impact = oracle::impact_price(token, (oracleID as u64), impact, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+        let fee = percentage_impact*size;
 
+        return(percentage_impact, fee)
     }
 
-    public fun impact(token: String, size: u256, liquidity: u256, isPositive: bool, type: String, perm: Permission) acquires Permissions, Tokens{
-
-
-        let metadata = get_coin_metadata_by_symbol(token);
-        let oracleID = get_coin_metadata_oracleID(&metadata);
-
-        let fdvUSD = get_coin_metadata_fdv(&metadata);
-        let valueUSD = getValue(token, size);
-        let liquidityUSD = getValue(token, liquidity);
-
-        // this needs to be done to assure that price exists in map (it sets the price to current price from oracle, which is enough for initialization)
-        if(!oracle::existsPrice(token)){
-            oracle::impact_price(token, (oracleID as u64), 0, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
-        };
-
-        let current_price = oracle::viewPrice(token);
-
-        let impact = 0;
-        if(type == utf8(b"perps")){
-            // 50$* 50$ / 100$
-            // = 2,5 -> 250% impact
-
-            //  5000$ / (2500$ - 3000$) / 3000$ -> 166% impact
-            // pridat safety check kde total open margin nemuze bejt vetsi nez FDV? 
-            impact = valueUSD  / ((fdvUSD as u256) - liquidityUSD) / liquidityUSD;
-
-        } else if (type == utf8(b"spot")){
-            // 50$ / 100$
-            // = 0,5 -> 50% impact
-            impact = valueUSD  / liquidityUSD;
-        };
-
-        // impact needs to be *100 to convert it to % from decimal    
-        oracle::impact_price(token, (oracleID as u64), current_price*(impact*100), isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
-
-    }
 
     fun associate_tier(credit: u256, stable: u8): u8{
 
