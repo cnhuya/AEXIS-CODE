@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV4{
+module dev::QiaraTokensMetadataV5{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -12,10 +12,10 @@ module dev::QiaraTokensMetadataV4{
     use dev::QiaraStorageV1::{Self as storage};
     use dev::QiaraMathV1::{Self as Math};
 
-    use dev::QiaraTokensRatesV4::{Self as rates};
-    use dev::QiaraTokensTiersV4::{Self as tier};
+    use dev::QiaraTokensRatesV5::{Self as rates};
+    use dev::QiaraTokensTiersV5::{Self as tier};
 
-    use dev::QiaraOracleV1::{Self as oracle, Access as OracleAccess};
+    use dev::QiaraOracleV2::{Self as oracle, Access as OracleAccess};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -452,7 +452,7 @@ module dev::QiaraTokensMetadataV4{
             (impact) = calculate_price_impact_spot(token,(tier::price_impact_penalty(tierID) as u256),((vault_listed/3600) as u256), size, liquidity);
         };
   
-        let percentage_impact = calculate_impact_percentage(current_price, current_price+impact);
+        let percentage_impact = oracle::calculate_impact_percentage(current_price, current_price+impact);
         let fee = percentage_impact*size;
         //oracle::impact_price(token, (oracleID as u64), impact, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
         return(percentage_impact, current_price, impact,fee,0, (vault_listed as u256))
@@ -465,7 +465,6 @@ module dev::QiaraTokensMetadataV4{
         let tierID = get_coin_metadata_tier(&metadata);
 
         let vault_listed = get_coin_metadata_listed(&metadata);
-
 
         // this needs to be done to assure that price exists in map (it sets the price to current price from oracle, which is enough for initialization)
         if(!oracle::existsPrice(token)){
