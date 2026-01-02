@@ -1,4 +1,4 @@
-module dev::QiaraOracleV1 {
+module dev::QiaraOracleV2 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::signer;
@@ -36,7 +36,7 @@ module dev::QiaraOracleV1 {
         };
     }
 
-    public fun impact_price(name: String, oracleID: u64, impact: u256, isPositive: bool, perm: Permission) acquires Prices{
+    public fun impact_price(name: String, oracleID: u64, impact: u256, isPositive: bool, perm: Permission): u256 acquires Prices{
 
         let price = ensure_price(borrow_global_mut<Prices>(@dev), name, oracleID);
 
@@ -44,9 +44,9 @@ module dev::QiaraOracleV1 {
             *price = *price + impact;
         } else {
             *price = *price - impact
-        }
+        };
 
-
+        return calculate_impact_percentage(*price, *price+impact)
     }
 
     fun ensure_price(prices: &mut Prices, name: String, oracleID: u64): &mut u256{
@@ -60,6 +60,17 @@ module dev::QiaraOracleV1 {
     }
 
 
+    #[view]
+    public fun convert_to_usd(name: String, size: u256): u256 acquires Prices{
+        let price = viewPrice(name);
+        return(price*size)/1000000000000000000
+    }
+
+    #[view]
+    public fun convert_to_token(name: String, usd: u256): u256 acquires Prices{
+        let price = viewPrice(name);
+        return (usd*1000000000000000000)/price
+    }
 
     #[view]
     public fun viewAllPrices(name: String): Map<String, u256> acquires Prices{
@@ -93,4 +104,10 @@ module dev::QiaraOracleV1 {
         return true
 
     }
+
+    #[view]
+    public fun calculate_impact_percentage(start:u256, end: u256): u256{
+        return ((end-start)*1_000_000_000_000_000_000)/(end)
+    }
+
 }
