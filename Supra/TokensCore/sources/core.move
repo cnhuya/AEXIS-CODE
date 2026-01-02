@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV2 {
+module dev::QiaraTokensCoreV4 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,13 +15,13 @@ module dev::QiaraTokensCoreV2 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV2::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV2::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV2::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV2::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV2::{Self as TokensQiara,  Access as TokensQiaraAccess};
-    use dev::QiaraChainTypesV2::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV2::{Self as TokensType};
+    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV4::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV4::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV4::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV4::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraChainTypesV4::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV4::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
@@ -30,7 +30,15 @@ module dev::QiaraTokensCoreV2 {
     const ERROR_ACCOUNT_DOES_NOT_EXISTS: u64 = 3;
     const ERROR_SUFFICIENT_BALANCE: u64 = 4;
 
-    const INIT_SUPPLY: u64 = 1_000_000_000_000;
+    //100_000_000
+
+    //1_000_000 = 1%
+    //100 = 0.0001%
+
+    //18_446_744_073_709_551_615
+    //1_000_000_000_000_000_000_000_000
+    //1_000_000_000_000_000_000
+    const INIT_SUPPLY: u64 = 1_000_000_000_000; // i.e 1 mil. init. supply
     const DECIMALS_N: u64 = 1_000_000;    
 
 // === ACCESS === //
@@ -119,6 +127,7 @@ module dev::QiaraTokensCoreV2 {
 
 // === ENTRY FUNCTIONS === //
     public entry fun inits(admin: &signer){
+        //         tttta(0);
         init_token(admin, utf8(b"Ethereum"), utf8(b"QETH"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ethereum.webp"), 1_438_269_983, 1, 120_698_129, 120_698_129, 120_698_129, 1);
         init_token(admin, utf8(b"Bitcoin"), utf8(b"QBTC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/bitcoin.webp"), 1_231_006_505, 0, 21_000_000, 19_941_253, 19_941_253, 1);
          //         tttta(1);
@@ -170,6 +179,9 @@ module dev::QiaraTokensCoreV2 {
     }
 
 
+    //115792089237316195423570985008687907853269984665640564039457584007913129639935
+
+
     fun init_token(admin: &signer, name: String, symbol: String, icon: String, creation: u64,oracleID: u32, max_supply: u128, circulating_supply: u128, total_supply: u128, stable:u8 ){
         let constructor_ref = &object::create_named_object(admin, bcs::to_bytes(&TokensType::convert_token_nickName_to_name(name))); // Ethereum -> Qiara31 Ethereum
         primary_fungible_store::create_primary_store_enabled_fungible_asset(
@@ -204,12 +216,12 @@ module dev::QiaraTokensCoreV2 {
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV23"),
+            string::utf8(b"QiaraTokensCoreV4"),
             string::utf8(b"c_deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV23"),
+            string::utf8(b"QiaraTokensCoreV4"),
             string::utf8(b"c_withdraw"),
         );
    
