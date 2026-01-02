@@ -1,4 +1,4 @@
-module dev::QiaraMarginV5{
+module dev::QiaraMarginV6{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -8,10 +8,10 @@ module dev::QiaraMarginV5{
     use supra_oracle::supra_oracle_storage;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 
-    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata};
-    use dev::QiaraTokensSharedV4::{Self as TokensShared};
+    use dev::QiaraTokensMetadataV5::{Self as TokensMetadata};
+    use dev::QiaraTokensSharedV5::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV4::{Self as TokensType};
+    use dev::QiaraTokenTypesV5::{Self as TokensType};
     
     use dev::QiaraMathV1::{Self as QiaraMath};
 
@@ -42,7 +42,7 @@ module dev::QiaraMarginV5{
 
     }
 
-    struct Integer has key, store {
+    struct Integer has key, store, copy {
         value: u256,
         isPositive: bool,
     }
@@ -470,6 +470,19 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
         let th = borrow_global<TokenHoldings>(@dev);
         let inner = table::borrow(&th.holdings, shared_storage_name);
         *table::borrow(inner, token)
+    }
+
+
+    #[view]
+    public fun get_user_credit(shared_storage_name: String,): (u256, bool) acquires TokenHoldings {
+        let credit = *find_credit(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name);
+        return (credit.value, credit.isPositive)
+    }
+
+    #[view]
+    public fun get_user_fee(shared_storage_name: String,): (u256, bool) acquires TokenHoldings {
+        let fee = *find_fee(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name);
+        return (fee.value, fee.isPositive)
     }
 
 // === MUT RETURNS === //
