@@ -42,7 +42,7 @@ module dev::QiaraMarginV6{
 
     }
 
-    struct Integer has key, store, copy {
+    struct Integer has drop, key, store, copy {
         value: u256,
         isPositive: bool,
     }

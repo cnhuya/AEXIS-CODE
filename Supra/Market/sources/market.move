@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV3 {
+module dev::QiaraVaultsV4 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -14,23 +14,23 @@ module dev::QiaraVaultsV3 {
     use supra_framework::object::{Self, Object};
     use supra_framework::event;
 
-    use dev::QiaraTokensCoreV4::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
-    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata, VMetadata};
-    use dev::QiaraTokensSharedV4::{Self as TokensShared};
-    use dev::QiaraTokensRatesV4::{Self as TokensRates, Access as TokensRatesAccess};
-    use dev::QiaraTokensTiersV4::{Self as TokensTiers};
-    use dev::QiaraTokensOmnichainV4::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensCoreV5::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
+    use dev::QiaraTokensMetadataV5::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
+    use dev::QiaraTokensSharedV5::{Self as TokensShared};
+    use dev::QiaraTokensRatesV5::{Self as TokensRates, Access as TokensRatesAccess};
+    use dev::QiaraTokensTiersV5::{Self as TokensTiers};
+    use dev::QiaraTokensOmnichainV5::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
-    use dev::QiaraMarginV4::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraRIV4::{Self as RI};
+    use dev::QiaraMarginV6::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraRIV6::{Self as RI};
 
-    use dev::QiaraAutomationV3::{Self as auto, Access as AutoAccess};
+    use dev::QiaraAutomationV4::{Self as auto, Access as AutoAccess};
 
    // use dev::QiaraFeeVaultV10::{Self as fee};
 
-    use dev::QiaraTokenTypesV4::{Self as TokensTypes};
-    use dev::QiaraChainTypesV4::{Self as ChainTypes};
-    use dev::QiaraProviderTypesV4::{Self as ProviderTypes};
+    use dev::QiaraTokenTypesV5::{Self as TokensTypes};
+    use dev::QiaraChainTypesV5::{Self as ChainTypes};
+    use dev::QiaraProviderTypesV5::{Self as ProviderTypes};
 
     use dev::QiaraMathV1::{Self as QiaraMath};
 
@@ -85,6 +85,7 @@ module dev::QiaraVaultsV3 {
         tokens_rates: TokensRatesAccess,
         tokens_omnichain: TokensOmnichainAccess,
         tokens_core: TokensCoreAccess,
+        tokens_metadata: TokensMetadataAccess,
         storage: StorageAccess,
         capabilities: CapabilitiesAccess,
         auto: AutoAccess,
@@ -181,7 +182,7 @@ module dev::QiaraVaultsV3 {
             move_to(admin, GlobalVault { balances: table::new<String, Map<String, Map<String, Vault>>>() });
         };
         if (!exists<Permissions>(@dev)) {
-            move_to(admin, Permissions {margin: Margin::give_access(admin), tokens_rates:  TokensRates::give_access(admin), tokens_omnichain: TokensOmnichain::give_access(admin), tokens_core: TokensCore::give_access(admin), storage:  storage::give_access(admin), capabilities:  capabilities::give_access(admin), auto:  auto::give_access(admin)});
+            move_to(admin, Permissions {margin: Margin::give_access(admin), tokens_rates:  TokensRates::give_access(admin), tokens_omnichain: TokensOmnichain::give_access(admin), tokens_core: TokensCore::give_access(admin),tokens_metadata: TokensMetadata::give_access(admin), storage:  storage::give_access(admin), capabilities:  capabilities::give_access(admin), auto:  auto::give_access(admin)});
         };
     //    init_all_vaults(admin);
 
@@ -209,14 +210,14 @@ module dev::QiaraVaultsV3 {
         let amount_u256 = (amount as u256)*1000000000000000000;
 
         let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
-        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"));
+        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
         
-        let amont_u256_taxed = amount_u256-fee;
-        Margin::update_reward_index(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
+        let amount_u256_taxed = amount_u256-fee;
+        Margin::update_reward_index(shared_storage_owner, shared_storage_name, sender, token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
 
         TokensRates::change_rates(token, chain, lend_rate, TokensRates::give_permission(&borrow_global<Permissions>(@dev).tokens_rates));
         // Yes it is intentional that recipient is first, because thats the shared storage. (in case i forget again)
-        Margin::add_deposit(shared_storage_owner, shared_storage_name, sender, token, chain, provider, amont_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::add_deposit(shared_storage_owner, shared_storage_name, sender, token, chain, provider, amount_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
 
 
         let fa = TokensCore::mint(token, chain, amount, TokensCore::give_permission(&borrow_global<Permissions>(@dev).tokens_core)); 
@@ -229,7 +230,7 @@ module dev::QiaraVaultsV3 {
         event::emit(VaultEvent {
             validator: signer::address_of(validator),
             type: utf8(b"Deposit"),
-            amount: amont_u256_taxed,
+            amount: amount_u256_taxed,
             fee: fee,
             sender: sender,
             shared_storage_name: shared_storage_name,
@@ -251,25 +252,25 @@ module dev::QiaraVaultsV3 {
         let amount_u256 = (amount as u256)*1000000000000000000;
 
         let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
-        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"));
+        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
         
-        let amont_u256_taxed = amount_u256-fee;
-        Margin::update_reward_index(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
+        let amount_u256_taxed = amount_u256-fee;
+        Margin::update_reward_index(shared_storage_owner, shared_storage_name, sender, token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
         
-        Margin::remove_deposit(shared_storage_owner, shared_storage_name, sender, token, chain, provider, amont_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::remove_deposit(shared_storage_owner, shared_storage_name, sender, token, chain, provider, amount_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
 
         let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
         let fa = TokensCore::withdraw(provider_vault.balance, amount, chain); 
         TokensCore::deposit(primary_fungible_store::ensure_primary_store_exists(recipient,TokensCore::get_metadata(token)), fa, chain);
 
-        assert!(provider_vault.total_deposited >= amont_u256_taxed, ERROR_NOT_ENOUGH_LIQUIDITY);
-        provider_vault.total_deposited = provider_vault.total_deposited - amont_u256_taxed;
+        assert!(provider_vault.total_deposited >= amount_u256_taxed, ERROR_NOT_ENOUGH_LIQUIDITY);
+        provider_vault.total_deposited = provider_vault.total_deposited - amount_u256_taxed;
 
         accrue(provider_vault, shared_storage_owner,sender, shared_storage_name,  token, chain, provider);
         event::emit(VaultEvent {
             validator: signer::address_of(validator),
             type: utf8(b"Withdraw"),
-            amount: amont_u256_taxed,
+            amount: amount_u256_taxed,
             fee: fee,
             sender: sender,
             shared_storage_name: shared_storage_name,
@@ -288,10 +289,11 @@ module dev::QiaraVaultsV3 {
         let amount_u256 = (amount as u256)*1000000000000000000;
 
         let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
-        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"));
+        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
+
         
-        let amont_u256_taxed = amount_u256-fee;
-        Margin::update_reward_index(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
+        let amount_u256_taxed = amount_u256-fee;
+        Margin::update_reward_index(shared_storage_owner, shared_storage_name, sender, token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
     
         TokensRates::change_rates(token, chain, lend_rate, TokensRates::give_permission(&borrow_global<Permissions>(@dev).tokens_rates));
         // Yes it is intentional that recipient is first, because thats the shared storage. (in case i forget again)
@@ -312,7 +314,7 @@ module dev::QiaraVaultsV3 {
         event::emit(VaultEvent {
             validator: signer::address_of(validator),
             type: utf8(b"Borrow"),
-            amount: amont_u256_taxed,
+            amount: amount_u256_taxed,
             fee: fee,
             sender: sender,
             shared_storage_name: shared_storage_name,
@@ -329,10 +331,10 @@ module dev::QiaraVaultsV3 {
         let amount_u256 = (amount as u256)*1000000000000000000;
 
         let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
-        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"));
+        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
+
         
-        Margin::add_fee(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, oracle::convert_to_usd(token, fee), Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
-        Margin::update_reward_index(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
+        Margin::update_reward_index(shared_storage_owner, shared_storage_name,sender, token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
     
         let fa = TokensCore::mint(token, chain, amount, TokensCore::give_permission(&borrow_global<Permissions>(@dev).tokens_core)); 
         TokensCore::deposit(provider_vault.balance, fa, chain);
@@ -360,7 +362,7 @@ module dev::QiaraVaultsV3 {
 
     }
 
-    public fun bridge_swap(validator: &signer, sender: vector<u8>,  shared_storage_owner:vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom: String,  tokenTo: String, chainTo: String, providerTo: String,permission: Permission, recipient: address, amount_in: u64) acquires GlobalVault, Permissions {
+    /*public fun bridge_swap(validator: &signer, sender: vector<u8>,  shared_storage_owner:vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom: String,  tokenTo: String, chainTo: String, providerTo: String,permission: Permission, recipient: address, amount_in: u64) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         let x = borrow_global_mut<GlobalVault>(@dev);
@@ -407,7 +409,7 @@ module dev::QiaraVaultsV3 {
          });
 
 
-       /* event::emit(SwapVaultEvent {
+        event::emit(SwapVaultEvent {
             amountSwapped: amount_in,
             priceFrom: price_in,
             tokenFrom: tokenFrom,
@@ -419,8 +421,8 @@ module dev::QiaraVaultsV3 {
             chainTo: chainTo,
             providerTo: providerTo,        
             time: timestamp::now_seconds(),
-         });*/
-    }
+         });
+    }*/
 
     public fun bridge_limit_swap(validator: &signer, sender: vector<u8>,  shared_storage_owner:vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom: String,  tokenTo: String, chainTo: String, providerTo: String,permission: Permission, recipient: address, amount: u64, desired_price: u256) acquires Permissions {
 
@@ -469,7 +471,7 @@ module dev::QiaraVaultsV3 {
             event::emit(VaultEvent {
                 validator: signer::address_of(validator),
                 type: utf8(b"Claim Rewards"),
-                amount: (reward as u64),
+                amount: (reward as u256),
                 fee: 0,
                 sender: sender,
                 shared_storage_name: shared_storage_name,
@@ -495,7 +497,7 @@ module dev::QiaraVaultsV3 {
             event::emit(VaultEvent {
                 validator: signer::address_of(validator),
                 type: utf8(b"Pay Interest"),
-                amount: (interest as u64),
+                amount: (interest as u256),
                 fee: 0,
                 sender: sender,
                 shared_storage_name: shared_storage_name,
@@ -514,6 +516,8 @@ module dev::QiaraVaultsV3 {
     public entry fun swap(signer: &signer, shared_storage_owner: vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom:String, amount: u64, tokenTo: String, chainTo:String) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
+        let amount_u256 = (amount as u256)*1000000000000000000;
+
         // Withdraw
         // Request bridge
 
@@ -525,7 +529,7 @@ module dev::QiaraVaultsV3 {
         event::emit(VaultEvent {
             validator: @0x0,
             type: utf8(b"Swap"),
-            amount: amount,
+            amount: amount_u256,
             fee: 0,
             sender: bcs::to_bytes(&signer::address_of(signer)),
             shared_storage_name: shared_storage_name,
@@ -560,14 +564,24 @@ module dev::QiaraVaultsV3 {
         auto::register_automation(signer, shared_storage_owner, shared_storage_name,1, args, auto::give_permission(&borrow_global<Permissions>(@dev).auto))
     }
 
+    // FEE MUST be atleast 1 FRACTION of a token (1/1e6)
+    fun assert_minimal_fee(fee: u256): u256{
+        if(fee < 1*1000000000000000000){
+            return 1*1000000000000000000
+        };
+        return fee
+    }
+
     public entry fun deposit(signer: &signer, shared_storage_owner: vector<u8>, shared_storage_name: String, token: String, chain: String, provider: String, amount: u64) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         let amount_u256 = (amount as u256)*1000000000000000000;
 
         let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
-        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"));
-        
-        let amont_u256_taxed = amount_u256-fee;
+        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
+        fee = assert_minimal_fee(fee);
+        let amount_u256_taxed = amount_u256-fee;
+        if(amount_u256_taxed == 0) { return };
+
         Margin::update_reward_index(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
     
         let obj = primary_fungible_store::ensure_primary_store_exists(signer::address_of(signer),TokensCore::get_metadata(token));
@@ -577,13 +591,13 @@ module dev::QiaraVaultsV3 {
         TokensCore::deposit(provider_vault.balance, fa, chain);
         provider_vault.total_deposited = provider_vault.total_deposited + amount_u256;
 
-        Margin::add_deposit(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, amont_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::add_deposit(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, amount_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         accrue(provider_vault,shared_storage_owner, bcs::to_bytes(&signer::address_of(signer)), shared_storage_name,  token, chain, provider);
 
         event::emit(VaultEvent {
             validator: @0x0,
             type: utf8(b"Deposit"),
-            amount: amont_u256_taxed,
+            amount: amount_u256_taxed,
             fee: fee,
             sender: bcs::to_bytes(&signer::address_of(signer)),
             shared_storage_name: shared_storage_name,
@@ -600,34 +614,36 @@ module dev::QiaraVaultsV3 {
         let amount_u256 = (amount as u256)*1000000000000000000;
 
         let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
-        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"));
+        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
+        fee = assert_minimal_fee(fee);
         
-        let amont_u256_taxed = amount_u256-fee;
+        let amount_u256_taxed = amount_u256-fee;
+        if(amount_u256_taxed == 0) { return };
+
         Margin::update_reward_index(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
     
-        let fa = TokensCore::withdraw(provider_vault.balance, amount, chain);
+        let fa = TokensCore::withdraw(provider_vault.balance, amount-(fee/1000000000000000000 as u64), chain);
 
-        amount = amount - (fee as u64);
-        assert!(provider_vault.total_deposited >= (amount as u256), ERROR_NOT_ENOUGH_LIQUIDITY);
-        assert!(provider_vault.w_tracker.limit <= (amount as u256), ERROR_WITHDRAW_LIMIT_EXCEEDED);
-        provider_vault.w_tracker.limit = provider_vault.w_tracker.limit + (amount as u256);
+        assert!(provider_vault.total_deposited >= amount_u256_taxed, ERROR_NOT_ENOUGH_LIQUIDITY);
+        assert!(provider_vault.w_tracker.limit <= amount_u256_taxed, ERROR_WITHDRAW_LIMIT_EXCEEDED);
+        provider_vault.w_tracker.limit = provider_vault.w_tracker.limit + amount_u256_taxed;
 
         if(provider_vault.w_tracker.day != ((timestamp::now_seconds()/86400) as u16)){
             provider_vault.w_tracker.day = ((timestamp::now_seconds()/86400) as u16);
             provider_vault.w_tracker.amount = 0;
             provider_vault.w_tracker.limit = provider_vault.total_deposited / 10; // 10% daily withdraw limit
         };
-        provider_vault.w_tracker.amount = provider_vault.w_tracker.amount + (amount as u256);
+        provider_vault.w_tracker.amount = provider_vault.w_tracker.amount + amount_u256_taxed;
 
         TokensCore::deposit(primary_fungible_store::ensure_primary_store_exists(to,TokensCore::get_metadata(token)), fa, chain);
-        provider_vault.total_deposited = provider_vault.total_deposited - (amount as u256);
-        Margin::remove_deposit(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
+        provider_vault.total_deposited = provider_vault.total_deposited - amount_u256_taxed;
+        Margin::remove_deposit(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, amount_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
         accrue(provider_vault, shared_storage_owner, bcs::to_bytes(&signer::address_of(signer)), shared_storage_name,  token, chain, provider);
 
         event::emit(VaultEvent {
             validator: @0x0,
             type: utf8(b"Withdraw"),
-            amount: amount,
+            amount: amount_u256_taxed,
             fee: fee,
             sender: bcs::to_bytes(&signer::address_of(signer)),
             shared_storage_name: shared_storage_name,
@@ -642,22 +658,32 @@ module dev::QiaraVaultsV3 {
     public entry fun borrow(signer: &signer, shared_storage_owner: vector<u8>, shared_storage_name: String, to: address, token: String, chain: String, provider: String, amount: u64) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
-        let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
+        let amount_u256 = (amount as u256)*1000000000000000000;
 
+        let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
+        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
+        
+        fee = assert_minimal_fee(fee);
+        
+        let amount_u256_taxed = amount_u256-fee;
+        if(amount_u256_taxed == 0) { return };
+
+        Margin::update_reward_index(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
+    
         let fa = TokensCore::withdraw(provider_vault.balance, amount, chain);
         TokensCore::deposit(primary_fungible_store::ensure_primary_store_exists(to,TokensCore::get_metadata(token)), fa, chain);
 
-        Margin::add_borrow(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-        provider_vault.total_borrowed = provider_vault.total_borrowed + (amount as u256);
-        assert!(provider_vault.total_deposited >= (amount as u256), ERROR_NOT_ENOUGH_LIQUIDITY);
-        provider_vault.total_deposited = provider_vault.total_deposited - (amount as u256);
+        Margin::add_borrow(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, amount_u256, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        provider_vault.total_borrowed = provider_vault.total_borrowed + amount_u256_taxed;
+        assert!(provider_vault.total_deposited >= amount_u256_taxed, ERROR_NOT_ENOUGH_LIQUIDITY);
+        provider_vault.total_deposited = provider_vault.total_deposited - amount_u256_taxed;
 
         accrue(provider_vault, shared_storage_owner, bcs::to_bytes(&signer::address_of(signer)), shared_storage_name,  token, chain, provider);
         event::emit(VaultEvent {
             validator: @0x0,
             type: utf8(b"Borrow"),
-            amount: amount,
-            fee: 0,
+            amount: amount_u256_taxed,
+            fee: fee,
             sender: bcs::to_bytes(&signer::address_of(signer)),
             shared_storage_name: shared_storage_name,
             to: bcs::to_bytes(&to),
@@ -670,7 +696,7 @@ module dev::QiaraVaultsV3 {
 
     public entry fun repay(signer: &signer, shared_storage_owner: vector<u8>, shared_storage_name: String, token: String, chain: String, provider: String, amount: u64) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
-
+        let amount_u256 = (amount as u256)*1000000000000000000;
         let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
 
         let fa = TokensCore::withdraw(primary_fungible_store::ensure_primary_store_exists(signer::address_of(signer),TokensCore::get_metadata(token)), amount, chain);
@@ -684,7 +710,7 @@ module dev::QiaraVaultsV3 {
         event::emit(VaultEvent {
             validator: @0x0,
             type: utf8(b"Repay"),
-            amount: amount,
+            amount: amount_u256,
             fee: 0,
             sender: bcs::to_bytes(&signer::address_of(signer)),
             shared_storage_name: shared_storage_name,
@@ -721,7 +747,7 @@ module dev::QiaraVaultsV3 {
             event::emit(VaultEvent {
                 validator: @0x0,
                 type: utf8(b"Claim Rewards"),
-                amount: (reward as u64),
+                amount: (reward as u256),
                 fee: 0,
                 sender: bcs::to_bytes(&signer::address_of(signer)),
                 shared_storage_name: shared_storage_name,
@@ -745,7 +771,7 @@ module dev::QiaraVaultsV3 {
             event::emit(VaultEvent {
                 validator: @0x0,
                 type: utf8(b"Pay Interest"),
-                amount: (interest as u64),
+                amount: (interest as u256),
                 fee: 0,
                 sender: bcs::to_bytes(&signer::address_of(signer)),
                 shared_storage_name: shared_storage_name,
