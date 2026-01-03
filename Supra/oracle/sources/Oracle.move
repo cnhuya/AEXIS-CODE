@@ -1,4 +1,4 @@
-module dev::QiaraOracleV2 {
+module dev::QiaraOracleV3 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::signer;
@@ -28,8 +28,8 @@ module dev::QiaraOracleV2 {
     #[event]
     struct PriceChangeEvent has copy, drop, store {
         supra_oracle_price: u256,
-        old_qiara_oracle_price: u256, 
-        new_supra_oracle_price: u256,   
+        old_qiara_oracle_price: *price, 
+        new_qiara_oracle_price: *price+impact,    
         time: u64
     }
 
@@ -61,7 +61,7 @@ module dev::QiaraOracleV2 {
         event::emit(PriceChangeEvent {
             supra_oracle_price: (supra_oracle_price as u256),
             old_qiara_oracle_price: *price, 
-            new_supra_oracle_price: *price+impact,   
+            new_qiara_oracle_price: *price+impact,   
             time: timestamp::now_seconds(),
         });
 
