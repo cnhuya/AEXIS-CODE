@@ -28,8 +28,8 @@ module dev::QiaraOracleV3 {
     #[event]
     struct PriceChangeEvent has copy, drop, store {
         supra_oracle_price: u256,
-        old_qiara_oracle_price: *price, 
-        new_qiara_oracle_price: *price+impact,    
+        old_qiara_oracle_price: u256, 
+        new_qiara_oracle_price: u256,    
         time: u64
     }
 
