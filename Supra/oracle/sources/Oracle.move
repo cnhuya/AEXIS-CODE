@@ -55,7 +55,7 @@ module dev::QiaraOracleV4 {
         let (supra_oracle_price, _, _, _) = supra_oracle_storage::get_price((oracleID as u32));
 
         let total_weight = custom_oracle_weight + native_oracle_weight;
-        *price = ((*price * custom_oracle_weight) + (supra_oracle_price * native_oracle_weight)) / total_weight;
+        *price = ((*price * custom_oracle_weight) + ((supra_oracle_price as u256) * native_oracle_weight)) / total_weight;
 
         if (isPositive){
             *price = *price + impact;
