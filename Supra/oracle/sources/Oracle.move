@@ -1,4 +1,4 @@
-module dev::QiaraOracleV3 {
+module dev::QiaraOracleV4 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::signer;
@@ -47,9 +47,15 @@ module dev::QiaraOracleV3 {
         };
     }
 
-    public fun impact_price(name: String, oracleID: u64, impact: u256, isPositive: bool, perm: Permission): u256 acquires Prices{
+    public fun impact_price(name: String, oracleID: u64, impact: u256, isPositive: bool, native_oracle_weight: u256, perm: Permission): u256 acquires Prices{
+
+        let custom_oracle_weight = 1_000_000;
 
         let price = ensure_price(borrow_global_mut<Prices>(@dev), name, oracleID);
+        let (supra_oracle_price, _, _, _) = supra_oracle_storage::get_price((oracleID as u32));
+
+        let total_weight = custom_oracle_weight + native_oracle_weight;
+        *price = ((*price * custom_oracle_weight) + (supra_oracle_price * native_oracle_weight)) / total_weight;
 
         if (isPositive){
             *price = *price + impact;
@@ -57,7 +63,6 @@ module dev::QiaraOracleV3 {
             *price = *price - impact
         };
 
-        let (supra_oracle_price, _, _, _) = supra_oracle_storage::get_price((oracleID as u32));
         event::emit(PriceChangeEvent {
             supra_oracle_price: (supra_oracle_price as u256),
             old_qiara_oracle_price: *price, 
