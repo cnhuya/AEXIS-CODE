@@ -2,8 +2,10 @@ module dev::QiaraOracleV2 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::signer;
+    use std::timestamp;
     use supra_oracle::supra_oracle_storage;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
+    use supra_framework::event;
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
@@ -20,6 +22,15 @@ module dev::QiaraOracleV2 {
 
     public fun give_permission(access: &Access): Permission {
         Permission {}
+    }
+
+// === EVENTS === //
+    #[event]
+    struct PriceChangeEvent has copy, drop, store {
+        supra_oracle_price: u256,
+        old_qiara_oracle_price: u256, 
+        new_supra_oracle_price: u256,   
+        time: u64
     }
 
 // === STRUCTS === //
@@ -46,6 +57,14 @@ module dev::QiaraOracleV2 {
             *price = *price - impact
         };
 
+        let (supra_oracle_price, _, _, _) = supra_oracle_storage::get_price((oracleID as u32));
+        event::emit(PriceChangeEvent {
+            supra_oracle_price: (supra_oracle_price as u256),
+            old_qiara_oracle_price: *price, 
+            new_supra_oracle_price: *price+impact,   
+            time: timestamp::now_seconds(),
+        });
+
         return calculate_impact_percentage(*price, *price+impact)
     }
 
@@ -63,6 +82,9 @@ module dev::QiaraOracleV2 {
     #[view]
     public fun convert_to_usd(name: String, size: u256): u256 acquires Prices{
         let price = viewPrice(name);
+
+        //1000000000000000000*1000000000000000000/1000000000000000000
+
         return(price*size)/1000000000000000000
     }
 
