@@ -1,4 +1,4 @@
-module dev::QiaraMarginV6{
+module dev::QiaraMarginV7{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -8,10 +8,10 @@ module dev::QiaraMarginV6{
     use supra_oracle::supra_oracle_storage;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 
-    use dev::QiaraTokensMetadataV5::{Self as TokensMetadata};
-    use dev::QiaraTokensSharedV5::{Self as TokensShared};
+    use dev::QiaraTokensMetadataV6::{Self as TokensMetadata};
+    use dev::QiaraTokensSharedV6::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV5::{Self as TokensType};
+    use dev::QiaraTokenTypesV6::{Self as TokensType};
     
     use dev::QiaraMathV1::{Self as QiaraMath};
 
@@ -38,8 +38,6 @@ module dev::QiaraMarginV6{
         // shared_storage_name, token, chain, provider
         holdings: Table<String, Table<String,Map<String, Map<String, Credit>>>>,
         credit: Table<String, Integer>, // universal "credit" ($ value essentially), per user (shared_storage) | this is used for perpetual profits... and more in the future
-        fee: Table<String, Integer>, // universal "fee" ($ value essentially), per user (shared_storage) | this is used for storing user fees with 18 decimals precision, i.e to make it users cant bypass fees by for example spamming small miniture deposits with lets say 0.001$ value.
-
     }
 
     struct Integer has drop, key, store, copy {
@@ -77,7 +75,7 @@ module dev::QiaraMarginV6{
         };
 
         if (!exists<TokenHoldings>(@dev)) {
-            move_to(admin,TokenHoldings {holdings: table::new<String, Table<String, Map<String, Map<String, Credit>>>>(), credit: table::new<String, Integer>(),fee: table::new<String, Integer>(),});
+            move_to(admin,TokenHoldings {holdings: table::new<String, Table<String, Map<String, Map<String, Credit>>>>(), credit: table::new<String, Integer>()});
         };
 
     }
@@ -116,30 +114,6 @@ module dev::QiaraMarginV6{
             } else {
                 balance.locked_fee = balance.locked_fee - value;
             };
-        };
-    }
-
-
-    public fun add_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
-        let fee = find_fee(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name);
-        fee.value = fee.value + value;
-    }
-
-    public fun remove_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings {
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
-        let holdings = borrow_global_mut<TokenHoldings>(@dev);
-        let fee = find_fee(holdings, shared_storage_name);
-
-        if (fee.isPositive) {
-            if (value > fee.value) {
-                fee.value = value - fee.value;
-                fee.isPositive = false;
-            } else {
-                fee.value = fee.value - value;
-            };
-        } else {
-            fee.value = fee.value + value;
         };
     }
 
@@ -479,12 +453,6 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
         return (credit.value, credit.isPositive)
     }
 
-    #[view]
-    public fun get_user_fee(shared_storage_name: String,): (u256, bool) acquires TokenHoldings {
-        let fee = *find_fee(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name);
-        return (fee.value, fee.isPositive)
-    }
-
 // === MUT RETURNS === //
     fun find_balance(feature_table: &mut TokenHoldings,shared_storage_name: String,token: String,chain: String, provider: String,): &mut Credit {
         {
@@ -536,16 +504,6 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
         };
 
         return table::borrow_mut(&mut feature_table.credit, shared_storage_name)
-    }
-
-    fun find_fee(feature_table: &mut TokenHoldings,shared_storage_name: String): &mut Integer {
-        {
-            if (!table::contains(&feature_table.fee, shared_storage_name)) {
-                table::add(&mut feature_table.fee, shared_storage_name, Integer { value: 0, isPositive: true });
-            };
-        };
-
-        return table::borrow_mut(&mut feature_table.fee, shared_storage_name)
     }
 
 
