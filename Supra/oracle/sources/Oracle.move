@@ -49,14 +49,12 @@ module dev::QiaraOracleV4 {
 
     public fun impact_price(name: String, oracleID: u64, impact: u256, isPositive: bool, native_oracle_weight: u256, perm: Permission): u256 acquires Prices{
 
-        let custom_oracle_weight = 1_000_000;
-
         let price = ensure_price(borrow_global_mut<Prices>(@dev), name, oracleID);
         let (supra_oracle_price, _, _, _) = supra_oracle_storage::get_price((oracleID as u32));
 
-        let total_weight = custom_oracle_weight + native_oracle_weight;
-        *price = ((*price * custom_oracle_weight) + ((supra_oracle_price as u256) * native_oracle_weight)) / total_weight;
-
+        let impact = impact*1_000_000 / native_oracle_weight;
+        if(impact == 0){ return 0};
+        
         if (isPositive){
             *price = *price + impact;
         } else {
