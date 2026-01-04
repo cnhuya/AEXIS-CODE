@@ -1,4 +1,4 @@
-module dev::QiaraTokensTiersV7{
+module dev::QiaraTokensTiersV8{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -254,6 +254,20 @@ module dev::QiaraTokensTiersV7{
             let withdraw_limit = storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"WITHDRAW_LIMIT")));
 
             return(withdraw_limit * tier_efficiency)/10000 + withdraw_limit
+        }
+
+        #[view]
+        public fun market_base_lending_apr(id: u8): u64 {
+            // formula: (storage_variables_scale * base_rate * tier_multiplier)/market_base_rate_slashing + base_rate 
+            // i.e (1_000_000 * 500_000 * 200)/100/5_000_000 + 500_000 -> 600_000 (0,7%) || id = 1
+
+            let tier_multiplier = tier_multiplier(id);
+            let market_base_rate = storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MIN_LEND_APR_FACTOR")));
+            
+            //let market_base_rate_slashing = storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"WITHDRAW_LIMIT")));
+            let market_base_rate_slashing = 5_000_000;
+
+            return(1_000_000 * market_base_rate * tier_multiplier)/100/market_base_rate_slashing + market_base_rate
         }
 
         #[view]

@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV7{
+module dev::QiaraTokensMetadataV8{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -12,8 +12,8 @@ module dev::QiaraTokensMetadataV7{
     use dev::QiaraStorageV2::{Self as storage};
     use dev::QiaraMathV1::{Self as Math};
 
-    use dev::QiaraTokensRatesV7::{Self as rates};
-    use dev::QiaraTokensTiersV7::{Self as tier};
+    use dev::QiaraTokensRatesV8::{Self as rates};
+    use dev::QiaraTokensTiersV8::{Self as tier};
 
     use dev::QiaraOracleV4::{Self as oracle, Access as OracleAccess};
 
@@ -403,7 +403,7 @@ module dev::QiaraTokensMetadataV7{
         assert!(valueUSD < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
         assert!(valueUSD >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); 
 
-        let denominator = ((fdvUSD / 10) - valueUSD + (liquidityUSD * 2) - valueUSD);
+        let denominator = ((fdvUSD / 100) - valueUSD + (liquidityUSD * 2) - valueUSD);
 
         //(1402450*100_000_000_000_000)/1402449997195100
 
@@ -688,7 +688,7 @@ module dev::QiaraTokensMetadataV7{
             (
                 get_coin_metadata_rate_scale(&metadata, false),
                 get_coin_metadata_rate_scale(&metadata, true),
-                get_coin_metadata_min_lend_apr(&metadata),
+                0,
                // get_coin_metadata_market_rate(&metadata),
                 get_coin_metadata_market_w_fee(&metadata),
                 0,0,0,0
@@ -714,17 +714,6 @@ module dev::QiaraTokensMetadataV7{
            storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MARKET_PERCENTAGE_SCALE"))) - ((metadata.tier as u64)*500u64) - x
         }
 
-        public fun get_coin_metadata_min_lend_apr(metadata: &VMetadata): u64 {
-            storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MIN_LEND_APR_FACTOR"))) + (metadata.full_tier.multiplier * storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"MIN_LEND_APR_FACTOR"))))/1000
-        }
-
-       public fun get_coin_metadata_market_rate(metadata: &VMetadata, chain: String): u64 {
-            
-            let min_rate = get_coin_metadata_min_lend_apr(metadata);
-            let rate_scale = (rates::get_vault_lend_rate(rates::get_vault_rate(metadata.symbol, chain)) as u64);
-            
-            min_rate + rate_scale
-        }
 
         public fun get_coin_metadata_market_w_fee(metadata: &VMetadata): u64 {
             

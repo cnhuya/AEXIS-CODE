@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV7 {
+module dev::QiaraTokensCoreV8 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,13 +15,13 @@ module dev::QiaraTokensCoreV7 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV7::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV7::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV7::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV7::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV7::{Self as TokensQiara,  Access as TokensQiaraAccess};
-    use dev::QiaraChainTypesV7::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV7::{Self as TokensType};
+    use dev::QiaraTokensMetadataV8::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV8::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV8::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV8::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV8::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraChainTypesV8::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV8::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
@@ -216,12 +216,12 @@ module dev::QiaraTokensCoreV7 {
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV6"),
+            string::utf8(b"QiaraTokensCoreV8"),
             string::utf8(b"c_deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV6"),
+            string::utf8(b"QiaraTokensCoreV8"),
             string::utf8(b"c_withdraw"),
         );
    
