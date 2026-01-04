@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraMarginV7"
+    name = "QiaraMarginV8"
     version = "2.1.1"
     authors = []
 
@@ -31,12 +31,12 @@
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
 
-    [dependencies.QiaraTokensV6]
+    [dependencies.QiaraTokensV7]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/TokensCore'
 
-    [dependencies.QiaraTypesV6]
+    [dependencies.QiaraTypesV7]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
