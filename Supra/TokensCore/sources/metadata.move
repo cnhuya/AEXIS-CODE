@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV6{
+module dev::QiaraTokensMetadataV7{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -9,13 +9,13 @@ module dev::QiaraTokensMetadataV6{
     use std::timestamp;
     use supra_framework::event;
 
-    use dev::QiaraStorageV1::{Self as storage};
+    use dev::QiaraStorageV2::{Self as storage};
     use dev::QiaraMathV1::{Self as Math};
 
-    use dev::QiaraTokensRatesV6::{Self as rates};
-    use dev::QiaraTokensTiersV6::{Self as tier};
+    use dev::QiaraTokensRatesV7::{Self as rates};
+    use dev::QiaraTokensTiersV7::{Self as tier};
 
-    use dev::QiaraOracleV3::{Self as oracle, Access as OracleAccess};
+    use dev::QiaraOracleV4::{Self as oracle, Access as OracleAccess};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -436,10 +436,11 @@ module dev::QiaraTokensMetadataV6{
 
         let vault_listed = get_coin_metadata_listed(&metadata);
 
+        let oracle_native_weight = tier::oracle_native_weight(tierID);
 
         // this needs to be done to assure that price exists in map (it sets the price to current price from oracle, which is enough for initialization)
         if(!oracle::existsPrice(token)){
-            oracle::impact_price(token, (oracleID as u64), 0, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+            oracle::impact_price(token, (oracleID as u64), 0, isPositive, oracle_native_weight, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
         };
 
         let current_price = oracle::viewPrice(token);
@@ -466,11 +467,12 @@ module dev::QiaraTokensMetadataV6{
 
         let vault_listed = get_coin_metadata_listed(&metadata);
 
+        let oracle_native_weight = tier::oracle_native_weight(tierID);
+
         // this needs to be done to assure that price exists in map (it sets the price to current price from oracle, which is enough for initialization)
         if(!oracle::existsPrice(token)){
-            oracle::impact_price(token, (oracleID as u64), 0, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+            oracle::impact_price(token, (oracleID as u64), 0, isPositive, oracle_native_weight, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
         };
-
         let current_price = oracle::viewPrice(token);
 
         let impact = 0;
@@ -481,7 +483,7 @@ module dev::QiaraTokensMetadataV6{
             (impact) = calculate_price_impact_spot(token,(tier::price_impact_penalty(tierID) as u256),((vault_listed/3600) as u256), size, liquidity);
         };
   
-        let percentage_impact = oracle::impact_price(token, (oracleID as u64), impact, isPositive, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+        let percentage_impact = oracle::impact_price(token, (oracleID as u64), impact, isPositive, oracle_native_weight, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
         let fee = percentage_impact*size;
 
         return(percentage_impact, fee)

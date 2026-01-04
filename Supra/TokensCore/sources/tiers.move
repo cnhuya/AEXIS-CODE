@@ -1,10 +1,10 @@
-module dev::QiaraTokensTiersV6{
+module dev::QiaraTokensTiersV7{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::type_info::{Self, TypeInfo};
     use supra_oracle::supra_oracle_storage;
-    use dev::QiaraStorageV1::{Self as storage};
+    use dev::QiaraStorageV2::{Self as storage};
 
 
 // === ERRORS === //
@@ -208,6 +208,54 @@ module dev::QiaraTokensTiersV6{
             storage::expect_u64(storage::viewConstant(utf8(b"QiaraPerps"), utf8(b"PERPS_PERCENTAGE_SCALE"))) - ((id as u64)*1000)
         }
 
+
+
+        #[view]
+        public fun perps_max_leverage(id: u8): u64 {
+            // formula: (max_leverage * tier_multiplier (descending/flipped, starting from below)) / max_leverage_slashing
+            // i.e (1_000_000 * 5_000) / 2_000_000 -> 2_500 (25x) || id = 1
+
+            if(id == 255 || id == 254){
+                return 0
+            };
+
+            let max_tier_id = 7;
+            let effective_multiplier = tier_multiplier(max_tier_id-id+1); // +1 is here so that if id is 7, then it returns multiplier for tier 1 which is intended
+
+            // in the future change the max leverage to 1_000_000 (1) and add MAX_LEVERAGE_SLASHING to 2_000_000 (2)
+            storage::expect_u64(storage::viewConstant(utf8(b"QiaraPerps"), utf8(b"MAX_LEVERAGE"))) * effective_multiplier / 25_000_000 / 2 
+        }
+
+        #[view]
+        public fun oracle_native_weight(id: u8): u256 {
+            // formula: (native_oracle_weight * tier_multiplier) / native_oracle_weight_slashing + native_oracle_weight
+            // i.e (1_000_000 * 300) / 10_000_000 + 1_000_000 -> 1_300_000 (1,3x) || id = 2
+
+            let tier_multiplier = tier_multiplier(id);
+            let native_oracle_weight = storage::expect_u64(storage::viewConstant(utf8(b"QiaraOracle"), utf8(b"NATIVE_ORACLE_WEIGHT")));
+            let native_oracle_weight_slashing = storage::expect_u64(storage::viewConstant(utf8(b"QiaraOracle"), utf8(b"NATIVE_ORACLE_WEIGHT")));
+            let stable_multiplier = 1;
+            if(id == 255 || id == 254){
+                stable_multiplier = 100
+            };
+
+            return ((native_oracle_weight*1_000 * tier_multiplier / native_oracle_weight_slashing + native_oracle_weight)*stable_multiplier as u256)
+
+        }
+
+
+    //93010000000
+        #[view]
+        public fun market_daily_withdraw_limit(id: u8): u64 {
+            // formula: (withdraw_limit * tier_efficiency)/1000 + withdraw_limit
+            // i.e (10_000_000 * 9300)/10000 + 10_000_000 -> 19_300_000 (19,3%) || id = 1
+
+            let tier_efficiency = tier_efficiency(id);
+            let withdraw_limit = storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"WITHDRAW_LIMIT")));
+
+            return(withdraw_limit * tier_efficiency)/10000 + withdraw_limit
+        }
+
         #[view]
         public fun price_impact_penalty(id: u8): u64 {
 
@@ -215,8 +263,6 @@ module dev::QiaraTokensTiersV6{
 
             // 100 * (9000 * 10) + 100_000_000 -> 100 * 90000 + 100_000_000 -> 109_000_000
             return base*(tier_efficiency(id)*10)+(base*10_000)   
-
-        //    storage::expect_u64(storage::viewConstant(utf8(b"QiaraPerps"), utf8(b"PERPS_PERCENTAGE_SCALE"))) - ((id as u64)*1000)
         }
 
         #[view]
