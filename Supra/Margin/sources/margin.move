@@ -368,13 +368,13 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
                 (bor_usd * 100) / current_raw_borrow
             };
 
-            let (margin_interest, _, _) = QiaraMath::compute_rate(
+           /* let (margin_interest, _, _) = QiaraMath::compute_rate(
                 utilization,
                 (TokensMetadata::get_coin_metadata_market_rate(&metadata, chain_copy) as u256),
                 (TokensMetadata::get_coin_metadata_rate_scale(&metadata, false) as u256),
                 false,
                 5
-            );
+            );*/
             let credit = find_credit(tokens_holdings, shared_storage_name);
 
             if (credit.isPositive) {
@@ -401,7 +401,7 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
             total_rew = total_rew + reward_usd;
             total_int = total_int + interest_usd;
             total_locked_fees = total_locked_fees + locked_fees_usd;
-            total_expected_interest = total_expected_interest + (margin_interest * dep_usd);
+            total_expected_interest = total_expected_interest;
 
             j = j + 1;
         };
