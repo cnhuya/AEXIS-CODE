@@ -152,14 +152,14 @@ module dev::QiaraMarginV8{
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
         balance.interest_index_snapshot = index;
-        balance.last_update = timestamp::now_seconds() / 3600;
+        balance.last_update = timestamp::now_seconds();
     }
 
     public fun update_reward_index(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, index: u256, cap: Permission) acquires TokenHoldings{
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
         balance.reward_index_snapshot = index;
-        balance.last_update = timestamp::now_seconds() / 3600;
+        balance.last_update = timestamp::now_seconds();
     }
 
     public fun add_deposit(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
