@@ -120,7 +120,6 @@ module dev::QiaraMarginV62{
     }
 
 
-
     public fun add_credit(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings{
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
         let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name);
