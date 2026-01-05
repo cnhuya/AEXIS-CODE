@@ -1,4 +1,4 @@
-module dev::QiaraMarginV9{
+module dev::QiaraMarginV10{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -38,6 +38,7 @@ module dev::QiaraMarginV9{
         // shared_storage_name, token, chain, provider
         holdings: Table<String, Table<String,Map<String, Map<String, Credit>>>>,
         credit: Table<String, Integer>, // universal "credit" ($ value essentially), per user (shared_storage) | this is used for perpetual profits... and more in the future
+        points: Table<String, u256>,
     }
 
     struct Integer has drop, key, store, copy {
@@ -117,6 +118,29 @@ module dev::QiaraMarginV9{
         };
     }
 
+
+    public fun add_points(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings{
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+        let points = find_points(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name);
+        points.value = points.value + value;
+    }
+
+    public fun remove_points(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings {
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+        let holdings = borrow_global_mut<TokenHoldings>(@dev);
+        let points = find_points(holdings, shared_storage_name);
+
+        if (points.isPositive) {
+            if (value > points.value) {
+                points.value = value - points.value;
+                points.isPositive = false;
+            } else {
+                points.value = points.value - value;
+            };
+        } else {
+            points.value = points.value + value;
+        };
+    }
 
     public fun add_credit(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings{
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
@@ -503,6 +527,16 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
         {
             if (!table::contains(&feature_table.credit, shared_storage_name)) {
                 table::add(&mut feature_table.credit, shared_storage_name, Integer { value: 0, isPositive: true });
+            };
+        };
+
+        return table::borrow_mut(&mut feature_table.credit, shared_storage_name)
+    }
+
+    fun find_points(feature_table: &mut TokenHoldings,shared_storage_name: String): &mut Integer {
+        {
+            if (!table::contains(&feature_table.points, shared_storage_name)) {
+                table::add(&mut feature_table.points, shared_storage_name, 0);
             };
         };
 
