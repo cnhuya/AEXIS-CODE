@@ -1,4 +1,4 @@
-module dev::QiaraPointsV12{
+module dev::QiaraPointsV13{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -59,12 +59,12 @@ module dev::QiaraPointsV12{
         return table::borrow_mut(&mut points_table.points, owner)
     }
 
-    public fun add_points(owner: vector<u8>, shared_storage_name:String, sub_owner: vector<u8>, n_points: u256) acquires UsersProfile{
+    public fun add_points(owner: vector<u8>, shared_storage_name:String, sub_owner: vector<u8>, n_points: u256, perm: Permission) acquires UsersProfile{
         let user  = ensure_user(borrow_global_mut<UsersProfile>(@dev),owner,shared_storage_name,sub_owner);
         user.points = user.points + n_points;
     }
 
-    public fun remove_points(owner: vector<u8>, shared_storage_name:String, sub_owner: vector<u8>, n_points: u256) acquires UsersProfile{
+    public fun remove_points(owner: vector<u8>, shared_storage_name:String, sub_owner: vector<u8>, n_points: u256, perm: Permission) acquires UsersProfile{
         let user  = ensure_user(borrow_global_mut<UsersProfile>(@dev),owner,shared_storage_name,sub_owner);
         if(n_points > user.points){
             user.points = 0;
@@ -87,13 +87,13 @@ module dev::QiaraPointsV12{
     }
 
     #[view]
-    public fun simulate_level(level: u256): u256{
+    public fun simulate_xp(level: u256): u256{
         let xp_needed = 100_000_000;
         let levelX4 = level*level*level*level;
 
         return (xp_needed * levelX4)/1_000_000
     }
-    
+
     #[view]
     public fun return_fee_points_conversion(): u256{
         (storage::expect_u64(storage::viewConstant(utf8(b"QiaraPoints"), utf8(b"ANY_FEE_CONVERSION"))) as u256)
