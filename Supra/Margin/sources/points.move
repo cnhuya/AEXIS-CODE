@@ -9,6 +9,8 @@ module dev::QiaraPointsV12{
     use dev::QiaraTokenTypesV8::{Self as TokensType};
     use dev::QiaraChainTypesV8::{Self as ChainTypes};
 
+    use dev::QiaraStorageV2::{Self as storage, Access as StorageAccess};
+
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
     const ERROR_USER_DID_NOT_INITIALIZE_HIS_RI_YET: u64 = 2;
@@ -90,6 +92,23 @@ module dev::QiaraPointsV12{
         let levelX4 = level*level*level*level;
 
         return (xp_needed * levelX4)/1_000_000
+    }
+    
+    #[view]
+    public fun return_fee_points_conversion(): u256{
+        (storage::expect_u64(storage::viewConstant(utf8(b"QiaraPoints"), utf8(b"ANY_FEE_CONVERSION"))) as u256)
+    }
+    #[view]
+    public fun return_perp_volume_points_conversion(): u256{
+        (storage::expect_u64(storage::viewConstant(utf8(b"QiaraPoints"), utf8(b"PERPS_VOLUME_CONVERSION"))) as u256)
+    }
+    #[view]
+    public fun return_market_liquidity_provision_points_conversion(): u256{
+        (storage::expect_u64(storage::viewConstant(utf8(b"QiaraPoints"), utf8(b"MARKET_LIQUIDITY_PROVISION_CONVERSION"))) as u256)
+    }
+    #[view]
+    public fun return_free_daily_claim_points(): u256{
+        (storage::expect_u64(storage::viewConstant(utf8(b"QiaraPoints"), utf8(b"DAILY_CLAIM"))) as u256)
     }
 
 }

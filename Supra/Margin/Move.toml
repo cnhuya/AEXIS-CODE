@@ -41,4 +41,9 @@
     rev = 'main'
     subdir = 'Supra/Types'
 
+    [dependencies.QiaraStorageV2]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Storage'
+
     [dev-dependencies]
