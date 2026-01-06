@@ -233,13 +233,13 @@ module dev::QiaraTokensTiersV8{
 
             let tier_multiplier = tier_multiplier(id);
             let native_oracle_weight = storage::expect_u64(storage::viewConstant(utf8(b"QiaraOracle"), utf8(b"NATIVE_ORACLE_WEIGHT")));
-            let native_oracle_weight_slashing = storage::expect_u64(storage::viewConstant(utf8(b"QiaraOracle"), utf8(b"NATIVE_ORACLE_WEIGHT")));
+            let native_oracle_weight_slashing = storage::expect_u64(storage::viewConstant(utf8(b"QiaraOracle"), utf8(b"NATIVE_ORACLE_WEIGHT_SLASHING")));
             let stable_multiplier = 1;
             if(id == 255 || id == 254){
                 stable_multiplier = 100
             };
 
-            return ((native_oracle_weight*1_000 * tier_multiplier / native_oracle_weight_slashing + native_oracle_weight)*stable_multiplier as u256)
+            return ((native_oracle_weight*10000 * tier_multiplier / native_oracle_weight_slashing + native_oracle_weight)*stable_multiplier as u256)
 
         }
 
@@ -254,6 +254,18 @@ module dev::QiaraTokensTiersV8{
             let withdraw_limit = storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"WITHDRAW_LIMIT")));
 
             return(withdraw_limit * tier_efficiency)/10000 + withdraw_limit
+        }
+        #[view]
+        public fun market_borrow_interest_multiplier(id: u8): u64 {
+            // formula: (borrow_interest_multiplier * tier_multiplier)/borrow_interest_multiplier_slashing + borrow_interest_multiplier
+            // i.e (100_000 * 9300)/10_000_000 + 100_000 -> 19_300_000 (19,3%) || id = 1
+
+            let tier_multiplier = tier_multiplier(id);
+            let borrow_interest_multiplier = storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"BORROW_INTEREST_MULTIPLIER")));
+            let borrow_interest_multiplier_slashing = storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"BORROW_INTEREST_MULTIPLIER_SLASHING")));
+
+
+            return(10000 * borrow_interest_multiplier * tier_multiplier)/borrow_interest_multiplier_slashing + borrow_interest_multiplier
         }
 
         #[view]
