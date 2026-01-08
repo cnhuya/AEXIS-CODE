@@ -1,0 +1,19 @@
+    [package]
+    name = "QiaraZK"
+    version = "2.1.1"
+    authors = []
+
+    [addresses]
+    dev = "0x6341ca6cd563e9317718102d312a2281fbb9b3e4506b4871d98dab4085f94ec1"
+    supra_framework = "0x1"
+    std = "0x1"
+    aptos_std = "0x1"
+    Extensions = "0x1"
+    [dev-addresses]
+
+    [dependencies.AptosStdlib]
+    git = "https://github.com/Entropy-Foundation/aptos-core.git"
+    rev = "dev"
+    subdir = "aptos-move/framework/aptos-stdlib"
+
+    [dev-dependencies]
