@@ -153,11 +153,6 @@ module dev::QiaraVaultsV11 {
         Metadata: VMetadata,
     }
 
-    struct Data has key, copy, drop, store{
-        name: String,
-        type: String,
-        value: vector<u8>,
-    }
 // === EVENTS === //
     #[event]
     struct SwapVaultEvent has copy, drop, store {
@@ -176,7 +171,6 @@ module dev::QiaraVaultsV11 {
         time: u64
     }
 
-
     #[event]
     struct VaultEvent has copy, drop, store {
         validator: address,
@@ -191,28 +185,6 @@ module dev::QiaraVaultsV11 {
         chain: String,
         provider: String,
         time: u64
-    }
-
-    #[event]
-    struct VaultEvent2 has copy, drop, store {
-        //validator: address,
-        type: String,
-        //amount: u256,
-        //fee: u256,
-        //points: u256,
-        sender: vector<u8>,
-        shared_storage_name: String,
-        to: vector<u8>,
-        token: String,
-        chain: String,
-        provider: String,
-        aux: vector<Data>,
-        time: u64
-    }
-
-    #[event]
-    struct VaultEvent3 has copy, drop, store {
-        aux: vector<Data>,
     }
 
 
@@ -638,33 +610,21 @@ module dev::QiaraVaultsV11 {
         Margin::add_deposit(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, amount_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         Margin::add_locked_fee(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, ((fee-1000000000000000000)*99)/100, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         
-        let (user_borrow_interest, user_lend_rewards, user_points) = new_accrue(provider_vault, shared_storage_owner, bcs::to_bytes(&signer::address_of(signer)), shared_storage_name, token, chain, provider);
-            
-        let data = vector[
-            // Items from the event top-level fields
-            Data {name: utf8(b"type"), type: utf8(b"string"), value: bcs::to_bytes(&utf8(b"Deposit"))},
-            Data {name: utf8(b"sender"), type: utf8(b"address"), value: bcs::to_bytes(&signer::address_of(signer))},
-            Data {name: utf8(b"shared_storage_name"), type: utf8(b"string"), value: bcs::to_bytes(&shared_storage_name)},
-            Data {name: utf8(b"to"), type: utf8(b"address"), value: bcs::to_bytes(&shared_storage_owner)},
-            Data {name: utf8(b"token"), type: utf8(b"string"), value: bcs::to_bytes(&token)},
-            Data {name: utf8(b"chain"), type: utf8(b"string"), value: bcs::to_bytes(&chain)},
-            Data {name: utf8(b"provider"), type: utf8(b"string"), value: bcs::to_bytes(&provider)},
-            Data {name: utf8(b"time"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())},
-
-            // Original items from the data vector
-            Data {name: utf8(b"amount"), type: utf8(b"u256"), value: bcs::to_bytes(&amount_u256_taxed)},
-            Data {name: utf8(b"fee"), type: utf8(b"u256"), value: bcs::to_bytes(&fee)},
-            Data {name: utf8(b"points"), type: utf8(b"u256"), value: bcs::to_bytes(&user_points)},
-            Data {name: utf8(b"lend_rewards"), type: utf8(b"u256"), value: bcs::to_bytes(&user_lend_rewards)},
-        ];
-
-        if(user_borrow_interest > 0){
-            vector::push_back(&mut data, Data {name: utf8(b"borrow_interest"), type: utf8(b"u256"), value: bcs::to_bytes(&user_borrow_interest)});
-        };
 
         //accrue(provider_vault,shared_storage_owner, bcs::to_bytes(&signer::address_of(signer)), shared_storage_name,  token, chain, provider);
-        event::emit(VaultEvent3 {
-            aux: data,
+        event::emit(VaultEvent {
+            validator: @0x0,
+            type: utf8(b"Deposit"),
+            amount: amount_u256_taxed,
+            fee: fee,
+            points: 0,
+            sender: bcs::to_bytes(&signer::address_of(signer)),
+            shared_storage_name: shared_storage_name,
+            to: shared_storage_owner,
+            token: token,
+            chain: chain,
+            provider: provider,
+            time: timestamp::now_seconds(),
         });
     }
 
