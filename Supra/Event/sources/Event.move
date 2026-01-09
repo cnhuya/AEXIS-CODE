@@ -54,6 +54,10 @@ module dev::QiaraEventV1 {
         assert!(signer::address_of(admin) == @dev, 1);
     }
 
+    public fun create_data_struct(name: String, type: String, value: vector<u8>): Data {
+        Data {name: name,type: type,value: value}
+    }
+
     public fun emit_market_event(data: vector<Data>) {  
          vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
          event::emit(MarketEvent {
