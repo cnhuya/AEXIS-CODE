@@ -1,71 +1,126 @@
 pragma circom 2.1.0;
 
 include "circomlib/circuits/poseidon.circom";
+include "circomlib/circuits/eddsaposeidon.circom";
+include "circomlib/circuits/comparators.circom";
+include "circomlib/circuits/mux1.circom"; // Added for safe selection
 
-// nValidators = 64, treeDepth = 10 (2^10 = 1024 variables)
-template BridgeCore(nValidators, treeDepth) {
-    // PUBLIC INPUTS
-    signal input validatorRoot;  // Merkle Root of authorized validator pubkeys
-    signal input epoch;          // Current epoch (prevents replay)
-    signal input variableID;     // The slot ID (0-1023)
-    signal input newValue;       // The data being bridged
+template ValidatorRotationWithStake(nValidators, valTreeDepth, threshold) {
+    
+    // Public Inputs
+    signal input currentValidatorRoot; 
+    signal input newValidatorRoot;     
+    signal input epoch;                
+    
+    // Validator Data
+    signal input validatorPubKeysX[nValidators]; 
+    signal input validatorPubKeysY[nValidators];
+    signal input validatorStakes[nValidators]; 
+    
+    // Signatures
+    
+    signal input signaturesR8x[nValidators];
+    signal input signaturesR8y[nValidators];
+    signal input signaturesS[nValidators];
+    signal input isSigned[nValidators]; 
 
-    // PRIVATE INPUTS
-    signal input poseidonRoot;   // The "Shadow Root" calculated in JS
-    signal input validatorPubKeys[nValidators]; 
-    signal input sigSummary;     // Binding: Hash(validators who signed this specific update)
-    signal input pathElements[treeDepth]; 
-    signal input pathIndices[treeDepth];
+    // Inclusion Proofs
+    signal input valPathElements[nValidators][valTreeDepth]; 
+    signal input valPathIndices[nValidators][valTreeDepth];
 
-    // --- 1. VALIDATOR SET INTEGRITY ---
-    // Rebuild the validator Merkle tree (Depth 6 for 64 validators)
-    component valHasher[63];
-    signal valTree[127]; 
+    // --- OUTPUTS ---
+    signal output totalSignedStake;
 
+    // 1. Message Commitment
+    component msgHasher = Poseidon(3);
+    msgHasher.inputs[0] <== currentValidatorRoot;
+    msgHasher.inputs[1] <== newValidatorRoot;
+    msgHasher.inputs[2] <== epoch;
+
+    // 2. Declarations
+    component leafHasher[nValidators];
+    component valMembership[nValidators];
+    component eddsa[nValidators];
+    
+    signal cumulativeStake[nValidators + 1];
+    signal cumulativeSignatures[nValidators + 1];
+    
+    cumulativeStake[0] <== 0;
+    cumulativeSignatures[0] <== 0;
+
+    // 3. Verification Loop
     for (var i = 0; i < nValidators; i++) {
-        valTree[i] <== validatorPubKeys[i];
+        leafHasher[i] = Poseidon(3); 
+        leafHasher[i].inputs[0] <== validatorPubKeysX[i];
+        leafHasher[i].inputs[1] <== validatorPubKeysY[i];
+        leafHasher[i].inputs[2] <== validatorStakes[i];
+
+        valMembership[i] = MerkleProof(valTreeDepth); 
+        valMembership[i].leaf <== leafHasher[i].out;
+        for (var j = 0; j < valTreeDepth; j++) {
+            valMembership[i].pathElements[j] <== valPathElements[i][j];
+            valMembership[i].pathIndices[j] <== valPathIndices[i][j];
+        }
+        valMembership[i].root === currentValidatorRoot;
+
+        eddsa[i] = EdDSAPoseidonVerifier();
+        eddsa[i].enabled <== isSigned[i];
+        eddsa[i].Ax <== validatorPubKeysX[i];
+        eddsa[i].Ay <== validatorPubKeysY[i];
+        eddsa[i].R8x <== signaturesR8x[i];
+        eddsa[i].R8y <== signaturesR8y[i];
+        eddsa[i].S <== signaturesS[i];
+        eddsa[i].M <== msgHasher.out;
+
+        cumulativeSignatures[i+1] <== cumulativeSignatures[i] + isSigned[i];
+        cumulativeStake[i+1] <== cumulativeStake[i] + (isSigned[i] * validatorStakes[i]);
     }
 
-    for (var i = 0; i < 63; i++) {
-        valHasher[i] = Poseidon(2);
-        valHasher[i].inputs[0] <== valTree[2*i];
-        valHasher[i].inputs[1] <== valTree[2*i + 1];
-        valTree[64 + i] <== valHasher[i].out;
-    }
-    validatorRoot === valTree[126];
+    totalSignedStake <== cumulativeStake[nValidators];
 
-    // --- 2. STATE INCLUSION PROOF ---
-    // Prove that Leaf(ID, Value) is inside the poseidonRoot
-    component stateHasher[treeDepth];
-    signal hashes[treeDepth + 1];
-
-    component leafHasher = Poseidon(2);
-    leafHasher.inputs[0] <== variableID;
-    leafHasher.inputs[1] <== newValue;
-    hashes[0] <== leafHasher.out;
-
-    for (var i = 0; i < treeDepth; i++) {
-        stateHasher[i] = Poseidon(2);
-        // Standard Merkle path logic
-        stateHasher[i].inputs[0] <== hashes[i] + pathIndices[i] * (pathElements[i] - hashes[i]);
-        stateHasher[i].inputs[1] <== pathElements[i] + pathIndices[i] * (hashes[i] - pathElements[i]);
-        hashes[i+1] <== stateHasher[i].out;
-    }
-    // The inclusion must match the root that the validators signed
-    poseidonRoot === hashes[treeDepth];
-
-    // --- 3. THE CRYPTOGRAPHIC BINDING ---
-    // This is the "Glue" that makes it trustless.
-    // We force the proof to be valid ONLY for this specific combo of:
-    // Signers + Time + State Content
-    component bindingHasher = Poseidon(3);
-    bindingHasher.inputs[0] <== sigSummary;
-    bindingHasher.inputs[1] <== epoch;
-    bindingHasher.inputs[2] <== poseidonRoot;
-    signal binding <== bindingHasher.out;
-            
-    // Note: On Ethereum, you verify that 'binding' matches 
-    // the hash of the data emitted in the Aptos event.
+    // 4. Quorum Check
+    component checkThreshold = GreaterEqThan(8); 
+    checkThreshold.in[0] <== cumulativeSignatures[nValidators];
+    checkThreshold.in[1] <== threshold;
+    checkThreshold.out === 1;
 }
 
-component main {public [validatorRoot, epoch, variableID, newValue]} = BridgeCore(64, 10);
+// Fixed MerkleProof Template
+template MerkleProof(depth) {
+    signal input leaf;
+    signal input pathElements[depth];
+    signal input pathIndices[depth];
+    signal output root;
+
+    component hashes[depth];
+    component selectors[depth][2];
+    
+    // We create an array of signals to hold the "running" hash value
+    signal levelHashes[depth + 1];
+    levelHashes[0] <== leaf;
+
+    for (var i = 0; i < depth; i++) {
+        hashes[i] = Poseidon(2);
+        selectors[i][0] = Mux1();
+        selectors[i][1] = Mux1();
+
+        // If pathIndices[i] == 0: [prev, element]
+        // If pathIndices[i] == 1: [element, prev]
+        selectors[i][0].c[0] <== levelHashes[i];
+        selectors[i][0].c[1] <== pathElements[i];
+        selectors[i][0].s <== pathIndices[i];
+
+        selectors[i][1].c[0] <== pathElements[i];
+        selectors[i][1].c[1] <== levelHashes[i];
+        selectors[i][1].s <== pathIndices[i];
+
+        hashes[i].inputs[0] <== selectors[i][0].out;
+        hashes[i].inputs[1] <== selectors[i][1].out;
+        
+        levelHashes[i+1] <== hashes[i].out;
+    }
+
+    root <== levelHashes[depth];
+}
+
+component main {public [currentValidatorRoot, newValidatorRoot, epoch]} = ValidatorRotationWithStake(8, 4, 2);
