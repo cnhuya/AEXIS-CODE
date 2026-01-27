@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraZKV4"
+    name = "QairaZkBalV1"
     version = "2.1.1"
     authors = []
 
@@ -15,5 +15,10 @@
     git = "https://github.com/Entropy-Foundation/aptos-core.git"
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
+
+    [dependencies.SupraFramework]
+    git = "https://github.com/Entropy-Foundation/aptos-core.git"
+    rev = "dev"
+    subdir = "aptos-move/framework/supra-framework"
 
     [dev-dependencies]

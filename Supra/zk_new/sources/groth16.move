@@ -3,7 +3,7 @@
 /// See the test cases in this module for an example of constructing with BLS12-381 curves.
 ///
 /// **WARNING:** This code has NOT been audited. If using it in a production system, proceed at your own risk.
-module dev::QiaraZKV4 {
+module dev::groth16v25 {
     use aptos_std::crypto_algebra::{Element, from_u64, multi_scalar_mul, eq, multi_pairing, upcast, pairing, add, zero};
 
     /// Proof verification as specified in the original paper,
@@ -32,7 +32,7 @@ module dev::QiaraZKV4 {
         eq(&left, &right)
     }
 
-    /// Modified proof verification which is optimized for low verification latency
+    /// Modified proof verification which is optimized for low verification latency 
     /// but requires a pairing and 2 `G2` negations to be pre-computed.
     /// Below are the full input (in the original paper notations).
     /// - Prepared verification key: $\left([\alpha]_1 \cdot [\beta]_2, -[\gamma]_2, -[\delta]_2, \left\\{ \left[ \frac{\beta \cdot u_i(x) + \alpha \cdot v_i(x) + w_i(x)}{\gamma} \right]_1 \right\\}\_{i=0}^l \right)$.

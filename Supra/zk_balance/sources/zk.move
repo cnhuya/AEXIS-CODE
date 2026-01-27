@@ -1,4 +1,4 @@
-module dev::Qiarax39 {
+module dev::Qiarax38 {
     use std::signer;
     use std::vector;
     use std::bcs;
@@ -10,8 +10,8 @@ module dev::Qiarax39 {
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::string::{Self as String, String, utf8};
 
-    use dev::QiaraVv32::{Self as validators, };
-    use dev::genesisV23::{Self as genesis, };
+    use dev::QiaraVv31::{Self as validators, };
+    use dev::genesisV22::{Self as genesis, };
 
     // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
@@ -87,7 +87,7 @@ module dev::Qiarax39 {
         poseidon_root: String,
     }
     #[event]
-    struct VoteEvent2 has drop, store {
+    struct VoteEvent has drop, store {
         validator: address,
         message: String,
         root: String,
@@ -164,7 +164,7 @@ module dev::Qiarax39 {
 
         let validations_table = table::borrow_mut(&mut state_table.validations, type);
 
-        if (!table::contains(validations_table, message)) {
+        if (!table::contains(&validations_table.validations, message)) {
 
             let bridge_state = Validations {
                 root: old_validator_root,
@@ -173,9 +173,9 @@ module dev::Qiarax39 {
                 parents: map::new<address, ParentBody>(), 
             };
 
-            table::add(validations_table, message, bridge_state);
+            table::add(&mut validations_table.validations, message, bridge_state);
         };
-        let state = table::borrow_mut(validations_table, message);
+        let state = table::borrow_mut(&mut validations_table.validations, message);
         // 4. Vote mechanism
         state.votes = state.votes + 1;
 
@@ -186,7 +186,7 @@ module dev::Qiarax39 {
 
         event::emit(VoteEvent2 {
             validator: addr,
-            message: message,
+            message message,
             root: old_validator_root,
             time: timestamp::now_seconds(),
         });
@@ -227,19 +227,19 @@ module dev::Qiarax39 {
     }
 
     #[view]
-    public fun return_current_type_state(type: String, message: String): Validations acquires States {
-        let state = borrow_global_mut<States>(@dev);
+    public fun return_current_state(type: String, message: String): Validations acquires States {
+        let state = borrow_global<States>(@dev);
         
-        if (!table::contains(&state.validations, type)) {
+        if (!table::contains(&state_table.validations, type)) {
             abort ERROR_INVALID_STATE_TYPE
         };
 
-        let validations_table = table::borrow_mut(&mut state.validations, type);
+        let validations_table = table::borrow_mut(&mut state_table.validations, type);
 
-        if (!table::contains(validations_table, message)) {
+        if (!table::contains(&validations_table.validations, message)) {
             abort ERROR_INVALID_MESSAGE
         };
-        return *table::borrow_mut(validations_table, message)
+        return *table::borrow_mut(&mut validations_table.validations, message);
 
     }
 
