@@ -1,10 +1,10 @@
 [package]
-name = "QiaraStorageV2"
+name = "QiaraStorageV1"
 version = "1.0.0"
 authors = []
 
 [addresses]
-dev = "0x6341ca6cd563e9317718102d312a2281fbb9b3e4506b4871d98dab4085f94ec1"
+dev = "0x434efed497f5b9ed8f975dd60df271297e35a1bbe9e4a17bc65920273bfca1c6"
 supra_framework = "0x1"
 [dev-addresses]
 
