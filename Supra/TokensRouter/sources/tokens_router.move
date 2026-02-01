@@ -1,4 +1,4 @@
-module dev::QiaraTokensRouterV8 {
+module dev::QiaraTokensRouterV1 {
     use std::type_info::{Self, TypeInfo};
     use std::bcs;
     use std::string::{Self as String, String, utf8};
