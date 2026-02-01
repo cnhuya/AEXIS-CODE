@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV8{
+module dev::QiaraTokensOmnichainV1{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -11,11 +11,6 @@ module dev::QiaraTokensOmnichainV8{
     use supra_framework::primary_fungible_store;
     use supra_framework::object::{Self, Object};
     use supra_framework::event;
-
-  //  use dev::QiaraTokensSharedV39::{Self as TokensShared};
-
-  //  use dev::QiaraChainTypesV27::{Self as ChainTypes};
-  //  use dev::QiaraTokenTypesV27::{Self as TokensType};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
@@ -50,26 +45,19 @@ module dev::QiaraTokensOmnichainV8{
     // Tracks overall "liqudity" across chains for each token type (the string argument)
     // i.e Ethereum (token) -> Base/Sui/Solana (chains)... -> supply
     struct CrosschainBook has key{
-        book: Table<String, Map<String, u256>>
+        book: Map<String, Map<String, u256>>
     }
     // Tracks "liqudity" across chains for each address
-    // i.e 0x...123 (user) -> Ethereum (token) -> Base/Sui/Solana (chains)... -> supply
+    // i.e 0x...123 (user) -> Base/Sui/Solana (chains).. -> Ethereum (token) -> supply
     struct UserCrosschainBook has key{
-        book: Table<vector<u8>, Table<String, Map<String, u256>>>
+        book: Table<String, Map<String, Map<String, u256>>>
     }
-
-    // This is useless for now?
-    // Tracks permissioneless "liqudity" (i.e without having to use Supra directed Wallets or anything like that...) across chains for each address
-    // i.e 0x...123 (user) -> Ethereum (token) -> Base/Sui/Solana (chains)... -> supply
-    // struct P_UserCrosschainBook has key{
-    //    book: Table<vector<u8>, Table<String, Map<String, u256>>>
-    // }
 
 
 // === EVENTS === //
     #[event]
     struct MintEvent has copy, drop, store {
-        address: vector<u8>,
+        address: String,
         token: String,
         chain: String,
         amount: u64,
@@ -78,7 +66,7 @@ module dev::QiaraTokensOmnichainV8{
 
     #[event]
     struct BurnEvent has copy, drop, store {
-        address: vector<u8>,
+        address: String,
         token: String,
         chain: String,
         amount: u64,
@@ -93,10 +81,10 @@ module dev::QiaraTokensOmnichainV8{
             move_to(admin, TokensChains { book: map::new<String, vector<String>>() });
         };
         if (!exists<CrosschainBook>(@dev)) {
-            move_to(admin, CrosschainBook { book: table::new<String,Map<String, u256>>() });
+            move_to(admin, CrosschainBook { book: map::new<String,Map<String, u256>>() });
         };
         if (!exists<UserCrosschainBook>(@dev)) {
-            move_to(admin, UserCrosschainBook { book: table::new<vector<u8>,Table<String, Map<String, u256>>>() });
+            move_to(admin, UserCrosschainBook { book: table::new<String, Map<String, Map<String, u256>>>() });
         };
     }
 
@@ -121,16 +109,16 @@ module dev::QiaraTokensOmnichainV8{
         let chains = map::borrow_mut(&mut chains.book, &token_type);
         vector::push_back(chains, chain);
 
-        if (!table::contains(&book.book, token_type)) {
-            table::add(&mut book.book, token_type, map::new<String, u256>());
+        if (!map::contains_key(&book.book, &chain_type)) {
+            map::add(&mut book.book, chain_type, map::new<String, u256>());
         };
         
-        let token_book = table::borrow_mut(&mut book.book, token_type);
+        let token_book = map::borrow_mut(&mut book.book, &chain_type);
         ensure_token_supports_chain(token, chain);
  
         // Force the logic without else
-        if (map::contains_key(token_book, &chain_type)) {
-            let current_supply = map::borrow_mut(token_book, &chain_type);
+        if (map::contains_key(token_book, &token_type)) {
+            let current_supply = map::borrow_mut(token_book, &token_type);
             if (isMint) {
                 *current_supply = *current_supply + (amount as u256);
             } else {
@@ -138,19 +126,12 @@ module dev::QiaraTokensOmnichainV8{
                 *current_supply = *current_supply - (amount as u256);
             }
         } else {
-            map::upsert(token_book, chain_type, (amount as u256));
+            map::upsert(token_book, token_type, (amount as u256));
         }   
     }
 
-  //  public fun shared_change_UserTokenSupply(token: String, chain: String, owner: vector<u8>, address: vector<u8>, amount: u64, isMint: bool, perm: Permission) acquires UserCrosschainBook, TokensChains {
-  //      if(TokensShared::assert_is_sub_owner(owmer, address)){
-  //          change_UserTokenSupply(token, chain, owner, amount, isMint, perm);
-  //      }
-  // }
 
-    public fun change_UserTokenSupply(token: String, chain: String, address: vector<u8>, amount: u64, isMint: bool, perm: Permission) acquires UserCrosschainBook, TokensChains {
-        
-
+    public fun change_UserTokenSupply(token: String, chain: String, address: String, amount: u64, isMint: bool, perm: Permission) acquires UserCrosschainBook, TokensChains {
         let book = borrow_global_mut<UserCrosschainBook>(@dev);
         let chains = borrow_global_mut<TokensChains>(@dev);
         let token_type = token;
@@ -166,65 +147,60 @@ module dev::QiaraTokensOmnichainV8{
         };
 
         if (!table::contains(&book.book, address)) {
-        //  tttta(100);
-            table::add(&mut book.book, address, table::new<String, Map<String, u256>>());
+            table::add(&mut book.book, address, map::new<String, Map<String, u256>>());
         };
 
         let user_book = table::borrow_mut(&mut book.book, address);
         
-        if(!table::contains(user_book, token_type)) {
-            table::add(user_book, token_type, map::new<String, u256>());
+        if(!map::contains_key(user_book, &chain)) {
+            map::add(user_book, chain, map::new<String, u256>());
         };
         
-    if(isMint){
-                event::emit(MintEvent {
-                address: address,
-                token: token,
-                chain: chain,
-                amount: amount,
-                time: timestamp::now_seconds() 
-            });
-    } else {
-                event::emit(BurnEvent {
-                address: address,
-                token: token,
-                chain: chain,
-                amount: amount,
-                time: timestamp::now_seconds() 
-            });
-    };
-    
-    let user = table::borrow_mut(user_book, token_type);
-   // tttta(1);
-    // 5. Handle the amount change
-    if (!map::contains_key(user, &chain_type)) {
-        // First time for this chain
-        if (isMint) {
-            map::add(user, chain_type, (amount as u256));
+        if(isMint){
+            event::emit(MintEvent {
+            address: address,
+            token: token,
+            chain: chain,
+            amount: amount,
+            time: timestamp::now_seconds() 
+        });
         } else {
-            // Can't withdraw from zero balance
-            // For withdrawals, we should have checked balance first
-            // But initialize with 0 anyway
-            map::add(user, chain_type, (0 as u256));
-        };
-   // tttta(5);
-    } else {
-        let current = map::borrow_mut(user, &chain_type);
-        if (isMint) {
-            *current = *current + (amount as u256);
-        } else {
-            // Check for underflow
-            if (*current < (amount as u256)) {
-                // Handle underflow - either abort or set to 0
-                // *current = (0 as u256); // Option 1: Set to 0
-                abort ERROR_INSUFFICIENT_BALANCE // Option 2: Abort (recommended)
+            event::emit(BurnEvent {
+            address: address,
+            token: token,
+            chain: chain,
+            amount: amount,
+            time: timestamp::now_seconds() 
+        });
+        
+        let user = map::borrow_mut(user_book, &chain);
+        // 5. Handle the amount change
+        if (!map::contains_key(user, &token_type)) {
+            // First time for this token
+            if (isMint) {
+                map::add(user, token_type, (amount as u256));
             } else {
-                *current = *current - (amount as u256);
+                // Can't withdraw from zero balance
+                // For withdrawals, we should have checked balance first
+                // But initialize with 0 anyway
+                map::add(user, token_type, (0 as u256));
             };
-        };
-    //tttta(500);
+        } else {
+            let current = map::borrow_mut(user, &token_type);
+            if (isMint) {
+                *current = *current + (amount as u256);
+            } else {
+                // Check for underflow
+                if (*current < (amount as u256)) {
+                    // Handle underflow - either abort or set to 0
+                    // *current = (0 as u256); // Option 1: Set to 0
+                    abort ERROR_INSUFFICIENT_BALANCE // Option 2: Abort (recommended)
+                } else {
+                    *current = *current - (amount as u256);
+                };
+            };
+        }
     }
-
 }
 
 
@@ -250,66 +226,60 @@ module dev::QiaraTokensOmnichainV8{
     }
 
     #[view]
-    public fun return_global_balances(token:String): Map<String, u256> acquires CrosschainBook {
+    public fun return_global_supply(token:String): Map<String, u256> acquires CrosschainBook {
         let book = borrow_global<CrosschainBook>(@dev);
-        if (!table::contains(&book.book, token)) {
+        if (!map::contains_key(&book.book, &token)) {
             abort ERROR_TOKEN_NOT_INITIALIZED
         };
 
-        return *table::borrow(&book.book, token)
+        return *map::borrow(&book.book, &token)
 
     }
 
     #[view]
-    public fun return_global_balance(token:String,chain: String): u256 acquires CrosschainBook {
+    public fun return_supply(chain:String, token: String): u256 acquires CrosschainBook {
         let book = borrow_global<CrosschainBook>(@dev);
-        if (!table::contains(&book.book, token)) {
-            abort ERROR_TOKEN_NOT_INITIALIZED
-        };
-
-        let table = table::borrow(&book.book, token);
-
-        if(!map::contains_key(table, &chain)) {
+        if (!map::contains_key(&book.book, &chain)) {
             abort ERROR_TOKEN_NOT_INITIALIZED_FOR_THIS_CHAIN
         };
 
-        return *map::borrow(table, &chain)
+        let map = map::borrow(&book.book, &chain);
+
+        if(!map::contains_key(map, &chain)) {
+            abort ERROR_TOKEN_NOT_INITIALIZED
+        };
+
+        return *map::borrow(map, &chain)
 
     }
     
+
     #[view]
-    public fun return_address_balances(token:String,address: vector<u8>): Map<String, u256> acquires UserCrosschainBook {
+    public fun return_address_full_balance(address: String): Map<String, Map<String, u256>> acquires UserCrosschainBook {
         let book = borrow_global<UserCrosschainBook>(@dev);
         if (!table::contains(&book.book, address)) {
             abort ERROR_ADDRESS_NOT_INITIALIZED
         };
-
-        let user_book = table::borrow(&book.book, address);
-        if(!table::contains(user_book, token)) {
-            abort ERROR_TOKEN_IN_ADDRESS_NOT_INITIALIZED
-        };
-
-        return *table::borrow(user_book, token)
-
+        return *table::borrow(&book.book, address)
     }
-
     #[view]
-    public fun return_adress_balance(token:String, chain:String, address: vector<u8>): u256 acquires UserCrosschainBook {
+    public fun return_address_balance_by_chain_for_token(address: String, chain:String, token:String,): u256 acquires UserCrosschainBook {
         let book = borrow_global<UserCrosschainBook>(@dev);
         if (!table::contains(&book.book, address)) {
             abort ERROR_ADDRESS_NOT_INITIALIZED
         };
 
         let user_book = table::borrow(&book.book, address);
-        if(!table::contains(user_book, token)) {
+        if(!map::contains_key(user_book, &token)) {
             abort ERROR_TOKEN_IN_ADDRESS_NOT_INITIALIZED 
         };
-        let table = table::borrow(user_book, token);
-        if(!map::contains_key(table, &chain)) {
+        let map = map::borrow(user_book, &token);
+        if(!map::contains_key(map, &chain)) {
             abort ERROR_TOKEN_ON_CHAIN_IN_ADDRESS_NOT_INITIALIZED
         };
 
-        return *map::borrow(table, &chain)
+        return *map::borrow(map, &chain)
 
     }
+
 }

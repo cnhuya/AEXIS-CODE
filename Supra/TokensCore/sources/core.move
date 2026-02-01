@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV8 {
+module dev::QiaraTokensCoreV1 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,13 +15,14 @@ module dev::QiaraTokensCoreV8 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV8::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV8::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV8::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV8::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV8::{Self as TokensQiara,  Access as TokensQiaraAccess};
-    use dev::QiaraChainTypesV8::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV8::{Self as TokensType};
+    use dev::QiaraTokensMetadataV1::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV1::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV1::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV1::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV1::{Self as TokensQiara,  Access as TokensQiaraAccess};
+
+    use dev::QiaraChainTypesV2::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV2::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
@@ -82,7 +83,7 @@ module dev::QiaraTokensCoreV8 {
 // === EVENTS === //
     #[event]
     struct RequestBridgeEvent has copy, drop, store {
-        address: vector<u8>,
+        address: String,
         token: String,
         chain: String,
         tokenTo: String,
@@ -93,7 +94,7 @@ module dev::QiaraTokensCoreV8 {
 
     #[event]
     struct BridgedEvent has copy, drop, store {
-        address: vector<u8>,
+        address: String,
         token: String,
         chain: String,
         amount: u64,
@@ -102,7 +103,7 @@ module dev::QiaraTokensCoreV8 {
 
     #[event]
     struct BridgeRefundEvent has copy, drop, store {
-        address: vector<u8>,
+        address: String,
         token: String,
         chain: String,
         amount: u64,
@@ -216,12 +217,12 @@ module dev::QiaraTokensCoreV8 {
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV8"),
+            string::utf8(b"QiaraTokensCoreV1"),
             string::utf8(b"c_deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV8"),
+            string::utf8(b"QiaraTokensCoreV1"),
             string::utf8(b"c_withdraw"),
         );
    
@@ -257,7 +258,7 @@ module dev::QiaraTokensCoreV8 {
            fungible_asset::destroy_zero(fa);
            return
         };
-        TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&object::owner(store)), fungible_asset::amount(&fa), true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, utf8(bcs::to_bytes(&object::owner(store))), fungible_asset::amount(&fa), true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         //tttta(147);
         fungible_asset::deposit_with_ref(&managed.transfer_ref, store, fa);
     }
@@ -269,17 +270,17 @@ module dev::QiaraTokensCoreV8 {
              //   tttta(fee); // aborts
             if(fee >= amount){ // amount is going to be 0 - CHECK FAILS?
                 amount = 0;
-                TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&object::owner(store)), fee, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+                TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, utf8(bcs::to_bytes(&object::owner(store))), fee, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
                 fungible_asset::burn(&managed.burn_ref, fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, fee));               
             } else {
                 amount = amount - fee;
-                TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&object::owner(store)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+                TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, utf8(bcs::to_bytes(&object::owner(store))), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
                 fungible_asset::burn(&managed.burn_ref, fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, fee));
             };
             return fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, amount)
         };
 
-        TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&object::owner(store)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, utf8(bcs::to_bytes(&object::owner(store))), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         return fungible_asset::withdraw_with_ref(&managed.transfer_ref, store, amount)
     }
     fun internal_mint(symbol: String, chain: String, amount: u64, managed: &ManagedFungibleAsset): FungibleAsset acquires Permissions {
@@ -339,7 +340,7 @@ module dev::QiaraTokensCoreV8 {
             let wallet = primary_fungible_store::ensure_primary_store_exists(signer::address_of(sender),asset);
             let fa = internal_withdraw(wallet, amount, chain, managed);
             fungible_asset::burn(&managed.burn_ref, fa);
-            TokensOmnichain::change_UserTokenSupply(symbol, chain, bcs::to_bytes(&to), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+            TokensOmnichain::change_UserTokenSupply(symbol, chain, utf8(bcs::to_bytes(&to)), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
             return
         };
 
@@ -357,13 +358,13 @@ module dev::QiaraTokensCoreV8 {
         let wallet = primary_fungible_store::primary_store(signer::address_of(user), get_metadata(symbol));
         let fa = internal_withdraw(wallet, amount, chain, managed);
 
-        let legit_amount = (TokensOmnichain::return_adress_balance(symbol, chain,bcs::to_bytes(&signer::address_of(user))) as u64);
+        let legit_amount = (TokensOmnichain::return_address_balance_by_chain_for_token(utf8(bcs::to_bytes(&signer::address_of(user))), chain, symbol) as u64);
         assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
 
         internal_deposit(TokensStorage::return_lock_storage(symbol, chain), fa, chain,managed);
     
         event::emit(RequestBridgeEvent {
-            address: bcs::to_bytes(&signer::address_of(user)),
+            address: utf8(bcs::to_bytes(&signer::address_of(user))),
             token: symbol,
             chain: chain,
             tokenTo: tokenTo,
@@ -375,7 +376,7 @@ module dev::QiaraTokensCoreV8 {
     }
 
 // === PERMISSIONELESS FUNCTIONS === // - only validators can call
-    public fun p_transfer(validator: &signer, sender:vector<u8>, to: vector<u8>, symbol: String, chain: String, amount: u64, perm: Permission) acquires Permissions {
+    public fun p_transfer(validator: &signer, sender: String, to: String, symbol: String, chain: String, amount: u64, perm: Permission) acquires Permissions {
         ensure_safety(symbol, chain);
         TokensOmnichain::change_UserTokenSupply(symbol, chain, sender, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         TokensOmnichain::change_UserTokenSupply(symbol, chain, to, amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
@@ -384,9 +385,9 @@ module dev::QiaraTokensCoreV8 {
 
     // Function to pre-"burn" tokens when bridging out, but the transaction isnt yet validated so the tokens arent really burned yet.
     // Later implement function to claim locked tokens if the bridge tx fails
-    public fun p_request_bridge(validator: &signer, user: vector<u8>, symbol: String, chain: String, amount: u64, tokenTo: String, chainTo: String,perm: Permission) acquires Permissions{
+    public fun p_request_bridge(validator: &signer, user: String, symbol: String, chain: String, amount: u64, tokenTo: String, chainTo: String,perm: Permission) acquires Permissions{
         ensure_safety(symbol, chain);
-        let legit_amount = (TokensOmnichain::return_adress_balance(symbol, chain, user) as u64);
+        let legit_amount = (TokensOmnichain::return_address_balance_by_chain_for_token(user, chain, symbol) as u64);
         assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
 
         TokensOmnichain::change_UserTokenSupply(symbol, chain, user, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
@@ -407,11 +408,11 @@ module dev::QiaraTokensCoreV8 {
         ensure_safety(symbol, chain);
 
         if(!account::exists_at(user)){
-            TokensOmnichain::change_UserTokenSupply(symbol, chain, bcs::to_bytes(&user), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+            TokensOmnichain::change_UserTokenSupply(symbol, chain, utf8(bcs::to_bytes(&user)), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
             TokensOmnichain::change_TokenSupply(symbol, chain,amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
             
             event::emit(BridgedEvent {
-                address: bcs::to_bytes(&user),
+                address: utf8(bcs::to_bytes(&user)),
                 token: symbol,
                 chain: chain,
                 amount: amount,
@@ -428,7 +429,7 @@ module dev::QiaraTokensCoreV8 {
         internal_deposit(store, fa, chain, managed);
     
         event::emit(BridgedEvent {
-            address: bcs::to_bytes(&user),
+            address: utf8(bcs::to_bytes(&user)),
             token: symbol,
             chain: chain,
             amount: amount,
@@ -459,11 +460,11 @@ module dev::QiaraTokensCoreV8 {
         ensure_safety(symbol, chain);
         let managed = authorized_borrow_refs(symbol);
         if(!account::exists_at(user)){
-            TokensOmnichain::change_UserTokenSupply(symbol, chain, bcs::to_bytes(&user), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+            TokensOmnichain::change_UserTokenSupply(symbol, chain, utf8(bcs::to_bytes(&user)), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
             TokensOmnichain::change_TokenSupply(symbol, chain,amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
             
             event::emit(BridgeRefundEvent {
-                address: bcs::to_bytes(&user),
+                address: utf8(bcs::to_bytes(&user)),
                 token: symbol,
                 chain: chain,
                 amount: amount,
@@ -479,7 +480,7 @@ module dev::QiaraTokensCoreV8 {
         internal_deposit(store, fa, chain, managed);
     
         event::emit(BridgeRefundEvent {
-            address: bcs::to_bytes(&user),
+            address: utf8(bcs::to_bytes(&user)),
             token: symbol,
             chain: chain,
             amount: amount,
@@ -490,13 +491,13 @@ module dev::QiaraTokensCoreV8 {
     }
 
     // Function that can be only called by Validator, used to redeem tokens to existing Supra wallet.
-   public fun redeem(validator: &signer, permissioneless_wallet: vector<u8>, supra_wallet: address, symbol:String, chain:String, perm: Permission) acquires ManagedFungibleAsset, Permissions {
+   public fun redeem(validator: &signer, permissioneless_wallet: String, supra_wallet: address, symbol:String, chain:String, perm: Permission) acquires ManagedFungibleAsset, Permissions {
         let asset = get_metadata(symbol);
         ensure_safety(symbol, chain);
         let managed = authorized_borrow_refs(symbol);
         assert!(account::exists_at(supra_wallet), ERROR_ACCOUNT_DOES_NOT_EXISTS);
 
-        let amount = (TokensOmnichain::return_adress_balance(symbol, chain,bcs::to_bytes(&signer::address_of(validator))) as u64);
+        let amount = (TokensOmnichain::return_address_balance_by_chain_for_token(utf8(bcs::to_bytes(&signer::address_of(validator))), chain, symbol) as u64);
         let fa = internal_mint(symbol, chain, amount, managed);
         TokensOmnichain::change_UserTokenSupply(symbol, chain, permissioneless_wallet, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
       
