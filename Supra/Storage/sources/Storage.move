@@ -1,4 +1,4 @@
-module dev::QiaraStorageV1 {
+module dev::QiaraStorageV2 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -113,21 +113,67 @@ module dev::QiaraStorageV1 {
     public entry fun more(admin: &signer) acquires KeyRegistry, ConstantDatabase, ConstantCounter{
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
        
-        register_constant<u16>(admin, utf8(b"QiaraTokens"), utf8(b"TRANSFER_FEE"), 50, false, &give_permission(&give_access(admin))); // 0,00005% 
+        register_constant<u64>(admin, utf8(b"QiaraTokens"), utf8(b"TRANSFER_FEE"), 50, false, &give_permission(&give_access(admin))); // 0,00005% 
         register_constant<u64>(admin, utf8(b"QiaraTokens"), utf8(b"FLAT_USD_FEE"), 1000, false, &give_permission(&give_access(admin))); // 0,001$
         register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"INFLATION"), 25_000_000, true, &give_permission(&give_access(admin))); // 25%
-     
-    }
-    public entry fun change(admin: &signer) acquires ConstantDatabase, KeyRegistry, ConstantCounter{
-        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
-        register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), 2, false, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"INFLATION_DEBT"), 150_000, false, &give_permission(&give_access(admin))); // 0.15% a month
+        register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"BURN_FEE"), 500, false, &give_permission(&give_access(admin))); // 0,0005%
+        register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"BURN_FEE_MINIMAL"), 100, false, &give_permission(&give_access(admin))); //  0,0001 Qiara token
+        register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"BURN_INCREASE"), 100, false, &give_permission(&give_access(admin))); // 0,0001% a month
+        register_constant<u64>(admin, utf8(b"QiaraToken"), utf8(b"TREASURY_FEE"), 1_000, false, &give_permission(&give_access(admin))); // 0,001%
+
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T0_X"), 100, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T00_X"), 200, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T1_X"), 200, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T2_X"), 300, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T3_X"), 500, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T4_X"), 1000, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T5_X"), 1500, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T6_X"), 2500, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T7_X"), 5000, true, &give_permission(&give_access(admin)));
+
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T0_EFF"), 9500, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T00_EFF"), 8800, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T1_EFF"), 9000, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T2_EFF"), 8500, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T3_EFF"), 7500, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T4_EFF"), 6000, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T5_EFF"), 4000, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T6_EFF"), 2000, true, &give_permission(&give_access(admin)));
+        register_constant<u16>(admin, utf8(b"QiaraTiers"), utf8(b"T7_EFF"), 1000, true, &give_permission(&give_access(admin)));
+
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"DEPOSIT_LIMIT"), 1_000_000, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"BORROW_LIMIT"), 500_000, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"W_FEE"), 1_000, true, &give_permission(&give_access(admin))); // 0.001%
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"W_CAP"), 500, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"MARKET_PERCENTAGE_SCALE"), 5000, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"MIN_LEND_APR_FACTOR"), 500_000, true, &give_permission(&give_access(admin))); // 0.5%
+
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"NEW_MULTIPLIER_HANDICAP"), 200, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"NEW_EFFICIENCY_HANDICAP"), 200, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"NEW_PENALTY_TIME"), 604_800, true, &give_permission(&give_access(admin)));
+
+        register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"LEVERAGE"), 1000, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"MAX_POSITION"), 1_000_000, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"PROFIT_FEE"), 30_000, true, &give_permission(&give_access(admin))); // 0.03%
+        register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"PERPS_PERCENTAGE_SCALE"), 75000, true, &give_permission(&give_access(admin)));
 
 
-       // change_constant(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), new_value: vector<u8>, permission: &Permission)
-    }
-    public entry fun change2(admin: &signer) acquires ConstantDatabase, KeyRegistry, ConstantCounter{
-        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
+        register_constant<u64>(admin, utf8(b"QiaraMargin"), utf8(b"BASE_UTIL_FEE"), 1_000_000, true, &give_permission(&give_access(admin))); // 1%
+        register_constant<u64>(admin, utf8(b"QiaraMargin"), utf8(b"EXP_SCALE"), 50_000_000, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraMargin"), utf8(b"EXP_AGGRESION"), 10, true, &give_permission(&give_access(admin)));
+       
+        register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOKENS_TO_PROPOSE"), 100_000_000, true, &give_permission(&give_access(admin))); // 100 Qiara Tokens
+        register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"BURN_TAX"), 1_000_000, true, &give_permission(&give_access(admin))); // 1 Qiara Token
+        register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_TOTAL_VOTES_PERCENTAGE_SUPPLY"), 1_000_000, true, &give_permission(&give_access(admin))); // 1%
+        register_constant<u64>(admin, utf8(b"QiaraGovernance"), utf8(b"MINIMUM_QUARUM_FOR_PROPOSAL_TO_PASS"), 500, true, &give_permission(&give_access(admin))); // 50.0%
         
+        register_constant<u64>(admin, utf8(b"QiaraAuto"), utf8(b"MAX_DURATION"), 604_800, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"UNLOCK_PERIOD"), 604_800, true, &give_permission(&give_access(admin)));
+        register_constant<u64>(admin, utf8(b"QiaraStaking"), utf8(b"STAKING_FEE"), 1_000_000, true, &give_permission(&give_access(admin))); // 1%
+    }
+    public entry fun more2(admin: &signer) acquires ConstantDatabase, KeyRegistry, ConstantCounter{
+        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
         register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"FEE"), 100_000, true, &give_permission(&give_access(admin))); // 0.001%  
         register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"), 5, false, &give_permission(&give_access(admin))); // 5
         register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"), 5, false, &give_permission(&give_access(admin))); // 5
@@ -140,22 +186,13 @@ module dev::QiaraStorageV1 {
         register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"MAX_LEVERAGE_SLASHING"), 2_000_000, false, &give_permission(&give_access(admin))); // 25x
         register_constant<u64>(admin, utf8(b"QiaraValidator"), utf8(b"VALIDATOR_COMPUTATION_FEE"), 1_000, false, &give_permission(&give_access(admin))); // 0.001%
 
-       // change_constant(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), new_value: vector<u8>, permission: &Permission)
-    }
-    public entry fun points(admin: &signer) acquires ConstantDatabase, KeyRegistry, ConstantCounter{
-        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
         register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"ANY_FEE_CONVERSION"), 1_000_000, false, &give_permission(&give_access(admin))); // 1x
         register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"PERPS_VOLUME_CONVERSION"), 100_000, false, &give_permission(&give_access(admin))); // 0.1x
         register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"MARKET_LIQUIDITY_PROVISION_CONVERSION"), 1_000_000, false, &give_permission(&give_access(admin))); // 0.05/s/$
         register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"DAILY_CLAIM"), 100_000_000, false, &give_permission(&give_access(admin))); // 100*level
-       // change_constant(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), new_value: vector<u8>, permission: &Permission)
-    }
-
-    public entry fun new_market(admin: &signer) acquires ConstantDatabase, KeyRegistry, ConstantCounter{
-        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
+    
         register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"BORROW_INTEREST_MULTIPLIER"), 100_000, false, &give_permission(&give_access(admin))); // 0.1x
         register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"BORROW_INTEREST_MULTIPLIER_SLASHING"), 10_000_000, false, &give_permission(&give_access(admin))); // 10x
-       // change_constant(admin, utf8(b"QiaraStaking"), utf8(b"TIER_DEEFICIENCY"), new_value: vector<u8>, permission: &Permission)
     }
 
 
