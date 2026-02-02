@@ -1,4 +1,4 @@
-module dev::QiaraPointsV1{
+module dev::QiaraPointsV2{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
