@@ -1,4 +1,4 @@
-module dev::QiaraStakingV10{
+module dev::QiaraStakingV1{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -11,14 +11,17 @@ module dev::QiaraStakingV10{
     use supra_framework::object::{Self as object, Object};
     use std::table::{Self, Table};
 
-    use dev::QiaraTokensMetadataV45::{Self as TokensMetadata};
-    use dev::QiaraTokensCoreV45::{Self as TokensCore};
-    use dev::QiaraTokensStoragesV45::{Self as TokensStorages};
-    use dev::QiaraStakingThirdPartyV3::{Self as StakingThirdParty};
 
-    use dev::QiaraChainTypesV27::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV27::{Self as TokensType};
+    use dev::QiaraTokensMetadataV1::{Self as TokensMetadata};
+    use dev::QiaraTokensCoreV1::{Self as TokensCore};
+    use dev::QiaraTokensStoragesV1::{Self as TokensStorages};
+    use dev::QiaraStakingThirdPartyV1::{Self as StakingThirdParty};
 
+    use dev::QiaraChainTypesV2::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV2::{Self as TokensType};
+
+
+    use dev::QiaraValidatorsV1::{Self as Validators, Access as ValidatorsAccess};
     // For simplicity constant undecentralized unlock period due to re-dependancy loop cycle that would occur,
     // due to the fact that governance is using this module for voting power.
     // -------------------------------------------------------------------
@@ -45,25 +48,20 @@ module dev::QiaraStakingV10{
         Permission {}
     }
 
-
-// === STRUCTS === //
-
-    // Stores all staking stores for different tokens on a specific chain
-    // token -> chain -> storage
-    struct StakingStorage has key {
-        balances: Table<String, Map<String, Object<FungibleStore>>>
+    struct Permissions has key, store, drop {
+        validators: ValidatorsAccess,
     }
 
+// === STRUCTS === //
+    // i.e Address -> Token -> Chain -> Amount
+    struct UserTracker has key, store {
+        tracker: Table<address, Map<String,Map<String, u64>>>,
+        unstake_requests: Table<address, Map<String, Map<String, vector<UnstakeRequest>>>>,
+    }
 
     struct UnstakeRequest has copy, drop, store {
         amount: u64,
         request_time: u64,
-    }
-
-    // i.e Address -> Token -> Chain -> Amount
-    struct UserTracker has key, store {
-        tracker: Table<address, Table<String,Map<String, u64>>>,
-        unstake_requests: Table<address, Table<String, Map<String, vector<UnstakeRequest>>>>,
     }
 
 // === EVENTS === //
@@ -99,47 +97,36 @@ module dev::QiaraStakingV10{
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
         if (!exists<UserTracker>(@dev)) {
-            move_to(admin, UserTracker { tracker: table::new<address, Table<String, Map<String, u64>>>(), unstake_requests: table::new<address, Table<String, Map<String, vector<UnstakeRequest>>>>() });
+            move_to(admin, UserTracker { tracker: table::new<address, Map<String, Map<String, u64>>>(), unstake_requests: table::new<address, Map<String, Map<String, vector<UnstakeRequest>>>>() });
         };
-        if (!exists<StakingStorage>(@dev)) {
-            move_to(admin, StakingStorage { balances: table::new<String, Map<String, Object<FungibleStore>>>() });
+        if (!exists<Permissions>(@dev)) {
+            move_to(admin, Permissions { validators: Validators::give_access(admin) });
         };
     }
 // === FUNCTIONS === //
-
-    public fun ensure_storages_exists(staking_storage: &mut StakingStorage, token: String, chain: String): Object<FungibleStore>{
-        ChainTypes::ensure_valid_chain_name(chain);
-        
-        let metadata = TokensCore::get_metadata(token);
-
-        // Stake
-        if (!table::contains(&staking_storage.balances, token)) {
-            table::add(&mut staking_storage.balances, token, map::new<String, Object<FungibleStore>>());
-        };
-        let stake = table::borrow_mut(&mut staking_storage.balances, token);
-        if (!map::contains_key(stake, &chain)) {
-            map::add( stake, chain, primary_fungible_store::ensure_primary_store_exists<Metadata>(@dev, metadata));
-        };
-        return *map::borrow(stake, &chain)
-    }
-
-    fun tttta(id: u64){
-        abort(id);
-    }
-
-    // Interface for Qiara Fungible Asset
-        public entry fun stake(signer: &signer, token: String, chain: String, amount: u64) acquires StakingStorage, UserTracker {
-            let stake_storage = ensure_storages_exists(borrow_global_mut<StakingStorage>(@dev), token, chain);
+    // Management functions
+        public entry fun register_validator(signer: &signer, pub_key_x: String, pub_key_y: String, pub_key: vector<u8>) acquires Permissions, UserTracker {
+            Validators::register_validator(signer, pub_key_x, pub_key_y, pub_key, get_voting_power(signer::address_of(signer)), Validators::give_permission(&borrow_global_mut<Permissions>(@dev).validators));
+        }
+        public entry fun change_validator_poseidon_pubkeys(signer: &signer, pub_key_x: String, pub_key_y: String) acquires Permissions {
+            Validators::change_validator_poseidon_pubkeys(signer, pub_key_x, pub_key_y, Validators::give_permission(&borrow_global_mut<Permissions>(@dev).validators));
+        }
+        public entry fun change_validator_pubkey(signer: &signer, pub_key: vector<u8>) acquires Permissions {
+            Validators::change_validator_pubkey(signer, pub_key, Validators::give_permission(&borrow_global_mut<Permissions>(@dev).validators));
+        }
+        public entry fun change_staker_validator(signer: &signer, new_validator: address) acquires  Permissions {
+            Validators::change_staker_validator(signer, new_validator, Validators::give_permission(&borrow_global_mut<Permissions>(@dev).validators));
+        }
+    // Native Interface
+        public fun stake(signer: &signer, parent: address, token: String, chain: String, amount: u64, perm: Permission) acquires UserTracker {
             let revenue_storage = TokensStorages::return_fee_storage(token, chain);
             let staking_fee_amount = simulate_staking_fee((amount as u256));
             let wallet = primary_fungible_store::primary_store(signer::address_of(signer), TokensCore::get_metadata(token));
 
-            let fa = TokensCore::withdraw(wallet, amount, chain);
-            let fee_fa = fungible_asset::extract(&mut fa, (staking_fee_amount as u64));
+            let fee_fa = TokensCore::withdraw(wallet, (staking_fee_amount as u64), chain);
 
             find_user(borrow_global_mut<UserTracker>(@dev), signer::address_of(signer), token, chain, amount);
 
-            TokensCore::deposit(stake_storage, fa, chain);
             TokensCore::deposit(revenue_storage, fee_fa, chain);
 
             event::emit(StakeEvent {
@@ -151,17 +138,11 @@ module dev::QiaraStakingV10{
             });
 
         }
-        public entry fun unstake(signer: &signer, token: String, chain: String, amount: u64) acquires StakingStorage, UserTracker {
-            ensure_storages_exists(borrow_global_mut<StakingStorage>(@dev), token, chain);
-
+        public fun unstake(signer: &signer, token: String, chain: String, amount: u64, perm: Permission) acquires UserTracker {
             find_user(borrow_global_mut<UserTracker>(@dev), signer::address_of(signer), token, chain, amount);
 
             let requests = find_user_requests(borrow_global_mut<UserTracker>(@dev), signer, token, chain);
-            let request = UnstakeRequest {
-                amount: amount,
-                request_time: timestamp::now_seconds(),
-            };
-            vector::push_back(requests, request);
+            vector::push_back(requests, UnstakeRequest {amount: amount,request_time: timestamp::now_seconds()});
 
             event::emit(RequestUnstakeEvent {
                 address: signer::address_of(signer),
@@ -172,13 +153,8 @@ module dev::QiaraStakingV10{
             });
 
         }
-        public entry fun withdraw(signer: &signer, token: String, chain: String,) acquires StakingStorage, UserTracker {
-            let stake_storage = ensure_storages_exists(borrow_global_mut<StakingStorage>(@dev), token, chain);
-
-            let wallet = primary_fungible_store::primary_store(signer::address_of(signer), TokensCore::get_metadata(token));
+        public fun withdraw(signer: &signer, token: String, chain: String, perm: Permission) acquires UserTracker {
             let total = calculate_total_unlocks(*find_user_requests(borrow_global_mut<UserTracker>(@dev), signer, token, chain));
-            let fa = TokensCore::withdraw(wallet, total, chain);
-            TokensCore::deposit(stake_storage, fa, chain);
 
             event::emit(UnstakeEvent {
                 address: signer::address_of(signer),
@@ -193,10 +169,15 @@ module dev::QiaraStakingV10{
 // === HELPER FUNCTIONS === //
     fun find_user(tracker: &mut UserTracker, address: address, token: String, chain: String, value: u64) {
         
+/*    struct UserTracker has key, store {
+        tracker: Table<address, Map<String,Map<String, u64>>>,
+        unstake_requests: Table<address, Map<String, Map<String, vector<UnstakeRequest>>>>,
+    }
+*/
         // Check if address exists in the tracker
         if (!table::contains(&tracker.tracker, address)) {
             // Create a new Table for this address
-            let user_table = table::new<String, Map<String, u64>>();
+            let user_table = map::new<String, Map<String, u64>>();
             table::add(&mut tracker.tracker, address, user_table);
         };
         
@@ -204,14 +185,14 @@ module dev::QiaraStakingV10{
         let user_table = table::borrow_mut(&mut tracker.tracker, address);
         
         // Check if token exists in the user's table
-        if (!table::contains(user_table, token)) {
+        if (!map::contains_key(user_table, &token)) {
             // Create a new SimpleMap for this token
             let chain_map = map::new<String, u64>();
-            table::add(user_table, token, chain_map);
+            map::add(user_table, token, chain_map);
         };
         
         // Get the token's chain map
-        let chain_map = table::borrow_mut(user_table, token);
+        let chain_map = map::borrow_mut(user_table, &token);
         
         // Check if chain exists in the chain map
         if (!map::contains_key(chain_map, &chain)) {
@@ -226,15 +207,15 @@ module dev::QiaraStakingV10{
     fun find_user_requests(tracker: &mut UserTracker, user: &signer,  token: String, chain: String): &mut vector<UnstakeRequest> {
 
         if(!table::contains(&tracker.unstake_requests, signer::address_of(user))) {
-            table::add(&mut tracker.unstake_requests, signer::address_of(user), table::new<String, Map<String, vector<UnstakeRequest>>>());
+            table::add(&mut tracker.unstake_requests, signer::address_of(user), map::new<String, Map<String, vector<UnstakeRequest>>>());
         };
 
         let user = table::borrow_mut(&mut tracker.unstake_requests, signer::address_of(user));
 
-        if(!table::contains(user, token)) {
-            table::add(user, token, map::new<String, vector<UnstakeRequest>>());
+        if(!map::contains_key(user, &token)) {
+            map::add(user, token, map::new<String, vector<UnstakeRequest>>());
         };
-        let user1 = table::borrow_mut(user, token);
+        let user1 = map::borrow_mut(user, &token);
 
         if(!map::contains_key(user1, &chain)) {
             map::add(user1, chain, vector::empty<UnstakeRequest>());
@@ -271,83 +252,71 @@ module dev::QiaraStakingV10{
         return (staking_fee*amount)/1_000_000/100 
     }
 
-fun calculate_total_vote_power(table: &Table<String, Map<String, u64>>): u256 {
-    let total_vote_power: u256 = 0;
-    let tokens = TokensType::return_full_nick_names_list();
-    let token_count = vector::length(&tokens);
-    let i = 0;
-    
-    // Loop through all tokens
-    while (i < token_count) {
-        let token = vector::borrow(&tokens, i);
+    fun calculate_total_vote_power(map: &Map<String, Map<String, u64>>): u256 {
+        let total_vote_power: u256 = 0;
+        let tokens = TokensType::return_full_nick_names_list();
+        let token_count = vector::length(&tokens);
+        let i = 0;
         
-        // Check if this token exists in the table
-        if (table::contains(table, *token)) {
-            let map = table::borrow(table, *token);
-            let chains = map::keys(map);
-            let chain_count = vector::length(&chains);
-            let j = 0;
+        // Loop through all tokens
+        while (i < token_count) {
+            let token = vector::borrow(&tokens, i);
             
-            let metadata = TokensMetadata::get_coin_metadata_by_symbol(*token);
-            let metadata_denom = TokensMetadata::get_coin_metadata_denom(&metadata);
-            
-            // Avoid division by zero
-            assert!(metadata_denom > 0, 25565);
-            
-            // Loop through all chains for this token
-            while (j < chain_count) {
-                let chain = vector::borrow(&chains, j);
-                let value = (*map::borrow(map, chain) as u256);
+            // Check if this token exists in the table
+            if (map::contains_key(map, token)) {
+                let map = map::borrow(map, token);
+                let chains = map::keys(map);
+                let chain_count = vector::length(&chains);
+                let j = 0;
                 
-                if (*token != utf8(b"Qiara")) {
-                    // Calculate USD value
-                    let price = TokensMetadata::get_coin_metadata_price(&metadata);
-                    let usd_value = value * (price as u256);
+                let metadata = TokensMetadata::get_coin_metadata_by_symbol(*token);
+                let metadata_denom = TokensMetadata::get_coin_metadata_denom(&metadata);
+                
+                // Avoid division by zero
+                assert!(metadata_denom > 0, 25565);
+                
+                // Loop through all chains for this token
+                while (j < chain_count) {
+                    let chain = vector::borrow(&chains, j);
+                    let value = (*map::borrow(map, chain) as u256);
                     
-                    // Calculate power with safe division
-                    if (usd_value > 0 && metadata_denom > 0) {
-                        let x = usd_value / (metadata_denom as u256);
-                        let tier_efficiency = (TokensMetadata::get_coin_metadata_tier_efficiency(&metadata) as u256);
-                        let additional_power = staking_vote_weight(tier_efficiency, x);
-                        total_vote_power = total_vote_power + (additional_power / 10000);
+                    if (*token != utf8(b"Qiara")) {
+                        // Calculate USD value
+                        let price = TokensMetadata::get_coin_metadata_price(&metadata);
+                        let usd_value = value * (price as u256);
+                        
+                        // Calculate power with safe division
+                        if (usd_value > 0 && metadata_denom > 0) {
+                            let x = usd_value / (metadata_denom as u256);
+                            let tier_efficiency = (TokensMetadata::get_coin_metadata_tier_efficiency(&metadata) as u256);
+                            let additional_power = staking_vote_weight(tier_efficiency, x);
+                            total_vote_power = total_vote_power + (additional_power / 10000);
+                        };
+                    } else {
+                        // Qiara token - add raw value
+                        total_vote_power = total_vote_power + value;
                     };
-                } else {
-                    // Qiara token - add raw value
-                    total_vote_power = total_vote_power + value;
+                    
+                    j = j + 1;
                 };
-                
-                j = j + 1;
             };
+            
+            i = i + 1;
         };
         
-        i = i + 1;
-    };
-    
-    return total_vote_power
-}
+        return total_vote_power
+    }
 // === VIEW FUNCTIONS === //
     #[view]
-        public fun get_voting_power(address: address): u256 acquires UserTracker{
-            let tracker = borrow_global<UserTracker>(@dev);
+    public fun get_voting_power(address: address): u256 acquires UserTracker{
+        let tracker = borrow_global<UserTracker>(@dev);
 
-            if(!table::contains(&tracker.tracker, address)) {
-                abort ERROR_USER_NOT_INITIALIZED
-            };
-
-            let user_map = table::borrow(&tracker.tracker, address);
-            return calculate_total_vote_power(user_map)
-        }
-    #[view]
-    public fun return_staked(token: String): Map<String, Object<FungibleStore>> acquires StakingStorage {
-
-        let staking_storage = borrow_global<StakingStorage>(@dev);
-
-        if(!table::contains(&staking_storage.balances, token)) {
-             abort ERROR_UNSUPPORTED_OR_NOT_YET_INNITIALIZED_TOKEN
+        if(!table::contains(&tracker.tracker, address)) {
+            abort ERROR_USER_NOT_INITIALIZED
         };
 
-        *table::borrow(&staking_storage.balances, token)
-
+        let user_map = table::borrow(&tracker.tracker, address);
+        return calculate_total_vote_power(user_map)
     }
     #[view]
     public fun return_address_staked(address: address, token: String): Map<String, u64> acquires UserTracker {
@@ -359,10 +328,10 @@ fun calculate_total_vote_power(table: &Table<String, Map<String, u64>>): u256 {
         };
         let user = table::borrow(&tracker.tracker, address);
 
-        if(!table::contains(user, token)) {
+        if(!map::contains_key(user, &token)) {
              abort ERROR_USER_DOESNT_STAKED_THIS_TOKEN_YET
         };
 
-        *table::borrow(user, token)
+        *map::borrow(user, &token)
     }
 }
