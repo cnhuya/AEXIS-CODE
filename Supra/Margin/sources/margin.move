@@ -360,7 +360,12 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
             let reward_usd = uv.rewards * price / denom;
             let interest_usd = uv.interest * price / denom;
             let locked_fees_usd = (uv.locked_fee as u256) * price / denom;
-            let staked_usd = uv.staked;
+            let staked_usd = 0;
+            if(token_copy == utf8(b"Qiara")){
+                staked_usd = uv.staked / denom;
+            } else {
+                let staked_usd = uv.staked * price / denom;
+            };
     
             let utilization = if (current_raw_borrow == 0) {
                 0
@@ -447,7 +452,6 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
         let inner = table::borrow(&th.holdings, shared_storage_name);
         *table::borrow(inner, token)
     }
-
 
     #[view]
     public fun get_user_credit(shared_storage_name: String,): (u256, bool) acquires TokenHoldings {
