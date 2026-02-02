@@ -1,4 +1,4 @@
-module dev::QiaraProviderTypesV3 {
+module dev::QiaraProviderTypesV4 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
@@ -15,7 +15,7 @@ module dev::QiaraProviderTypesV3 {
     }
 
 // === INIT === //
-    fun init_module(admin: &signer)acquires Providers{
+    fun init_module(admin: &signer) acquires Providers{
         assert!(signer::address_of(admin) == @dev, 1);
 
         if (!exists<Providers>(@dev)) {
