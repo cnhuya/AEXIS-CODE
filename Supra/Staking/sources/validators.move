@@ -1,4 +1,4 @@
-module dev::QiaraValidatorsV2 {
+module dev::QiaraValidatorsV3 {
     use std::signer;
     use std::vector;
     use std::bcs;
@@ -71,7 +71,7 @@ module dev::QiaraValidatorsV2 {
 
 // === PUBLIC FUNCTIONS === //
 
-    public fun register_validator(signer: &signer, shared_storage_name: String, owner: vector<u8>, pub_key_x: String, pub_key_y: String, pub_key: vector<u8>, power:u256, perm: Permission) acquires ActiveValidators, Validators {
+    public entry fun register_validator(signer: &signer, shared_storage_name: String, owner: vector<u8>, pub_key_x: String, pub_key_y: String, pub_key: vector<u8>, power:u256) acquires ActiveValidators, Validators {
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
         let active_validators = borrow_global_mut<ActiveValidators>(@dev); 
         let validators = borrow_global_mut<Validators>(@dev);
@@ -80,7 +80,7 @@ module dev::QiaraValidatorsV2 {
 
     }
 
-    public fun change_validator_poseidon_pubkeys(signer: &signer,  shared_storage_name: String, owner: vector<u8>, pub_key_x: String, pub_key_y: String, perm: Permission) acquires Validators {
+    public entry fun change_validator_poseidon_pubkeys(signer: &signer,  shared_storage_name: String, owner: vector<u8>, pub_key_x: String, pub_key_y: String) acquires Validators {
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
         let validators = borrow_global_mut<Validators>(@dev); 
         
@@ -93,7 +93,7 @@ module dev::QiaraValidatorsV2 {
         validator.pub_key_y = pub_key_y;
     }
 
-    public fun change_validator_pubkey(signer: &signer, shared_storage_name: String, owner: vector<u8>, pub_key: vector<u8>, perm: Permission) acquires Validators {
+    public entry fun change_validator_pubkey(signer: &signer, shared_storage_name: String, owner: vector<u8>, pub_key: vector<u8>) acquires Validators {
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
         let validators = borrow_global_mut<Validators>(@dev); 
         
@@ -105,7 +105,7 @@ module dev::QiaraValidatorsV2 {
         validator.pub_key = pub_key;
     }
 
-    public fun change_staker_validator(signer: &signer, shared_storage_name: String, owner: vector<u8>, new_validator: String, perm: Permission) acquires ActiveValidators, Validators, Stakers {
+    public entry fun change_staker_validator(signer: &signer, shared_storage_name: String, owner: vector<u8>, new_validator: String) acquires ActiveValidators, Validators, Stakers {
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
         let active_validators = borrow_global_mut<ActiveValidators>(@dev); 
         let validators = borrow_global_mut<Validators>(@dev);
