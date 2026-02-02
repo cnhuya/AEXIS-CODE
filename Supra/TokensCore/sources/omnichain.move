@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV2{
+module dev::QiaraTokensOmnichainV3{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -50,14 +50,14 @@ module dev::QiaraTokensOmnichainV2{
     // Tracks "liqudity" across chains for each address
     // i.e 0x...123 (user) -> Base/Sui/Solana (chains).. -> Ethereum (token) -> supply
     struct UserCrosschainBook has key{
-        book: Table<String, Map<String, Map<String, u256>>>
+        book: Table<vector<u8>, Map<String, Map<String, u256>>>
     }
 
 
 // === EVENTS === //
     #[event]
     struct MintEvent has copy, drop, store {
-        address: String,
+        address: vector<u8>,
         token: String,
         chain: String,
         amount: u64,
@@ -66,7 +66,7 @@ module dev::QiaraTokensOmnichainV2{
 
     #[event]
     struct BurnEvent has copy, drop, store {
-        address: String,
+        address: vector<u8>,
         token: String,
         chain: String,
         amount: u64,
@@ -84,7 +84,7 @@ module dev::QiaraTokensOmnichainV2{
             move_to(admin, CrosschainBook { book: map::new<String,Map<String, u256>>() });
         };
         if (!exists<UserCrosschainBook>(@dev)) {
-            move_to(admin, UserCrosschainBook { book: table::new<String, Map<String, Map<String, u256>>>() });
+            move_to(admin, UserCrosschainBook { book: table::new<vector<u8>, Map<String, Map<String, u256>>>() });
         };
     }
 
@@ -131,7 +131,7 @@ module dev::QiaraTokensOmnichainV2{
     }
 
 
-    public fun change_UserTokenSupply(token: String, chain: String, address: String, amount: u64, isMint: bool, perm: Permission) acquires UserCrosschainBook, TokensChains {
+    public fun change_UserTokenSupply(token: String, chain: String, address: vector<u8>, amount: u64, isMint: bool, perm: Permission) acquires UserCrosschainBook, TokensChains {
         let book = borrow_global_mut<UserCrosschainBook>(@dev);
         let chains = borrow_global_mut<TokensChains>(@dev);
         let token_type = token;
@@ -255,7 +255,7 @@ module dev::QiaraTokensOmnichainV2{
     
 
     #[view]
-    public fun return_address_full_balance(address: String): Map<String, Map<String, u256>> acquires UserCrosschainBook {
+    public fun return_address_full_balance(address: vector<u8>): Map<String, Map<String, u256>> acquires UserCrosschainBook {
         let book = borrow_global<UserCrosschainBook>(@dev);
         if (!table::contains(&book.book, address)) {
             abort ERROR_ADDRESS_NOT_INITIALIZED
@@ -263,7 +263,7 @@ module dev::QiaraTokensOmnichainV2{
         return *table::borrow(&book.book, address)
     }
     #[view]
-    public fun return_address_balance_by_chain_for_token(address: String, chain:String, token:String,): u256 acquires UserCrosschainBook {
+    public fun return_address_balance_by_chain_for_token(address: vector<u8>, chain:String, token:String,): u256 acquires UserCrosschainBook {
         let book = borrow_global<UserCrosschainBook>(@dev);
         if (!table::contains(&book.book, address)) {
             abort ERROR_ADDRESS_NOT_INITIALIZED
