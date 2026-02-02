@@ -131,77 +131,41 @@ module dev::QiaraTokensOmnichainV3{
     }
 
 
-    public fun change_UserTokenSupply(token: String, chain: String, address: vector<u8>, amount: u64, isMint: bool, perm: Permission) acquires UserCrosschainBook, TokensChains {
+    public fun change_UserTokenSupply(token: String, chain: String, address: vector<u8>, amount: u64, isMint: bool, _perm: Permission) acquires UserCrosschainBook {
         let book = borrow_global_mut<UserCrosschainBook>(@dev);
-        let chains = borrow_global_mut<TokensChains>(@dev);
-        let token_type = token;
-        let chain_type = chain;
-
-        if (!map::contains_key(&chains.book, &token_type)) {
-            map::upsert(&mut chains.book, token_type, vector::empty<String>());
-        };
-        let c = map::borrow_mut(&mut chains.book, &token_type);
         
-        if (!vector::contains(c, &chain_type)) {
-            vector::push_back(c, chain_type);
-        };
-
+        // Ensure the address and chain exist in the map first
         if (!table::contains(&book.book, address)) {
             table::add(&mut book.book, address, map::new<String, Map<String, u256>>());
         };
-
         let user_book = table::borrow_mut(&mut book.book, address);
         
         if(!map::contains_key(user_book, &chain)) {
             map::add(user_book, chain, map::new<String, u256>());
         };
-        
-        if(isMint){
-            event::emit(MintEvent {
-            address: address,
-            token: token,
-            chain: chain,
-            amount: amount,
-            time: timestamp::now_seconds() 
-        });
+        let token_map = map::borrow_mut(user_book, &chain);
+
+        // --- CRITICAL FIX: MOVE THIS OUTSIDE THE ELSE BLOCK ---
+        if (!map::contains_key(token_map, &token)) {
+            let initial_amount = if (isMint) { (amount as u256) } else { 0 };
+            map::add(token_map, token, initial_amount);
         } else {
-            event::emit(BurnEvent {
-            address: address,
-            token: token,
-            chain: chain,
-            amount: amount,
-            time: timestamp::now_seconds() 
-        });
-        
-        let user = map::borrow_mut(user_book, &chain);
-        // 5. Handle the amount change
-        if (!map::contains_key(user, &token_type)) {
-            // First time for this token
+            let current_balance = map::borrow_mut(token_map, &token);
             if (isMint) {
-                map::add(user, token_type, (amount as u256));
+                *current_balance = *current_balance + (amount as u256);
             } else {
-                // Can't withdraw from zero balance
-                // For withdrawals, we should have checked balance first
-                // But initialize with 0 anyway
-                map::add(user, token_type, (0 as u256));
+                assert!(*current_balance >= (amount as u256), 101); // INSUFFICIENT_BALANCE
+                *current_balance = *current_balance - (amount as u256);
             };
+        };
+
+        // --- EMIT EVENTS AT THE VERY END ---
+        if (isMint) {
+            event::emit(MintEvent { address, token, chain, amount, time: timestamp::now_seconds() });
         } else {
-            let current = map::borrow_mut(user, &token_type);
-            if (isMint) {
-                *current = *current + (amount as u256);
-            } else {
-                // Check for underflow
-                if (*current < (amount as u256)) {
-                    // Handle underflow - either abort or set to 0
-                    // *current = (0 as u256); // Option 1: Set to 0
-                    abort ERROR_INSUFFICIENT_BALANCE // Option 2: Abort (recommended)
-                } else {
-                    *current = *current - (amount as u256);
-                };
-            };
-        }
+            event::emit(BurnEvent { address, token, chain, amount, time: timestamp::now_seconds() });
+        };
     }
-}
 
 
 // === VIEW FUNCTIONS === //

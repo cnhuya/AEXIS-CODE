@@ -260,7 +260,7 @@ module dev::QiaraTokensCoreV3 {
            return
         };
         //tttta(1000);
-        TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&object::owner(store)), fungible_asset::amount(&fa), true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&store), fungible_asset::amount(&fa), true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         //tttta(147);
         fungible_asset::deposit_with_ref(&managed.transfer_ref, store, fa);
     }

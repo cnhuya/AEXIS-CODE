@@ -78,36 +78,36 @@ module dev::QiaraTokensSharedV3{
         }
     }
 
-public entry fun allow_sub_owner(signer: &signer, owner: vector<u8>, name: String, sub_owner: vector<u8>) acquires SharedStorage {
-    let shared = borrow_global_mut<SharedStorage>(@dev);
+    public entry fun allow_sub_owner(signer: &signer, owner: vector<u8>, name: String, sub_owner: vector<u8>) acquires SharedStorage {
+        let shared = borrow_global_mut<SharedStorage>(@dev);
 
-    if (!table::contains(&shared.storage, owner)) {
-        table::add(&mut shared.storage, owner, map::new<String, Ownership>());
-    };
+        if (!table::contains(&shared.storage, owner)) {
+            table::add(&mut shared.storage, owner, map::new<String, Ownership>());
+        };
 
-    let user_map = table::borrow_mut(&mut shared.storage, owner);
+        let user_map = table::borrow_mut(&mut shared.storage, owner);
 
-    if (!map::contains_key(user_map, &name)) {
-        map::add(user_map, name, Ownership { owner: bcs::to_bytes(&signer::address_of(signer)), sub_owners: vector::empty<vector<u8>>() });
-    };
+        if (!map::contains_key(user_map, &name)) {
+            map::add(user_map, name, Ownership { owner: bcs::to_bytes(&signer::address_of(signer)), sub_owners: vector::empty<vector<u8>>() });
+        };
 
-    let ownership_record = map::borrow_mut(user_map, &name);
-    
-    vector::push_back(&mut ownership_record.sub_owners, sub_owner);
+        let ownership_record = map::borrow_mut(user_map, &name);
+        
+        vector::push_back(&mut ownership_record.sub_owners, sub_owner);
 
-    // sub_owners
-    if (!table::contains(&shared.storage_registry, sub_owner)) {
-        table::add(&mut shared.storage_registry, sub_owner, map::new<vector<u8>, vector<String>>());
-    };
+        // sub_owners
+        if (!table::contains(&shared.storage_registry, sub_owner)) {
+            table::add(&mut shared.storage_registry, sub_owner, map::new<vector<u8>, vector<String>>());
+        };
 
-    let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
+        let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
 
-    if (!map::contains_key(sub_owners_registry, &owner)) {
-        map::add(sub_owners_registry, owner, vector::empty<String>());
-    };
-    let vect = map::borrow_mut(sub_owners_registry, &owner);
-    vector::push_back(vect, name);
-}
+        if (!map::contains_key(sub_owners_registry, &owner)) {
+            map::add(sub_owners_registry, owner, vector::empty<String>());
+        };
+        let vect = map::borrow_mut(sub_owners_registry, &owner);
+        vector::push_back(vect, name);
+    }
 
     public entry fun remove_sub_owner(signer: &signer, name: String, sub_owner: vector<u8>) acquires SharedStorage{
         let shared = borrow_global_mut<SharedStorage>(@dev);
