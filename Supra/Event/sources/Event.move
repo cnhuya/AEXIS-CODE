@@ -47,6 +47,10 @@ module dev::QiaraEventV1 {
     struct PointsEvent has copy, drop, store {
         aux: vector<Data>,
     }
+    #[event]
+    struct StakingEvent has copy, drop, store {
+        aux: vector<Data>,
+    }
 
 
 // === INIT === //
@@ -80,6 +84,12 @@ module dev::QiaraEventV1 {
     public fun emit_perps_event(data: vector<Data>) {
          vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
          event::emit(PerpsEvent {
+            aux: data,
+        });
+    }
+    public fun emit_staking_event(data: vector<Data>) {
+         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
+         event::emit(StakingEvent {
             aux: data,
         });
     }
