@@ -1,4 +1,4 @@
-module dev::QiaraEventV1 {
+module dev::QiaraEventV2 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -62,37 +62,48 @@ module dev::QiaraEventV1 {
         Data {name: name,type: type,value: value}
     }
 
-    public fun emit_market_event(data: vector<Data>) {  
+    public fun emit_market_event(type: String, data: vector<Data>) { 
+         data = append_type(data, type); 
          vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
          event::emit(MarketEvent {
             aux: data,
         });
 
     }
-    public fun emit_points_event(data: vector<Data>) {
+    public fun emit_points_event(type: String, data: vector<Data>) {
+         data = append_type(data, type);
          vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
          event::emit(PointsEvent {
             aux: data,
         });
     }
-    public fun emit_governance_event(data: vector<Data>) {
+    public fun emit_governance_event(type: String, data: vector<Data>) {
+         data = append_type(data, type);
          vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
          event::emit(GovernanceEvent {
             aux: data,
         });
     }
-    public fun emit_perps_event(data: vector<Data>) {
+    public fun emit_perps_event(type: String, data: vector<Data>) {
+         data = append_type(data, type);
          vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
          event::emit(PerpsEvent {
             aux: data,
         });
     }
-    public fun emit_staking_event(data: vector<Data>) {
+    public fun emit_staking_event(type: String, data: vector<Data>) {
+         data = append_type(data, type);
          vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
          event::emit(StakingEvent {
             aux: data,
         });
     }
 
+    fun append_type(data: vector<Data>, type: String): vector<Data> {
+        let type = create_data_struct(utf8(b"type"), utf8(b"string"), bcs::to_bytes(&type));
+        let vect = vector[type];
+        vector::append(&mut vect, data);
+        return vect
+    }
 
 }
