@@ -1,4 +1,4 @@
-module dev::QiaraValidatorsV1 {
+module dev::QiaraValidatorsV2 {
     use std::signer;
     use std::vector;
     use std::bcs;
@@ -9,6 +9,9 @@ module dev::QiaraValidatorsV1 {
     use supra_framework::event;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::string::{Self as String, String, utf8};
+
+    use dev::QiaraTokensSharedV3::{Self as TokensShared};
+
     // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
     const ERROR_NOT_VALIDATOR: u64 = 1;
@@ -34,11 +37,11 @@ module dev::QiaraValidatorsV1 {
 // === STRUCTS === //
     // list of all ACTIVE validators/relayers
     struct ActiveValidators has key {
-        list: vector<address>,
+        list: vector<String>,
     }
     // list of all validators/relayers
     struct Validators has key {
-        map: Map<address, Validator>,
+        map: Map<String, Validator>,
     }
     struct Validator has key, store, copy, drop {
         pub_key_y: String,
@@ -48,64 +51,67 @@ module dev::QiaraValidatorsV1 {
         total_power: u256,
         isActive: bool,
         last_active: u64,
-        sub_validators: Map<address, u256>,
+        sub_validators: Map<String, u256>,
     }
 
     struct Stakers has key, store {
-        table: Table<address, address>,
+        table: Table<String, String>,
     }
 
 // === INIT === //
     fun init_module(admin: &signer) {
         let admin_addr = signer::address_of(admin);
         assert!(admin_addr == @dev, ERROR_NOT_ADMIN);
-        move_to(admin, ActiveValidators {list: vector::empty<address>()});
-        move_to(admin, Validators {map: map::new<address, Validator>()});
+        move_to(admin, ActiveValidators {list: vector::empty<String>()});
+        move_to(admin, Validators {map: map::new<String, Validator>()});
         if (!exists<Stakers>(@dev)) {
-            move_to(admin, Stakers { table: table::new<address, address>() });
+            move_to(admin, Stakers { table: table::new<String, String>() });
         };
     }
 
 // === PUBLIC FUNCTIONS === //
 
-    public fun register_validator(signer: &signer, pub_key_x: String, pub_key_y: String, pub_key: vector<u8>, power:u256, perm: Permission) acquires ActiveValidators, Validators {
-
+    public fun register_validator(signer: &signer, shared_storage_name: String, owner: vector<u8>, pub_key_x: String, pub_key_y: String, pub_key: vector<u8>, power:u256, perm: Permission) acquires ActiveValidators, Validators {
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
         let active_validators = borrow_global_mut<ActiveValidators>(@dev); 
         let validators = borrow_global_mut<Validators>(@dev);
 
-        reg_validator(power,&mut active_validators.list, &mut validators.map, signer::address_of(signer), pub_key_x, pub_key_y, pub_key);
+        reg_validator(power,&mut active_validators.list, &mut validators.map, shared_storage_name, pub_key_x, pub_key_y, pub_key);
 
     }
 
-    public fun change_validator_poseidon_pubkeys(signer: &signer, pub_key_x: String, pub_key_y: String, perm: Permission) acquires Validators {
+    public fun change_validator_poseidon_pubkeys(signer: &signer,  shared_storage_name: String, owner: vector<u8>, pub_key_x: String, pub_key_y: String, perm: Permission) acquires Validators {
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
         let validators = borrow_global_mut<Validators>(@dev); 
         
-        if(!map::contains_key(&mut validators.map, &signer::address_of(signer))) {
+        if(!map::contains_key(&mut validators.map, &shared_storage_name)) {
             abort ERROR_VALIDATOR_DOESNT_EXISTS
         };
 
-        let validator = map::borrow_mut(&mut validators.map, &signer::address_of(signer));
+        let validator = map::borrow_mut(&mut validators.map, &shared_storage_name);
         validator.pub_key_x = pub_key_x;
         validator.pub_key_y = pub_key_y;
     }
 
-    public fun change_validator_pubkey(signer: &signer, pub_key: vector<u8>, perm: Permission) acquires Validators {
+    public fun change_validator_pubkey(signer: &signer, shared_storage_name: String, owner: vector<u8>, pub_key: vector<u8>, perm: Permission) acquires Validators {
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
         let validators = borrow_global_mut<Validators>(@dev); 
         
-        if(!map::contains_key(&mut validators.map, &signer::address_of(signer))) {
+        if(!map::contains_key(&mut validators.map, &shared_storage_name)) {
             abort ERROR_VALIDATOR_DOESNT_EXISTS
         };
 
-        let validator = map::borrow_mut(&mut validators.map, &signer::address_of(signer));
+        let validator = map::borrow_mut(&mut validators.map, &shared_storage_name);
         validator.pub_key = pub_key;
     }
 
-    public fun change_staker_validator(signer: &signer, new_validator: address, perm: Permission) acquires ActiveValidators, Validators, Stakers {
+    public fun change_staker_validator(signer: &signer, shared_storage_name: String, owner: vector<u8>, new_validator: String, perm: Permission) acquires ActiveValidators, Validators, Stakers {
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)));
         let active_validators = borrow_global_mut<ActiveValidators>(@dev); 
         let validators = borrow_global_mut<Validators>(@dev);
         let stakers = borrow_global_mut<Stakers>(@dev);
 
-        if(!table::contains(&stakers.table, signer::address_of(signer))) {
+        if(!table::contains(&stakers.table, shared_storage_name)) {
             abort ERROR_NOT_STAKER
         };
 
@@ -113,8 +119,8 @@ module dev::QiaraValidatorsV1 {
             abort ERROR_NOT_REGISTERED_VALIDATOR
         };
 
-        let staker = table::borrow_mut(&mut stakers.table, signer::address_of(signer));
-        table::upsert(&mut stakers.table, signer::address_of(signer), new_validator);
+        let staker = table::borrow_mut(&mut stakers.table, shared_storage_name);
+        table::upsert(&mut stakers.table, shared_storage_name, new_validator);
 
         let validator = map::borrow_mut(&mut validators.map, &new_validator);
         if(validator.isActive) {
@@ -131,18 +137,18 @@ module dev::QiaraValidatorsV1 {
     
 
 // === INTERNAL FUNCTIONS === //
-    fun reg_validator(power: u256, active_validators: &mut vector<address>, validators: &mut Map<address, Validator>, validator: address, pub_key_x: String, pub_key_y: String, pub_key: vector<u8>) {
+    fun reg_validator(power: u256, active_validators: &mut vector<String>, validators: &mut Map<String, Validator>, validator: String, pub_key_x: String, pub_key_y: String, pub_key: vector<u8>) {
         if(map::contains_key(validators, &validator)) {
             abort ERROR_VALIDATOR_ALREADY_REGISTERED
         };
 
-        let validator_struct = Validator { pub_key: pub_key, pub_key_x: pub_key_x, pub_key_y: pub_key_y, self_power: power, isActive: true, last_active: 0, total_power: power, sub_validators: map::new<address, u256>() };
+        let validator_struct = Validator { pub_key: pub_key, pub_key_x: pub_key_x, pub_key_y: pub_key_y, self_power: power, isActive: true, last_active: 0, total_power: power, sub_validators: map::new<String, u256>() };
         map::upsert(validators, validator, validator_struct);
 
         check_active_validators(validators,active_validators, validator);
     }
 
-    fun check_active_validators(validators: &Map<address, Validator>, active_validators: &mut vector<address>, validator: address) {
+    fun check_active_validators(validators: &Map<String, Validator>, active_validators: &mut vector<String>, validator: String) {
         let length = vector::length(active_validators);
 
         if(length < 16) {
@@ -162,7 +168,7 @@ module dev::QiaraValidatorsV1 {
         }
     }
 
-    fun obtain_validator(validators: &Map<address, Validator>, validator: address): Validator {
+    fun obtain_validator(validators: &Map<String, Validator>, validator: String): Validator {
         if(!map::contains_key(validators, &validator)) {
             abort ERROR_VALIDATOR_DOESNT_EXISTS
         };
@@ -170,22 +176,22 @@ module dev::QiaraValidatorsV1 {
     }
 // === VIEW FUNCTIONS === //
     #[view]
-    public fun return_all_validators(): Map<address, Validator> acquires Validators {
+    public fun return_all_validators(): Map<String, Validator> acquires Validators {
         let vars = borrow_global<Validators>(@dev);
         vars.map 
     }
 
     #[view]
-    public fun return_all_active_arents(): vector<address> acquires ActiveValidators {
+    public fun return_all_active_arents(): vector<String> acquires ActiveValidators {
         let vars = borrow_global<ActiveValidators>(@dev);
         vars.list 
     }
 
     #[view]
-    public fun return_all_active_validators_full(): Map<address, Validator> acquires ActiveValidators, Validators {
+    public fun return_all_active_validators_full(): Map<String, Validator> acquires ActiveValidators, Validators {
         let vars = borrow_global<ActiveValidators>(@dev);
         let validators = borrow_global<Validators>(@dev);
-        let map = map::new<address, Validator>();
+        let map = map::new<String, Validator>();
 
         let length = vector::length(&vars.list);
         while(length > 0) {
@@ -198,7 +204,7 @@ module dev::QiaraValidatorsV1 {
     }
 
     #[view]
-    public fun return_validator(val: address): Validator acquires Validators {
+    public fun return_validator(val: String): Validator acquires Validators {
         let vars = borrow_global<Validators>(@dev);
         if(!map::contains_key(&vars.map, &val)) {
             abort ERROR_VALIDATOR_DOESNT_EXISTS
@@ -207,7 +213,7 @@ module dev::QiaraValidatorsV1 {
     }
 
     #[view]
-    public fun return_validator_raw(val: address): (String, String, vector<u8>, u256, u256, bool, Map<address, u256>) acquires Validators {
+    public fun return_validator_raw(val: String): (String, String, vector<u8>, u256, u256, bool, Map<String, u256>) acquires Validators {
         let vars = borrow_global<Validators>(@dev);
         if(!map::contains_key(&vars.map, &val)) {
             abort ERROR_VALIDATOR_DOESNT_EXISTS
