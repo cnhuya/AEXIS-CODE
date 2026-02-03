@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraTokensV4"
+    name = "QiaraTokensV5"
     version = "2.1.1"
     authors = []
 
@@ -32,12 +32,12 @@
     rev = 'main'
     subdir = 'Supra/Math'
 
-    [dependencies.QiaraTokensRouterV3]
+    [dependencies.QiaraTokensRouterV4]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/TokensRouter'
 
-    [dependencies.QiaraTypesV4]
+    [dependencies.QiaraTypesV5]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'

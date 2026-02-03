@@ -1,4 +1,4 @@
-module dev::QiaraTokensQiaraV3 {
+module dev::QiaraTokensQiaraV4 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -14,7 +14,7 @@ module dev::QiaraTokensQiaraV3 {
     use supra_framework::event;
     use std::string::{Self as string, String, utf8};
 
-    use dev::QiaraTokensCoreV3::{Self as TokensCore};
+    use dev::QiaraTokensCoreV4::{Self as TokensCore};
 
     use dev::QiaraCapabilitiesV2::{Self as capabilities};
     use dev::QiaraStorageV2::{Self as storage};

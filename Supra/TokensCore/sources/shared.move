@@ -1,4 +1,4 @@
-module dev::QiaraTokensSharedV3{
+module dev::QiaraTokensSharedV4{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;
@@ -16,6 +16,7 @@ module dev::QiaraTokensSharedV3{
     const ERROR_SHARED_STORAGE_WITH_THIS_NAME_ALREADY_EXISTS: u64 = 5;
     const ERROR_ADDRESS_DOESNT_MATCH_SIGNER: u64 = 6;
     const ERROR_NOT_OWNER_OF_THIS_SHARED_STORAGE: u64 = 7;
+    const ERROR_SHARED_STORAGE_WITH_THIS_NAME_DOESNT_EXISTS: u64 = 8;
 
 // === ACCESS === //
     struct Access has store, key, drop {}
@@ -201,43 +202,40 @@ module dev::QiaraTokensSharedV3{
         return true
     }
 
-    #[view]
-    public fun assert_is_sub_owner(owner: vector<u8>, name: String, sub_owner: vector<u8>): bool acquires SharedStorage {
+    public fun assert_is_sub_owner(owner: vector<u8>, name: String, sub_owner: vector<u8>) acquires SharedStorage {
         let shared = borrow_global<SharedStorage>(@dev);
 
         if (!table::contains(&shared.storage, owner)) {
-            return false
+            abort ERROR_SHARED_STORAGE_DOESNT_EXISTS_FOR_THIS_ADDRESS
         };
 
         let user_map = table::borrow(&shared.storage, owner);
 
         if (!map::contains_key(user_map, &name)) {
-            return false
+            abort ERROR_SHARED_STORAGE_WITH_THIS_NAME_DOESNT_EXISTS
         };
 
         let ownership_record = map::borrow(user_map, &name);
 
-        vector::contains(&ownership_record.sub_owners, &sub_owner)
+        assert!(vector::contains(&ownership_record.sub_owners, &sub_owner), ERROR_THIS_SUB_OWNER_IS_NOT_ALLOWED_FOR_THIS_SHARED_STORAGE);
     }
 
-    #[view]
-    public fun assert_is_owner(owner: vector<u8>, name: String): bool acquires SharedStorage {
+    public fun assert_is_owner(owner: vector<u8>, name: String) acquires SharedStorage {
         let shared = borrow_global<SharedStorage>(@dev);
 
         if (!table::contains(&shared.storage, owner)) {
-            return false
+            abort ERROR_SHARED_STORAGE_DOESNT_EXISTS_FOR_THIS_ADDRESS
         };
 
         let user_map = table::borrow(&shared.storage, owner);
 
         if (!map::contains_key(user_map, &name)) {
-            return false
+            abort ERROR_SHARED_STORAGE_WITH_THIS_NAME_DOESNT_EXISTS
         };
 
         let ownership_record = map::borrow(user_map, &name);
 
         assert!(ownership_record.owner == owner, ERROR_NOT_OWNER_OF_THIS_SHARED_STORAGE);
-        return true
     }
 
 }
