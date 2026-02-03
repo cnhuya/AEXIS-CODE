@@ -1,4 +1,4 @@
-module dev::QiaraPayloadV9 {
+module dev::QiaraPayloadV12 {
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
@@ -24,23 +24,11 @@ module dev::QiaraPayloadV9 {
     }
 
 
-    public fun unpack_payload(vect: vector<vector<u8>>): vector<u8>{
-        let len = vector::length(&vect);
-        let out = vector::empty<u8>();
-        while(len>0){
-            let el = vector::borrow(&vect, len-1);
-            len = len - 1;
-            vector::append(&mut out, *el);
-        };
-        return out
-    }
-
     public fun ensure_valid_payload(type_names: vector<String>, payload: vector<vector<u8>>){
         let len = vector::length(&type_names);
         let payload_len = vector::length(&payload);
         assert!(len == payload_len, ERROR_PAYLOAD_LENGTH_MISMATCH_WITH_TYPES);
 
-        assert!(vector::contains(&type_names, &utf8(b"chain")), ERROR_PAYLOAD_MISS_CHAIN);
         assert!(vector::contains(&type_names, &utf8(b"hash")), ERROR_PAYLOAD_MISS_HASH);
         assert!(vector::contains(&type_names, &utf8(b"time")), ERROR_PAYLOAD_MISS_TIME);
         assert!(vector::contains(&type_names, &utf8(b"type")), ERROR_PAYLOAD_MISS_TYPE);
@@ -59,6 +47,16 @@ module dev::QiaraPayloadV9 {
         let (isFound, index) = vector::index_of(&vect, &value);
         assert!(isFound, ERROR_TYPE_NOT_FOUND);
         return (value, *vector::borrow(&from, index))
+    }
+
+    public fun prepare_register_validator(type_names: vector<String>, payload: vector<vector<u8>>): (String, String, String, vector<u8>, u256){
+        let (_, shared_storage_name) = find_payload_value(utf8(b"shared_storage_name"), type_names, payload);
+        let (_, pub_key_x) = find_payload_value(utf8(b"pub_key_x"), type_names, payload);
+        let (_, pub_key_y) = find_payload_value(utf8(b"pub_key_y"), type_names, payload);
+        let (_, pub_key) = find_payload_value(utf8(b"pub_key"), type_names, payload);
+        let (_, power) = find_payload_value(utf8(b"power"), type_names, payload);
+
+        return (from_bcs::to_string(shared_storage_name), from_bcs::to_string(pub_key_x), from_bcs::to_string(pub_key_y), from_bcs::to_bytes(pub_key), from_bcs::to_u256(power))
     }
 
 }

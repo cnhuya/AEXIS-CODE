@@ -1,4 +1,4 @@
-module dev::QiaraValidatorsV9 {
+module dev::QiaraValidatorsV12 {
     use std::signer;
     use std::vector;
     use std::bcs;
@@ -11,7 +11,9 @@ module dev::QiaraValidatorsV9 {
     use std::string::{Self as String, String, utf8};
 
     use dev::QiaraTokensSharedV4::{Self as TokensShared};
+    use dev::QiaraMarginV3::{Self as Margin};
 
+    use dev::QiaraGenesisV12::{Self as Genesis};
     // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
     const ERROR_NOT_VALIDATOR: u64 = 1;
@@ -38,6 +40,7 @@ module dev::QiaraValidatorsV9 {
     // list of all ACTIVE validators/relayers
     struct ActiveValidators has key {
         list: vector<String>,
+        epoch: u64,
     }
     // list of all validators/relayers
     struct Validators has key {
@@ -62,7 +65,7 @@ module dev::QiaraValidatorsV9 {
     fun init_module(admin: &signer) {
         let admin_addr = signer::address_of(admin);
         assert!(admin_addr == @dev, ERROR_NOT_ADMIN);
-        move_to(admin, ActiveValidators {list: vector::empty<String>()});
+        move_to(admin, ActiveValidators {list: vector::empty<String>(), epoch: 0});
         move_to(admin, Validators {map: map::new<String, Validator>()});
         if (!exists<Stakers>(@dev)) {
             move_to(admin, Stakers { table: table::new<String, String>() });
@@ -77,7 +80,7 @@ module dev::QiaraValidatorsV9 {
         let active_validators = borrow_global_mut<ActiveValidators>(@dev); 
         let validators = borrow_global_mut<Validators>(@dev);
 
-        reg_validator(power,&mut active_validators.list, &mut validators.map, shared_storage_name, pub_key_x, pub_key_y, pub_key);
+        reg_validator(power,active_validators, &mut validators.map, shared_storage_name, pub_key_x, pub_key_y, pub_key);
 
     }
 
@@ -86,15 +89,14 @@ module dev::QiaraValidatorsV9 {
         let active_validators = borrow_global_mut<ActiveValidators>(@dev); 
         let validators = borrow_global_mut<Validators>(@dev);
 
-        reg_validator(power,&mut active_validators.list, &mut validators.map, shared_storage_name, pub_key_x, pub_key_y, pub_key);
+        reg_validator(power,active_validators, &mut validators.map, shared_storage_name, pub_key_x, pub_key_y, pub_key);
 
     }
-    public fun re_check_validator_power(signer: &signer, shared_storage_name: String, perm: Permission) acquires ActiveValidators, Validators {
-        TokensShared::assert_is_owner(bcs::to_bytes(&signer::address_of(signer)), shared_storage_name);
+    public fun re_check_active_validators(signer: &signer, perm: Permission) acquires ActiveValidators, Validators {
         let active_validators = borrow_global_mut<ActiveValidators>(@dev); 
         let validators = borrow_global_mut<Validators>(@dev);
 
-        check_active_validators(&validators.map , &mut active_validators.list, shared_storage_name);
+        check_active_validators(&validators.map, active_validators);
 
     }
     public fun change_staker_validator(signer: &signer, shared_storage_name: String, new_validator: String, perm: Permission) acquires ActiveValidators, Validators, Stakers {
@@ -116,7 +118,7 @@ module dev::QiaraValidatorsV9 {
 
         let validator = map::borrow_mut(&mut validators.map, &new_validator);
         if(validator.isActive) {
-            check_active_validators(&mut validators.map, &mut active_validators.list, new_validator);
+            check_active_validators(&validators.map, active_validators);
         }
     }
     
@@ -146,7 +148,7 @@ module dev::QiaraValidatorsV9 {
     }
 
 // === INTERNAL FUNCTIONS === //
-    fun reg_validator(power: u256, active_validators: &mut vector<String>, validators: &mut Map<String, Validator>, validator: String, pub_key_x: String, pub_key_y: String, pub_key: vector<u8>) {
+    fun reg_validator(power: u256, active_validators: &mut ActiveValidators, validators: &mut Map<String, Validator>, validator: String, pub_key_x: String, pub_key_y: String, pub_key: vector<u8>) {
         if(map::contains_key(validators, &validator)) {
             abort ERROR_VALIDATOR_ALREADY_REGISTERED
         };
@@ -154,28 +156,57 @@ module dev::QiaraValidatorsV9 {
         let validator_struct = Validator { pub_key: pub_key, pub_key_x: pub_key_x, pub_key_y: pub_key_y, self_power: power, isActive: true, last_active: 0, total_power: power, sub_validators: map::new<String, u256>() };
         map::upsert(validators, validator, validator_struct);
 
-        check_active_validators(validators,active_validators, validator);
+        check_active_validators(validators, active_validators);
     }
 
-    fun check_active_validators(validators: &Map<String, Validator>, active_validators: &mut vector<String>, validator: String) {
-        let length = vector::length(active_validators);
+    fun check_active_validators(validators_map: &Map<String, Validator>, active_validators: &mut ActiveValidators) {
+        let max_active = 16;
+        let validators = map::keys(validators_map);
 
-        if(length < 16) {
-            vector::push_back(active_validators, validator);
+        let epoch = Genesis::return_epoch();
+
+        if((epoch as u64) == active_validators.epoch) {
             return
         };
+        let total_count = vector::length(&validators);
+        
+        let top_validator_addrs = vector::empty<String>();
+        let i = 0;
 
-        while(length > 0) {
-            let validator_addr = vector::borrow(active_validators, length);
-            let active_validator = obtain_validator(validators, *validator_addr);
-            let self_validator = obtain_validator(validators, validator);
-            if(active_validator.total_power < self_validator.total_power) {
-                vector::remove(active_validators, length);
-                vector::push_back(active_validators, validator);
+        while (i < total_count) {
+            let name = *vector::borrow(&validators, i);
+            
+            let (_, _, _, _, _, _, _, _, current_power, _, _) = Margin::get_user_total_usd(name);
 
+            let j = 0;
+            let inserted = false;
+            let top_len = vector::length(&top_validator_addrs);
+
+            while (j < top_len) {
+                let existing_name = *vector::borrow(&top_validator_addrs, j);
+                
+                let (_, _, _, _, _, _, _, _, existing_power, _, _) = Margin::get_user_total_usd(existing_name);
+
+                if (current_power > existing_power) {
+                    vector::insert(&mut top_validator_addrs, j, name);
+                    inserted = true;
+                    break
+                };
+                j = j + 1;
             };
-            length = length - 1;
-        }
+
+            if (!inserted && top_len < max_active) {
+                vector::push_back(&mut top_validator_addrs, name);
+            };
+
+            if (vector::length(&top_validator_addrs) > max_active) {
+                vector::pop_back(&mut top_validator_addrs);
+            };
+
+            i = i + 1;
+        };
+
+        active_validators.list =  top_validator_addrs
     }
 
     fun obtain_validator(validators: &Map<String, Validator>, validator: String): Validator {
@@ -198,7 +229,7 @@ module dev::QiaraValidatorsV9 {
     }
 
     #[view]
-    public fun return_all_active_validators_full(): Map<String, Validator> acquires ActiveValidators, Validators {
+    public fun return_all_active_validators_full(): (Map<String, Validator>, u64) acquires ActiveValidators, Validators {
         let vars = borrow_global<ActiveValidators>(@dev);
         let validators = borrow_global<Validators>(@dev);
         let map = map::new<String, Validator>();
@@ -210,7 +241,7 @@ module dev::QiaraValidatorsV9 {
             map::add(&mut map, *validator_addr, validator);
             length = length - 1;
         };
-        map 
+        (map, vars.epoch)
     }
 
     #[view]
