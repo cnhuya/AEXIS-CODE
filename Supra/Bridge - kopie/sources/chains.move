@@ -1,4 +1,4 @@
-module dev::QiaraBridgeV5 {
+module dev::QiaraBridgeV7 {
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
@@ -18,14 +18,14 @@ module dev::QiaraBridgeV5 {
     use dev::QiaraEventV2::{Self as Event};
     use dev::QiaraStorageV2::{Self as storage};
 
-    use dev::QiaraTokensCoreV3::{Self as TokensCore};
-    use dev::QiaraTokensValidatorsV3::{Self as TokensValidators};
-    use dev::QiaraTokensSharedV3::{Self as TokensShared};
+    use dev::QiaraTokensCoreV4::{Self as TokensCore};
+    use dev::QiaraTokensValidatorsV4::{Self as TokensValidators};
+    use dev::QiaraTokensSharedV4::{Self as TokensShared};
 
-    use dev::QiaraMarginV2::{Self as Margin};
+    use dev::QiaraMarginV3::{Self as Margin};
     
-    use dev::QiaraPayloadV5::{Self as Payload};
-    use dev::QiaraValidatorsV5::{Self as Validators};
+    use dev::QiaraPayloadV7::{Self as Payload};
+    use dev::QiaraValidatorsV7::{Self as Validators};
     /// Admin address constant
     const STORAGE: address = @dev;
 
