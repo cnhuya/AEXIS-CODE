@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraMarginV2"
+    name = "QiaraMarginV3"
     version = "2.1.1"
     authors = []
 
@@ -31,12 +31,12 @@
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
 
-    [dependencies.QiaraTokensV4]
+    [dependencies.QiaraTokensV5]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/TokensCore'
 
-    [dependencies.QiaraTypesV4]
+    [dependencies.QiaraTypesV5]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
@@ -45,5 +45,7 @@
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Storage'
+
+    
 
     [dev-dependencies]
