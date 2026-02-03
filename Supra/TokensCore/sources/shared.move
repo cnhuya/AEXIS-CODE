@@ -15,6 +15,7 @@ module dev::QiaraTokensSharedV3{
     const ERROR_SUB_OWNER_DOESNT_EXISTS_IN_ANY_SHARED_STORAGE: u64 = 4;
     const ERROR_SHARED_STORAGE_WITH_THIS_NAME_ALREADY_EXISTS: u64 = 5;
     const ERROR_ADDRESS_DOESNT_MATCH_SIGNER: u64 = 6;
+    const ERROR_NOT_OWNER_OF_THIS_SHARED_STORAGE: u64 = 7;
 
 // === ACCESS === //
     struct Access has store, key, drop {}
@@ -217,6 +218,26 @@ module dev::QiaraTokensSharedV3{
         let ownership_record = map::borrow(user_map, &name);
 
         vector::contains(&ownership_record.sub_owners, &sub_owner)
+    }
+
+    #[view]
+    public fun assert_is_owner(owner: vector<u8>, name: String): bool acquires SharedStorage {
+        let shared = borrow_global<SharedStorage>(@dev);
+
+        if (!table::contains(&shared.storage, owner)) {
+            return false
+        };
+
+        let user_map = table::borrow(&shared.storage, owner);
+
+        if (!map::contains_key(user_map, &name)) {
+            return false
+        };
+
+        let ownership_record = map::borrow(user_map, &name);
+
+        assert!(ownership_record.owner == owner, ERROR_NOT_OWNER_OF_THIS_SHARED_STORAGE);
+        return true
     }
 
 }
