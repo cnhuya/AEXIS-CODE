@@ -1,10 +1,10 @@
     [package]
-    name = "QiaraMarketV11"
+    name = "QiaraMarketV5"
     version = "2.1.1"
     authors = []
 
     [addresses]
-    dev = "0x6341ca6cd563e9317718102d312a2281fbb9b3e4506b4871d98dab4085f94ec1"
+    dev = "0x434efed497f5b9ed8f975dd60df271297e35a1bbe9e4a17bc65920273bfca1c6"
     supra_framework = "0x1"
     std = "0x1"
     aptos_std = "0x1"
@@ -31,7 +31,7 @@
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraMarginV13]
+    [dependencies.QiaraMarginV3]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
@@ -41,19 +41,24 @@
     rev = 'main'
     subdir = 'Supra/Math'
 
-    [dependencies.QiaraTokensV8]
+    [dependencies.QiaraTokensV5]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/TokensCore'
 
-    [dependencies.QiaraTypesV8]
+    [dependencies.QiaraTypesV5]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
 
-    [dependencies.QiaraAutomationV7]
+    [dependencies.QiaraAutomationV2]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/AutoCustom'
+
+    [dependencies.QiaraEventV2]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Event'
 
     [dev-dependencies]
