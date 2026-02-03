@@ -1,4 +1,4 @@
-module dev::QiaraBridgeV8 {
+module dev::QiaraBridgeV9 {
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
@@ -15,17 +15,19 @@ module dev::QiaraBridgeV8 {
     use supra_framework::fungible_asset::{Self, Metadata, FungibleAsset};
     use supra_framework::object::{Self, Object};
     use supra_framework::primary_fungible_store;
-    use dev::QiaraEventV2::{Self as Event};
+    use dev::QiaraEventV3::{Self as Event};
     use dev::QiaraStorageV2::{Self as storage};
 
-    use dev::QiaraTokensCoreV4::{Self as TokensCore};
+    use dev::QiaraTokensCoreV4::{Self as TokensCore, Access as TokensCoreAccess};
     use dev::QiaraTokensValidatorsV4::{Self as TokensValidators};
     use dev::QiaraTokensSharedV4::{Self as TokensShared};
+    
+    use dev::QiaraVaultsV5::{Self as Market, Access as MarketAccess};
 
     use dev::QiaraMarginV3::{Self as Margin};
-    
-    use dev::QiaraPayloadV8::{Self as Payload};
-    use dev::QiaraValidatorsV8::{Self as Validators};
+
+    use dev::QiaraPayloadV9::{Self as Payload};
+    use dev::QiaraValidatorsV9::{Self as Validators};
     /// Admin address constant
     const STORAGE: address = @dev;
 
@@ -60,7 +62,9 @@ module dev::QiaraBridgeV8 {
     }
 
     // Permissions 
-    struct Permissions has key {
+    struct Permissions has key, store, drop {
+        market: MarketAccess,
+        tokens_core: TokensCoreAccess,
     }
 
 // === STRUCTS === //
@@ -120,49 +124,16 @@ module dev::QiaraBridgeV8 {
         total_weight: u128,
     }
 
-// === EVENTS === //
-
-/*    #[event]
-    struct BridgeUpdateEvent has drop, store {
-        message: String,
-        type_names: vector<String>,
-        payload: vector<vector<u8>>,
-        sigs: Map<address, ZkVote>,
-        total_vote_power: u64,
-        time: u64,
-    }
-
-    #[event]
-    struct VoteEvent has drop, store {
-        validator: address,
-        message: String,
-        root: String,
-        vote_power: u64,
-        total_vote_power: u64,
-        time: u64,
-    }*/
-
 // === INIT === //
     fun init_module(admin: &signer) {
-    //    if (!exists<Permissions>(@dev)) {
-    //        let _cap = Permissions { vault_access: Vaults::give_access(admin), coin_access: CoinDeployer::give_access(admin)};
-    //        move_to(admin, _cap);
-    //    };
+        if (!exists<Permissions>(@dev)) {
+            move_to(admin, Permissions {market: Market::give_access(admin), tokens_core: TokensCore::give_access(admin)});
+        };
     }
 
 // === FUNCTIONS === //
-   
-/*    #[view]
-    public fun return_validator_raw(val: String): (String, String, vector<u8>, u256, u256, bool, Map<String, u256>) acquires Validators {
-        let vars = borrow_global<Validators>(@dev);
-        if(!map::contains_key(&vars.map, &val)) {
-            abort ERROR_VALIDATOR_DOESNT_EXISTS
-        };
-        let validator  = map::borrow(&vars.map, &val);
-        return (validator.pub_key_x, validator.pub_key_y,validator.pub_key, validator.self_power, validator.total_power, validator.isActive, validator.sub_validators)
-*/
-    public entry fun register_event(validator: &signer, shared_storage_name: String, owner: vector<u8>, type_names: vector<String>, payload: vector<vector<u8>>) acquires Pending, Validated, Permissions {
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, bcs::to_bytes(&signer::address_of(validator)));
+    public entry fun register_event(validator: &signer, shared_storage_name: String, type_names: vector<String>, payload: vector<vector<u8>>) acquires Pending, Validated, Permissions {
+        TokensShared::assert_is_owner(bcs::to_bytes(&signer::address_of(validator)), shared_storage_name);
         Payload::ensure_valid_payload(type_names, payload);
         let (_, hash) = Payload::find_payload_value(utf8(b"hash"), type_names, payload);
         let (_, type) = Payload::find_payload_value(utf8(b"type"), type_names, payload);
@@ -189,6 +160,7 @@ module dev::QiaraBridgeV8 {
                 &mut pending.main,
                 &mut validated.main,
                 hash,
+                type_names,
                 payload,
                 _signature,
                 shared_storage_name,
@@ -201,6 +173,7 @@ module dev::QiaraBridgeV8 {
                 &mut pending.zk,
                 &mut validated.zk,
                 hash,
+                type_names,
                 payload,
                 build_zkVote_from_payload(pub_key_x, pub_key_y, type_names, payload),
                 shared_storage_name,
@@ -295,7 +268,7 @@ module dev::QiaraBridgeV8 {
     }
 
 
-    fun handle_main_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, MainVotes>, validated_table: &mut table::Table<vector<u8>, MainVotes>, hash: vector<u8>, payload: vector<vector<u8>>, signature: vector<u8>, shared_storage_name: String, event_type: String ) acquires Permissions {
+    fun handle_main_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, MainVotes>, validated_table: &mut table::Table<vector<u8>, MainVotes>, hash: vector<u8>, type_names: vector<String>, payload: vector<vector<u8>>, signature: vector<u8>, shared_storage_name: String, event_type: String ) acquires Permissions {
         let quorum = storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT")));
         // Already validated?
         if (table::contains(validated_table, hash)) {
@@ -325,7 +298,7 @@ module dev::QiaraBridgeV8 {
                     Event::create_data_struct(utf8(b"hash"), utf8(b"vector<u8>"), bcs::to_bytes(&hash)),
                     Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
                 ];
-                Event::emit_market_event(utf8(b"Vote Event"), data);
+                Event::emit_bridge_event(utf8(b"Vote Event"), type_names, data);
 
                 // Return updated total weight
                 votes.total_weight
@@ -383,12 +356,13 @@ module dev::QiaraBridgeV8 {
                 Event::create_data_struct(utf8(b"total_weight"), utf8(b"u128"), bcs::to_bytes(&count)),
                 Event::create_data_struct(utf8(b"total_weight"), utf8(b"u128"), bcs::to_bytes(&count)),
                 Event::create_data_struct(utf8(b"quorum"), utf8(b"vector<u8>"), bcs::to_bytes(&quorum)),
+                Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                 Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
             ];
-            Event::emit_market_event(utf8(b"Validate Event"), data);
+            Event::emit_market_event(utf8(b"Register Event"), data);
             };
     }
-    fun handle_zk_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, ZkVotes>, validated_table: &mut table::Table<vector<u8>, ZkVotes>, hash: vector<u8>, payload: vector<vector<u8>>, zk_vote: ZkVote, shared_storage_name: String, event_type: String ) acquires Permissions {
+    fun handle_zk_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, ZkVotes>, validated_table: &mut table::Table<vector<u8>, ZkVotes>, hash: vector<u8>,  type_names: vector<String>, payload: vector<vector<u8>>, zk_vote: ZkVote, shared_storage_name: String, event_type: String ) acquires Permissions {
         let quorum = storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT")));
 
         // Already validated?
@@ -417,6 +391,7 @@ module dev::QiaraBridgeV8 {
                     Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
                     Event::create_data_struct(utf8(b"vote_weight"), utf8(b"u128"), bcs::to_bytes(&vote_weight)),
                     Event::create_data_struct(utf8(b"hash"), utf8(b"vector<u8>"), bcs::to_bytes(&hash)),
+                    Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                     Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
                 ];
                 Event::emit_market_event(utf8(b"Vote Event"), data);
@@ -446,6 +421,7 @@ module dev::QiaraBridgeV8 {
                 Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
                 Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
                 Event::create_data_struct(utf8(b"hash"), utf8(b"vector<u8>"), bcs::to_bytes(&hash)),
+                Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                 Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
             ];
             Event::emit_market_event(utf8(b"Register Event"), data);
@@ -480,9 +456,10 @@ module dev::QiaraBridgeV8 {
                 Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
                 Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
                 Event::create_data_struct(utf8(b"hash"), utf8(b"vector<u8>"), bcs::to_bytes(&hash)),
+                Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                 Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
             ];
-            Event::emit_market_event(utf8(b"Register Event"), data);
+            Event::emit_market_event(utf8(b"Vote Event"), data);
         };
     }
 
