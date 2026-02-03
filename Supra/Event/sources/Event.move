@@ -1,4 +1,4 @@
-module dev::QiaraEventV2 {
+module dev::QiaraEventV3 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -51,6 +51,10 @@ module dev::QiaraEventV2 {
     struct StakingEvent has copy, drop, store {
         aux: vector<Data>,
     }
+    #[event]
+    struct BridgeEvent has copy, drop, store {
+        aux: vector<Data>,
+    }
 
 
 // === INIT === //
@@ -95,6 +99,13 @@ module dev::QiaraEventV2 {
          data = append_type(data, type);
          vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
          event::emit(StakingEvent {
+            aux: data,
+        });
+    }
+    public fun emit_bridge_event(type: String, data: vector<Data>) {
+         data = append_type(data, type);
+         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
+         event::emit(BridgeEvent {
             aux: data,
         });
     }
