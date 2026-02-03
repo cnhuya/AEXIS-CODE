@@ -1,4 +1,4 @@
-module dev::QiaraBridgeV7 {
+module dev::QiaraBridgeV8 {
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
@@ -24,8 +24,8 @@ module dev::QiaraBridgeV7 {
 
     use dev::QiaraMarginV3::{Self as Margin};
     
-    use dev::QiaraPayloadV7::{Self as Payload};
-    use dev::QiaraValidatorsV7::{Self as Validators};
+    use dev::QiaraPayloadV8::{Self as Payload};
+    use dev::QiaraValidatorsV8::{Self as Validators};
     /// Admin address constant
     const STORAGE: address = @dev;
 
@@ -166,6 +166,7 @@ module dev::QiaraBridgeV7 {
         Payload::ensure_valid_payload(type_names, payload);
         let (_, hash) = Payload::find_payload_value(utf8(b"hash"), type_names, payload);
         let (_, type) = Payload::find_payload_value(utf8(b"type"), type_names, payload);
+        let (_, event_type) = Payload::find_payload_value(utf8(b"event_type"), type_names, payload);
         let (pub_key_x, pub_key_y, pubkey, _, _, _, _) = Validators::return_validator_raw(shared_storage_name);
         let message = Payload::unpack_payload(payload);
 
@@ -190,7 +191,8 @@ module dev::QiaraBridgeV7 {
                 hash,
                 payload,
                 _signature,
-                shared_storage_name
+                shared_storage_name,
+                from_bcs::to_string(event_type)
             );
         } else if (type == b"zk"){
             handle_zk_event(
@@ -201,7 +203,8 @@ module dev::QiaraBridgeV7 {
                 hash,
                 payload,
                 build_zkVote_from_payload(pub_key_x, pub_key_y, type_names, payload),
-                shared_storage_name
+                shared_storage_name,
+                from_bcs::to_string(event_type)
 
             );
         };
@@ -292,11 +295,8 @@ module dev::QiaraBridgeV7 {
     }
 
 
-    fun handle_main_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, MainVotes>, validated_table: &mut table::Table<vector<u8>, MainVotes>, hash: vector<u8>, payload: vector<vector<u8>>, signature: vector<u8>, shared_storage_name: String ) acquires Permissions {
+    fun handle_main_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, MainVotes>, validated_table: &mut table::Table<vector<u8>, MainVotes>, hash: vector<u8>, payload: vector<vector<u8>>, signature: vector<u8>, shared_storage_name: String, event_type: String ) acquires Permissions {
         let quorum = storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT")));
-
-        let event_type = utf8(b"Deposit");
-
         // Already validated?
         if (table::contains(validated_table, hash)) {
             abort(ERROR_DUPLICATE_EVENT);
@@ -388,7 +388,7 @@ module dev::QiaraBridgeV7 {
             Event::emit_market_event(utf8(b"Validate Event"), data);
             };
     }
-    fun handle_zk_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, ZkVotes>, validated_table: &mut table::Table<vector<u8>, ZkVotes>, hash: vector<u8>, payload: vector<vector<u8>>, zk_vote: ZkVote, shared_storage_name: String ) acquires Permissions {
+    fun handle_zk_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, ZkVotes>, validated_table: &mut table::Table<vector<u8>, ZkVotes>, hash: vector<u8>, payload: vector<vector<u8>>, zk_vote: ZkVote, shared_storage_name: String, event_type: String ) acquires Permissions {
         let quorum = storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT")));
 
         // Already validated?
@@ -465,13 +465,12 @@ module dev::QiaraBridgeV7 {
 
             assert!(exists<Permissions>(@dev), ERROR_CAPS_NOT_PUBLISHED);
             let cap = borrow_global<Permissions>(@dev);
-            let even_type = utf8(b"Deposit");
-            if(even_type == utf8(b"Deposit")){
+            if(event_type == utf8(b"Deposit")){
               //  let coins = CoinDeployer::extract_to<E>(signer, _coin_cap, user_addr, amount);
             //    Vaults::bridge_deposit<E,T,X>(signer, &cap.vault_access, _user_cap, user_addr, amount, coins, lend_rate, borrow_rate);
-            } else if(even_type == utf8(b"Request Unlock")){
+            } else if(event_type == utf8(b"Request Unlock")){
             //   Vaults::request_unlock<E>(signer, user_addr, amount, &_user_cap);
-            } else if(even_type == utf8(b"Unlock")){
+            } else if(event_type == utf8(b"Unlock")){
             //   Vaults::unlock<E>(signer, user_addr, amount, &_user_cap);
             }  else{
                 abort(ERROR_INVALID_MESSAGE);
