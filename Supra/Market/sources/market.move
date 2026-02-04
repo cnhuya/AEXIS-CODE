@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV7 {
+module dev::QiaraVaultsV8 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -37,7 +37,7 @@ module dev::QiaraVaultsV7 {
     use dev::QiaraCapabilitiesV2::{Self as capabilities, Access as CapabilitiesAccess};
 
 
-    use dev::QiaraEventV4::{Self as Event};
+    use dev::QiaraEventV5::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
