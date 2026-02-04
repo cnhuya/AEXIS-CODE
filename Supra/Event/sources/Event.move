@@ -1,4 +1,4 @@
-module dev::QiaraEventV4 {
+module dev::QiaraEventV5 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -120,7 +120,7 @@ module dev::QiaraEventV4 {
     }
     public fun emit_consensus_event(type: String, data: vector<Data>, consensus_type: String) {
          data = append_type(data, type);
-         data = append_consensus_type(data, type, consensus_type);
+         data = append_consensus_type(data, consensus_type);
          vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
          event::emit(ConsensusEvent {
             aux: data,
@@ -134,9 +134,9 @@ module dev::QiaraEventV4 {
         vector::append(&mut vect, data);
         return vect
     }
-    fun append_consensus_type(data: vector<Data>, type: String, consensus_type: String): vector<Data> {
-        assert!(consensus_type == utf8(b"zk") || consensus_type == utf8(b"native") || consensus_type == utf8(b"none"), ERROR_INVALID_CONSENSUS_TYPE);
-        let type = create_data_struct(utf8(b"type"), utf8(b"string"), bcs::to_bytes(&type));
+    fun append_consensus_type(data: vector<Data>, consensus_type: String): vector<Data> {
+        assert!(consensus_type == utf8(b"zk") || consensus_type == utf8(b"native") || consensus_type == utf8(b"native"), ERROR_INVALID_CONSENSUS_TYPE);
+        let type = create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&consensus_type));
         let vect = vector[type];
         vector::append(&mut vect, data);
         return vect
