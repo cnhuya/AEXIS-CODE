@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV8 {
+module dev::QiaraVaultsV9 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -14,27 +14,27 @@ module dev::QiaraVaultsV8 {
     use supra_framework::object::{Self, Object};
     use supra_framework::account;
 
-    use dev::QiaraTokensCoreV4::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
-    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
-    use dev::QiaraTokensSharedV4::{Self as TokensShared};
-    use dev::QiaraTokensRatesV4::{Self as TokensRates, Access as TokensRatesAccess};
-    use dev::QiaraTokensTiersV4::{Self as TokensTiers};
-    use dev::QiaraTokensOmnichainV4::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensCoreV5::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
+    use dev::QiaraTokensMetadataV5::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
+    use dev::QiaraTokensSharedV5::{Self as TokensShared};
+    use dev::QiaraTokensRatesV5::{Self as TokensRates, Access as TokensRatesAccess};
+    use dev::QiaraTokensTiersV5::{Self as TokensTiers};
+    use dev::QiaraTokensOmnichainV5::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
-    use dev::QiaraMarginV3::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraPointsV3::{Self as Points, Access as PointsAccess};
-    use dev::QiaraRIV3::{Self as RI};
+    use dev::QiaraMarginV4::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraPointsV4::{Self as Points, Access as PointsAccess};
+    use dev::QiaraRIV4::{Self as RI};
 
-    use dev::QiaraAutomationV2::{Self as auto, Access as AutoAccess};
+    use dev::QiaraAutomationV3::{Self as auto, Access as AutoAccess};
 
-    use dev::QiaraTokenTypesV5::{Self as TokensTypes};
-    use dev::QiaraChainTypesV5::{Self as ChainTypes};
-    use dev::QiaraProviderTypesV5::{Self as ProviderTypes};
+    use dev::QiaraTokenTypesV6::{Self as TokensTypes};
+    use dev::QiaraChainTypesV6::{Self as ChainTypes};
+    use dev::QiaraProviderTypesV6::{Self as ProviderTypes};
 
     use dev::QiaraMathV1::{Self as QiaraMath};
 
-    use dev::QiaraStorageV2::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV2::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraStorageV3::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV3::{Self as capabilities, Access as CapabilitiesAccess};
 
 
     use dev::QiaraEventV5::{Self as Event};
