@@ -1,0 +1,41 @@
+[package]
+name = "QiaraGovernanceV5"
+version = "1.0.0"
+authors = []
+
+[addresses]
+dev = "0x434efed497f5b9ed8f975dd60df271297e35a1bbe9e4a17bc65920273bfca1c6"
+supra_framework = "0x1"
+[dev-addresses]
+
+[dependencies.SupraFramework]
+git = "https://github.com/Entropy-Foundation/aptos-core.git"
+rev = "dev"
+subdir = "aptos-move/framework/supra-framework"
+
+[dependencies.AptosStdlib]
+git = "https://github.com/Entropy-Foundation/aptos-core.git"
+rev = "dev"
+subdir = "aptos-move/framework/aptos-stdlib"
+
+    [dependencies.QiaraMarginV4]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Margin'
+
+    [dependencies.QiaraEventV5]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Event'
+
+    [dependencies.QiaraStorageV3]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Storage'
+
+    [dependencies.QiaraTokensV6]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/TokensCore'
+
+[dev-dependencies]
