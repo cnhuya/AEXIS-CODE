@@ -1,4 +1,4 @@
-module dev::QiaraBridgeV12 {
+module dev::QiaraBridgeV17 {
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
@@ -15,19 +15,19 @@ module dev::QiaraBridgeV12 {
     use supra_framework::fungible_asset::{Self, Metadata, FungibleAsset};
     use supra_framework::object::{Self, Object};
     use supra_framework::primary_fungible_store;
-    use dev::QiaraEventV3::{Self as Event};
-    use dev::QiaraStorageV2::{Self as storage};
+    use dev::QiaraEventV5::{Self as Event};
+    use dev::QiaraStorageV3::{Self as storage};
 
-    use dev::QiaraTokensCoreV4::{Self as TokensCore, Access as TokensCoreAccess};
-    use dev::QiaraTokensValidatorsV4::{Self as TokensValidators};
-    use dev::QiaraTokensSharedV4::{Self as TokensShared};
+    use dev::QiaraTokensCoreV5::{Self as TokensCore, Access as TokensCoreAccess};
+    use dev::QiaraTokensValidatorsV5::{Self as TokensValidators};
+    use dev::QiaraTokensSharedV5::{Self as TokensShared};
     
-    use dev::QiaraVaultsV6::{Self as Market, Access as MarketAccess};
+    use dev::QiaraVaultsV9::{Self as Market, Access as MarketAccess};
 
-    use dev::QiaraMarginV3::{Self as Margin};
+    use dev::QiaraMarginV4::{Self as Margin};
 
-    use dev::QiaraPayloadV12::{Self as Payload};
-    use dev::QiaraValidatorsV12::{Self as Validators, Access as ValidatorsAccess};
+    use dev::QiaraPayloadV17::{Self as Payload};
+    use dev::QiaraValidatorsV17::{Self as Validators, Access as ValidatorsAccess};
     /// Admin address constant
     const STORAGE: address = @dev;
 
@@ -275,17 +275,17 @@ module dev::QiaraBridgeV12 {
     }
 
 
-    fun handle_main_event(signer: &signer, validator: address, pending_table: &mut table::Table<u256, MainVotes>, validated_table: &mut table::Table<u256, MainVotes>, count: u256, type_names: vector<String>, payload: vector<vector<u8>>, signature: vector<u8>, shared_storage_name: String, event_type: String ) acquires Permissions {
+    fun handle_main_event(signer: &signer, validator: address, pending_table: &mut table::Table<u256, MainVotes>, validated_table: &mut table::Table<u256, MainVotes>, index: u256, type_names: vector<String>, payload: vector<vector<u8>>, signature: vector<u8>, shared_storage_name: String, event_type: String ) acquires Permissions {
         let quorum = storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT")));
         // Already validated?
-        if (table::contains(validated_table, count)) {
+        if (table::contains(validated_table, index)) {
             abort(ERROR_DUPLICATE_EVENT);
         };
         let (_, _, _, _, _, _, _, _, vote_weight, _, _) = Margin::get_user_total_usd(shared_storage_name);
         assert!(vote_weight > (storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTING_POWER"))) as u256), ERROR_NOT_ENOUGH_VOTING_POWER);
         // Update pending validators
-        let vote_count = if (table::contains(pending_table, count)) {
-            let votes = table::borrow_mut(pending_table, count);
+        let vote_count = if (table::contains(pending_table, index)) {
+            let votes = table::borrow_mut(pending_table, index);
             let (did_validate, existing_weight) = check_validator_validation(validator, votes.votes);
 
             // If validator did not validate this tx yet, add them
@@ -300,12 +300,13 @@ module dev::QiaraBridgeV12 {
                 let data = vector[
                     Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
                     Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
-                    Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
+                    Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
                     Event::create_data_struct(utf8(b"vote_weight"), utf8(b"u128"), bcs::to_bytes(&vote_weight)),
-                    Event::create_data_struct(utf8(b"count"), utf8(b"vector<u8>"), bcs::to_bytes(&count)),
+                    Event::create_data_struct(utf8(b"index"), utf8(b"vector<u8>"), bcs::to_bytes(&index)),
+                    Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                     Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
                 ];
-                Event::emit_bridge_event(utf8(b"Vote Event"), data);
+                Event::emit_bridge_event(utf8(b"Vote Event"), data, utf8(b"none"));
 
                 // Return updated total weight
                 votes.total_weight
@@ -328,20 +329,33 @@ module dev::QiaraBridgeV12 {
             let map = map::new<address, Vote>();
             map::add(&mut map, validator, validator_vote);
             let votes = MainVotes {votes: map, rv: vect, total_weight: (vote_weight as u128), time: timestamp::now_seconds()};
-            table::add(pending_table, copy count, votes);
+            table::add(pending_table, copy index, votes);
+            index = index + 1;
+
+            let data = vector[
+                Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+                Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
+                Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
+                Event::create_data_struct(utf8(b"vote_weight"), utf8(b"u128"), bcs::to_bytes(&vote_weight)),
+                Event::create_data_struct(utf8(b"index"), utf8(b"vector<u8>"), bcs::to_bytes(&index)),
+                Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
+                Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
+            ];
+            Event::emit_bridge_event(utf8(b"Register Event"), data, utf8(b"none"));
+
             1 
         };
 
         // Promote to validated
         if (vote_count >= (quorum as u128)) {
             // Defensive: ensure key exists before remove
-            assert!(table::contains(pending_table, count), ERROR_NOT_FOUND);
-            let votes_from_pending = table::remove(pending_table, count);
+            assert!(table::contains(pending_table, index), ERROR_NOT_FOUND);
+            let votes_from_pending = table::remove(pending_table, index);
 
-            if (table::contains(validated_table, count)) {
+            if (table::contains(validated_table, index)) {
                 abort(ERROR_DUPLICATE_EVENT);
             };
-            table::add(validated_table, count, votes_from_pending);
+            table::add(validated_table, index, votes_from_pending);
 
             assert!(exists<Permissions>(@dev), ERROR_CAPS_NOT_PUBLISHED);
             let cap = borrow_global<Permissions>(@dev);
@@ -360,27 +374,27 @@ module dev::QiaraBridgeV12 {
                 Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
                 Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
                 Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
-                Event::create_data_struct(utf8(b"total_weight"), utf8(b"u128"), bcs::to_bytes(&count)),
-                Event::create_data_struct(utf8(b"total_weight"), utf8(b"u128"), bcs::to_bytes(&count)),
+                Event::create_data_struct(utf8(b"index"), utf8(b"u128"), bcs::to_bytes(&index)),
+                Event::create_data_struct(utf8(b"total_weight"), utf8(b"u128"), bcs::to_bytes(&vote_count)),
                 Event::create_data_struct(utf8(b"quorum"), utf8(b"vector<u8>"), bcs::to_bytes(&quorum)),
                 Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                 Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
             ];
-            Event::emit_bridge_event(utf8(b"Register Event"), data);
+            Event::emit_bridge_event(utf8(b"Validated Event"), data, utf8(b"none"));
             };
     }
-    fun handle_zk_event(signer: &signer, validator: address, pending_table: &mut table::Table<u256, ZkVotes>, validated_table: &mut table::Table<u256, ZkVotes>, count: u256,  type_names: vector<String>, payload: vector<vector<u8>>, zk_vote: ZkVote, shared_storage_name: String, event_type: String ) acquires Permissions {
+    fun handle_zk_event(signer: &signer, validator: address, pending_table: &mut table::Table<u256, ZkVotes>, validated_table: &mut table::Table<u256, ZkVotes>, index: u256,  type_names: vector<String>, payload: vector<vector<u8>>, zk_vote: ZkVote, shared_storage_name: String, event_type: String ) acquires Permissions {
         let quorum = storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT")));
 
         // Already validated?
-        if (table::contains(validated_table, count)) {
+        if (table::contains(validated_table, index)) {
             abort(ERROR_DUPLICATE_EVENT);
         };
         let (_, _, _, _, _, _, _, _, vote_weight, _, _) = Margin::get_user_total_usd(shared_storage_name);
         assert!(vote_weight > (storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTING_POWER"))) as u256), ERROR_NOT_ENOUGH_VOTING_POWER);
         // Update pending validators
-        let vote_count = if (table::contains(pending_table, count)) {
-            let votes = table::borrow_mut(pending_table, count);
+        let vote_count = if (table::contains(pending_table, index)) {
+            let votes = table::borrow_mut(pending_table, index);
             let (did_validate, existing_weight) = check_validator_validation_zk(validator, votes.votes);
 
             // If validator did not validate this tx yet, add them
@@ -395,13 +409,13 @@ module dev::QiaraBridgeV12 {
                 let data = vector[
                     Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
                     Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
-                    Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
+                    Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
                     Event::create_data_struct(utf8(b"vote_weight"), utf8(b"u128"), bcs::to_bytes(&vote_weight)),
-                    Event::create_data_struct(utf8(b"count"), utf8(b"vector<u8>"), bcs::to_bytes(&count)),
+                    Event::create_data_struct(utf8(b"index"), utf8(b"vector<u8>"), bcs::to_bytes(&index)),
                     Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                     Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
                 ];
-                Event::emit_bridge_event(utf8(b"Vote Event"), data);
+                Event::emit_bridge_event(utf8(b"Vote Event"), data, utf8(b"none"));
 
                 // Return updated total weight
                 votes.total_weight
@@ -422,37 +436,40 @@ module dev::QiaraBridgeV12 {
             let map = map::new<address, ZkVote>();
             map::add(&mut map, validator, zk_vote);
             let votes = ZkVotes {votes: map, rv: vect, total_weight: (vote_weight as u128), time: timestamp::now_seconds()};
-            table::add(pending_table, copy count, votes);
+            table::add(pending_table, copy index, votes);
+            index = index + 1;
 
             let data = vector[
                 Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
                 Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
-                Event::create_data_struct(utf8(b"count"), utf8(b"vector<u8>"), bcs::to_bytes(&count)),
+                Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
+                Event::create_data_struct(utf8(b"vote_weight"), utf8(b"u128"), bcs::to_bytes(&vote_weight)),
+                Event::create_data_struct(utf8(b"index"), utf8(b"vector<u8>"), bcs::to_bytes(&index)),
                 Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                 Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
             ];
-            Event::emit_bridge_event(utf8(b"Register Event"), data);
+            Event::emit_bridge_event(utf8(b"Register Event"), data, utf8(b"none"));
             1 
         };
 
         // Promote to validated
         if (vote_count >= (quorum as u128)) {
             // Defensive: ensure key exists before remove
-            assert!(table::contains(pending_table, count), ERROR_NOT_FOUND);
-            let votes_from_pending = table::remove(pending_table, count);
+            assert!(table::contains(pending_table, index), ERROR_NOT_FOUND);
+            let votes_from_pending = table::remove(pending_table, index);
 
-            if (table::contains(validated_table, count)) {
+            if (table::contains(validated_table, index)) {
                 abort(ERROR_DUPLICATE_EVENT);
             };
-            table::add(validated_table, count, votes_from_pending);
+            table::add(validated_table, index, votes_from_pending);
 
             assert!(exists<Permissions>(@dev), ERROR_CAPS_NOT_PUBLISHED);
             let cap = borrow_global<Permissions>(@dev);
             if(event_type == utf8(b"Check Validators")){
-                Validators::re_check_active_validators(signer, Validators::give_permission(&borrow_global<Permissions>(@dev).validators));
+                Validators::c_re_check_active_validators(signer, Validators::give_permission(&borrow_global<Permissions>(@dev).validators));
             } else if(event_type == utf8(b"Register Validator")){
                 let (shared_storage_name, pub_key_x, pub_key_y, pub_key, power) = Payload::prepare_register_validator(type_names, payload);
-                Validators::register_validator(signer, shared_storage_name, pub_key_x, pub_key_y, pub_key,power, Validators::give_permission(&borrow_global<Permissions>(@dev).validators)) 
+                Validators::c_register_validator(signer, shared_storage_name, pub_key_x, pub_key_y, pub_key,power, Validators::give_permission(&borrow_global<Permissions>(@dev).validators)) 
             }  else{
                 abort(ERROR_INVALID_MESSAGE);
             };
@@ -460,36 +477,49 @@ module dev::QiaraBridgeV12 {
             let data = vector[
                 Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
                 Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
-                Event::create_data_struct(utf8(b"count"), utf8(b"vector<u8>"), bcs::to_bytes(&count)),
+                Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
+                Event::create_data_struct(utf8(b"index"), utf8(b"u128"), bcs::to_bytes(&index)),
+                Event::create_data_struct(utf8(b"total_weight"), utf8(b"u128"), bcs::to_bytes(&vote_count)),
+                Event::create_data_struct(utf8(b"quorum"), utf8(b"vector<u8>"), bcs::to_bytes(&quorum)),
                 Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                 Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
             ];
-            Event::emit_market_event(utf8(b"Vote Event"), data);
+            Event::emit_market_event(utf8(b"Validated Event"), data, utf8(b"none"));
         };
     }
 
+    #[view]
+    public fun return_current_index(index: u256): u256 acquires TxCount {
+        let tx_count = borrow_global<TxCount>(@dev);
+        tx_count.count
+    }
 
+    #[view]
+    public fun return_native_pending_tx(index: u256): MainVotes acquires Pending {
+        let main = borrow_global<Pending>(@dev);
+        assert!(table::contains(&main.main, index), ERROR_NOT_FOUND);
+        return *table::borrow(&main.main, index)
+    }
+    #[view]
+    public fun return_zk_pending_tx(index: u256): ZkVotes acquires Pending {
+        let zk = borrow_global<Pending>(@dev);
+        assert!(table::contains(&zk.zk, index), ERROR_NOT_FOUND);
+        return *table::borrow(&zk.zk, index)
+    }
 
-  /*  #[view]
-    public fun is_validated(messages: vector<vector<u8>>): vector<bool> acquires Validated {
-        let validated = borrow_global<Validated>(@dev);
+    #[view]
+    public fun return_native_validated_tx(index: u256): MainVotes acquires Validated {
+        let main = borrow_global<Validated>(@dev);
+        assert!(table::contains(&main.main, index), ERROR_NOT_FOUND);
+        return *table::borrow(&main.main, index)
+    }
+    #[view]
+    public fun return_zk_validated_tx(index: u256): ZkVotes acquires Validated {
+        let zk = borrow_global<Validated>(@dev);
+        assert!(table::contains(&zk.zk, index), ERROR_NOT_FOUND);
+        return *table::borrow(&zk.zk, index)
+    }
 
-        let results = vector::empty<bool>();
-        let len = vector::length(&messages);
-        let i = 0;
-
-        while (i < len) {
-            let message = vector::borrow(&messages, i);
-            if (table::contains(&validated.txs, *message)) {
-                vector::push_back(&mut results, true);
-            } else {
-                vector::push_back(&mut results, false);
-            };
-            i = i + 1;
-        };
-
-        results
-    }*/
 
 
 
