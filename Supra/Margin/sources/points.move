@@ -1,15 +1,15 @@
-module dev::QiaraPointsV3{
+module dev::QiaraPointsV4{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::table::{Self, Table};
 
-    use dev::QiaraTokensSharedV4::{Self as TokensShared};
+    use dev::QiaraTokensSharedV5::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV5::{Self as TokensType};
-    use dev::QiaraChainTypesV5::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV6::{Self as TokensType};
+    use dev::QiaraChainTypesV6::{Self as ChainTypes};
 
-    use dev::QiaraStorageV2::{Self as storage, Access as StorageAccess};
+    use dev::QiaraStorageV3::{Self as storage, Access as StorageAccess};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
