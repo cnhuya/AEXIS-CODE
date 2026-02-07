@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraMarketV10"
+    name = "QiaraMarketV11"
     version = "2.1.1"
     authors = []
 
@@ -26,12 +26,12 @@
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
 
-    [dependencies.QiaraStorageV3]
+    [dependencies.QiaraStorageV6]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraMarginV5]
+    [dependencies.QiaraMarginV6]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
@@ -41,17 +41,17 @@
     rev = 'main'
     subdir = 'Supra/Math'
 
-    [dependencies.QiaraTokensV7]
+    [dependencies.QiaraTokensV8]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/TokensCore'
 
-    [dependencies.QiaraTypesV7]
+    [dependencies.QiaraTypesV8]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
 
-    [dependencies.QiaraAutomationV4]
+    [dependencies.QiaraAutomationV5]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/AutoCustom'
