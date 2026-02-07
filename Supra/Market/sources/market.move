@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV9 {
+module dev::QiaraVaultsV10 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -14,22 +14,22 @@ module dev::QiaraVaultsV9 {
     use supra_framework::object::{Self, Object};
     use supra_framework::account;
 
-    use dev::QiaraTokensCoreV5::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
-    use dev::QiaraTokensMetadataV5::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
-    use dev::QiaraTokensSharedV5::{Self as TokensShared};
-    use dev::QiaraTokensRatesV5::{Self as TokensRates, Access as TokensRatesAccess};
-    use dev::QiaraTokensTiersV5::{Self as TokensTiers};
-    use dev::QiaraTokensOmnichainV5::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensCoreV6::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
+    use dev::QiaraTokensMetadataV6::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
+    use dev::QiaraTokensSharedV6::{Self as TokensShared};
+    use dev::QiaraTokensRatesV6::{Self as TokensRates, Access as TokensRatesAccess};
+    use dev::QiaraTokensTiersV6::{Self as TokensTiers};
+    use dev::QiaraTokensOmnichainV6::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
-    use dev::QiaraMarginV4::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraPointsV4::{Self as Points, Access as PointsAccess};
-    use dev::QiaraRIV4::{Self as RI};
+    use dev::QiaraMarginV5::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraPointsV5::{Self as Points, Access as PointsAccess};
+    use dev::QiaraRIV5::{Self as RI};
 
-    use dev::QiaraAutomationV3::{Self as auto, Access as AutoAccess};
+    use dev::QiaraAutomationV4::{Self as auto, Access as AutoAccess};
 
-    use dev::QiaraTokenTypesV6::{Self as TokensTypes};
-    use dev::QiaraChainTypesV6::{Self as ChainTypes};
-    use dev::QiaraProviderTypesV6::{Self as ProviderTypes};
+    use dev::QiaraTokenTypesV7::{Self as TokensTypes};
+    use dev::QiaraChainTypesV7::{Self as ChainTypes};
+    use dev::QiaraProviderTypesV7::{Self as ProviderTypes};
 
     use dev::QiaraMathV1::{Self as QiaraMath};
 
@@ -155,25 +155,6 @@ module dev::QiaraVaultsV9 {
         Metadata: VMetadata,
     }
 
-// === EVENTS === //
-    /*#[event]
-    struct SwapVaultEvent has copy, drop, store {
-        amountSwapped: u256,
-        priceFrom: u256,
-        tokenFrom: String,
-        chainFrom: String,
-        providerFrom: String,
-        amountReceived: u256,
-        priceTo: u256,
-        tokenTo: String,
-        chainTo: String,
-        providerTo: String,
-        fee: u256,
-        isFeeRebate: bool,        
-        time: u64
-    }*/
-
-
 // === FUNCTIONS === //
     fun init_module(admin: &signer){
         if (!exists<GlobalVault>(@dev)) {
@@ -199,10 +180,10 @@ module dev::QiaraVaultsV9 {
     }
 
 
-// === BRIDGE INTERFACE === //
+// === CONSENSUS INTERFACE === //
     /// Deposit on behalf of `recipient`
     /// No need for recipient to have signed anything.
-    public fun bridge_deposit(validator: &signer, sender: vector<u8>, shared_storage_owner: vector<u8>, shared_storage_name: String, token: String, chain: String, provider: String, amount: u64, lend_rate: u64, permission: Permission) acquires GlobalVault, Permissions {
+    public fun c_bridge_deposit(validator: &signer, sender: vector<u8>, shared_storage_owner: vector<u8>, shared_storage_name: String, token: String, chain: String, provider: String, amount: u64, lend_rate: u64, permission: Permission) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         TokensOmnichain::change_UserTokenSupply(token, chain, sender, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain)); 
         let amount_u256 = (amount as u256)*1000000000000000000;
@@ -250,7 +231,7 @@ module dev::QiaraVaultsV9 {
     }
 
     // Recipient needs to be address here, in case permissioneless user wants to withdraw to existing Supra wallet.
-    public fun bridge_withdraw(validator: &signer, sender: vector<u8>, shared_storage_owner:vector<u8>, shared_storage_name: String, recipient: address, token: String, chain: String, provider: String, amount: u64, lend_rate: u64, permission: Permission) acquires GlobalVault, Permissions {
+    public fun c_bridge_withdraw(validator: &signer, sender: vector<u8>, shared_storage_owner:vector<u8>, shared_storage_name: String, recipient: address, token: String, chain: String, provider: String, amount: u64, lend_rate: u64, permission: Permission) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         TokensRates::update_rate(token, chain, provider, lend_rate, TokensRates::give_permission(&borrow_global<Permissions>(@dev).tokens_rates));
@@ -301,7 +282,7 @@ module dev::QiaraVaultsV9 {
     }
 
     // Recipient needs to be address here, in case permissioneless user wants to borrow to existing Supra wallet.
-    public fun bridge_borrow(validator: &signer, sender: vector<u8>, shared_storage_owner:vector<u8>, shared_storage_name: String, recipient: address, token: String, chain: String, provider: String, amount: u64, lend_rate: u64, permission: Permission) acquires GlobalVault, Permissions {
+    public fun c_bridge_borrow(validator: &signer, sender: vector<u8>, shared_storage_owner:vector<u8>, shared_storage_name: String, recipient: address, token: String, chain: String, provider: String, amount: u64, lend_rate: u64, permission: Permission) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         TokensOmnichain::change_UserTokenSupply(token, chain, sender, amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain)); 
         let amount_u256 = (amount as u256)*1000000000000000000;
@@ -352,7 +333,7 @@ module dev::QiaraVaultsV9 {
         Event::emit_market_event(utf8(b"Bridge Borrow"),data, utf8(b"zk"));
     }
 
-    public fun bridge_repay(validator: &signer, sender: vector<u8>,  shared_storage_owner:vector<u8>, shared_storage_name: String, token: String, chain: String, provider: String, amount: u64, lend_rate: u64, permission: Permission) acquires GlobalVault, Permissions {
+    public fun c_bridge_repay(validator: &signer, sender: vector<u8>,  shared_storage_owner:vector<u8>, shared_storage_name: String, token: String, chain: String, provider: String, amount: u64, lend_rate: u64, permission: Permission) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         let amount_u256 = (amount as u256)*1000000000000000000;
 
@@ -459,7 +440,7 @@ module dev::QiaraVaultsV9 {
          });
     }*/
 
-    public fun bridge_limit_swap(validator: &signer, sender: vector<u8>,  shared_storage_owner:vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom: String,  tokenTo: String, chainTo: String, providerTo: String,permission: Permission, recipient: address, amount: u64, desired_price: u256) acquires Permissions {
+    public fun c_bridge_limit_swap(validator: &signer, sender: vector<u8>,  shared_storage_owner:vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom: String,  tokenTo: String, chainTo: String, providerTo: String,permission: Permission, recipient: address, amount: u64, desired_price: u256) acquires Permissions {
 
         let args = vector[
             bcs::to_bytes(&sender),
@@ -478,7 +459,7 @@ module dev::QiaraVaultsV9 {
         auto::register_automation(validator, shared_storage_owner, shared_storage_name,1, args, auto::give_permission(&borrow_global<Permissions>(@dev).auto))
     }
 
-    public entry fun bridge_claim_rewards(validator: &signer, sender: vector<u8>,  shared_storage_owner:vector<u8>, shared_storage_name: String, token: String, chain: String, provider: String) acquires GlobalVault, Permissions {
+    public entry fun c_bridge_claim_rewards(validator: &signer, sender: vector<u8>,  shared_storage_owner:vector<u8>, shared_storage_name: String, token: String, chain: String, provider: String) acquires GlobalVault, Permissions {
 
         let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
 
