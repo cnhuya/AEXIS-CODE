@@ -1,4 +1,4 @@
-module dev::QiaraMarginV4{
+module dev::QiaraMarginV5{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -8,10 +8,10 @@ module dev::QiaraMarginV4{
     use supra_oracle::supra_oracle_storage;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 
-    use dev::QiaraTokensMetadataV5::{Self as TokensMetadata};
-    use dev::QiaraTokensSharedV5::{Self as TokensShared};
+    use dev::QiaraTokensMetadataV6::{Self as TokensMetadata};
+    use dev::QiaraTokensSharedV6::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV6::{Self as TokensType};
+    use dev::QiaraTokenTypesV7::{Self as TokensType};
     
     use dev::QiaraMathV1::{Self as QiaraMath};
 
