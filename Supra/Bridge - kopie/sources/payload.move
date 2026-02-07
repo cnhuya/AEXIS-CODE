@@ -1,12 +1,12 @@
-module dev::QiaraPayloadV17 {
+module dev::QiaraPayloadV18 {
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
     use std::table;
     use aptos_std::from_bcs;
 
-    use dev::QiaraChainTypesV6::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV6::{Self as TokenTypes};
+    use dev::QiaraChainTypesV7::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV7::{Self as TokenTypes};
     
 
     const ERROR_PAYLOAD_LENGTH_MISMATCH_WITH_TYPES: u64 = 0;
@@ -48,7 +48,6 @@ module dev::QiaraPayloadV17 {
         assert!(isFound, ERROR_TYPE_NOT_FOUND);
         return (value, *vector::borrow(&from, index))
     }
-
     public fun prepare_register_validator(type_names: vector<String>, payload: vector<vector<u8>>): (String, String, String, vector<u8>, u256){
         let (_, shared_storage_name) = find_payload_value(utf8(b"shared_storage_name"), type_names, payload);
         let (_, pub_key_x) = find_payload_value(utf8(b"pub_key_x"), type_names, payload);
@@ -57,6 +56,13 @@ module dev::QiaraPayloadV17 {
         let (_, power) = find_payload_value(utf8(b"power"), type_names, payload);
 
         return (from_bcs::to_string(shared_storage_name), from_bcs::to_string(pub_key_x), from_bcs::to_string(pub_key_y), from_bcs::to_bytes(pub_key), from_bcs::to_u256(power))
+    }
+    public fun prepare_finalize_bridge(type_names: vector<String>, payload: vector<vector<u8>>): (String, String, u64){
+        let (_, symbol) = find_payload_value(utf8(b"symbol"), type_names, payload);
+        let (_, chain) = find_payload_value(utf8(b"chain"), type_names, payload);
+        let (_, amount) = find_payload_value(utf8(b"amount"), type_names, payload);
+
+        return (from_bcs::to_string(symbol), from_bcs::to_string(chain), from_bcs::to_u64(amount))
     }
 
 }

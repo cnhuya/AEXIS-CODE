@@ -1,4 +1,4 @@
-module dev::QiaraBridgeV17 {
+module dev::QiaraBridgeV18 {
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
@@ -18,16 +18,16 @@ module dev::QiaraBridgeV17 {
     use dev::QiaraEventV5::{Self as Event};
     use dev::QiaraStorageV3::{Self as storage};
 
-    use dev::QiaraTokensCoreV5::{Self as TokensCore, Access as TokensCoreAccess};
-    use dev::QiaraTokensValidatorsV5::{Self as TokensValidators};
-    use dev::QiaraTokensSharedV5::{Self as TokensShared};
+    use dev::QiaraTokensCoreV6::{Self as TokensCore, Access as TokensCoreAccess};
+    use dev::QiaraTokensValidatorsV6::{Self as TokensValidators};
+    use dev::QiaraTokensSharedV6::{Self as TokensShared};
     
-    use dev::QiaraVaultsV9::{Self as Market, Access as MarketAccess};
+    use dev::QiaraVaultsV10::{Self as Market, Access as MarketAccess};
 
-    use dev::QiaraMarginV4::{Self as Margin};
+    use dev::QiaraMarginV5::{Self as Margin};
 
-    use dev::QiaraPayloadV17::{Self as Payload};
-    use dev::QiaraValidatorsV17::{Self as Validators, Access as ValidatorsAccess};
+    use dev::QiaraPayloadV18::{Self as Payload};
+    use dev::QiaraValidatorsV18::{Self as Validators, Access as ValidatorsAccess};
     /// Admin address constant
     const STORAGE: address = @dev;
 
@@ -470,6 +470,9 @@ module dev::QiaraBridgeV17 {
             } else if(event_type == utf8(b"Register Validator")){
                 let (shared_storage_name, pub_key_x, pub_key_y, pub_key, power) = Payload::prepare_register_validator(type_names, payload);
                 Validators::c_register_validator(signer, shared_storage_name, pub_key_x, pub_key_y, pub_key,power, Validators::give_permission(&borrow_global<Permissions>(@dev).validators)) 
+            } else if(event_type == utf8(b"Request Bridge")){
+                let (symbol: String, chain: String, amount: u64, y) = Payload::prepare_finalize_bridge(type_names, payload);
+                Validators::c_finalize_bridge(signer, shared_storage_name, pub_key, Validators::give_permission(&borrow_global<Permissions>(@dev).validators))
             }  else{
                 abort(ERROR_INVALID_MESSAGE);
             };
@@ -484,7 +487,7 @@ module dev::QiaraBridgeV17 {
                 Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                 Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
             ];
-            Event::emit_market_event(utf8(b"Validated Event"), data, utf8(b"none"));
+            Event::emit_bridge_event(utf8(b"Validated Event"), data, utf8(b"none"));
         };
     }
 

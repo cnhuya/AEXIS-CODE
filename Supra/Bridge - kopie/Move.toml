@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraBridgeV17"
+    name = "QiaraBridgeV18"
     version = "2.1.1"
     authors = []
 
@@ -31,22 +31,22 @@
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraTypesV6]
+    [dependencies.QiaraTypesV7]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
 
-    [dependencies.QiaraTokensV6]
+    [dependencies.QiaraTokensV7]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/TokensCore'
 
-    [dependencies.QiaraMarginV4]
+    [dependencies.QiaraMarginV5]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
 
-    [dependencies.QiaraMarketV9]
+    [dependencies.QiaraMarketV10]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Market'
