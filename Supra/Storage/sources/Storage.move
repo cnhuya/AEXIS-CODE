@@ -1,4 +1,4 @@
-module dev::QiaraStorageV3 {
+module dev::QiaraStorageV6 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -193,22 +193,12 @@ module dev::QiaraStorageV3 {
         register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"BORROW_INTEREST_MULTIPLIER"), 100_000, false, &give_permission(&give_access(admin))); // 0.1x
         register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"BORROW_INTEREST_MULTIPLIER_SLASHING"), 10_000_000, false, &give_permission(&give_access(admin))); // 10x
     }
-    public entry fun more3(admin: &signer) acquires ConstantDatabase, KeyRegistry, ConstantCounter{
+    public entry fun more6(admin: &signer) acquires ConstantDatabase, KeyRegistry, ConstantCounter{
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
-        register_constant<vector<address>>(admin, utf8(b"QiaraBridge"), utf8(b"ALLOWED_TOKENS"), vector[@0x0000000000000000000000000000000000000000, @0x0000000000000000000000000000000000000001, @0x0000000000000000000000000000000000000002], true, &give_permission(&give_access(admin))); // 0.001%  
+        register_constant<String>(admin, utf8(b"QiaraBaseAssets"), utf8(b"testToken_vault"),utf8(b"0x72F726F722436b95a691cC438183e67632eBFF76"), true, &give_permission(&give_access(admin))); // 0.001%  
+        register_constant<String>(admin, utf8(b"QiaraBaseAssets"), utf8(b"testToken_token"),utf8(b"0x0D5322Af414db3bd855cC44424F8532859469957"), true, &give_permission(&give_access(admin))); // 0.001%  
 
     }
-    public entry fun more4(admin: &signer) acquires ConstantDatabase{
-        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
-        change_vector_constant<address>(admin, utf8(b"QiaraBridge"), utf8(b"ALLOWED_TOKENS"), @0x0000000000000000000000000000000000000007, true, &give_permission(&give_access(admin))); // 0.001%  
-
-    }
-    public entry fun more5(admin: &signer) acquires ConstantDatabase{
-        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
-        change_vector_constant<address>(admin, utf8(b"QiaraBridge"), utf8(b"ALLOWED_TOKENS"), @0x0000000000000000000000000000000000000007, false, &give_permission(&give_access(admin))); // 0.001%  
-
-    }
-
 
     fun register_constant<T: drop>(address: &signer, header: String, constant_name: String, value: T, editable: bool, permission: &Permission) acquires ConstantCounter, ConstantDatabase, KeyRegistry {
         assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
@@ -323,84 +313,6 @@ module dev::QiaraStorageV3 {
 
         // Update the constant
         constant.value.data = new_value;
-
-        let new_constant = make_constant(
-            constant.name,
-            constant.value,
-            constant.editable,
-            constant.index
-        );
-
-        event::emit(ConstantChange {
-            address: signer::address_of(address),
-            old_constant,
-            new_constant
-        });
-    }
-
-    public fun change_vector_constant<T: drop>(address: &signer,header: String,name: String,new_value: T, isAdd: bool, permission: &Permission) acquires ConstantDatabase {
-        assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
-        let db = borrow_global_mut<ConstantDatabase>(OWNER);
-
-        if (!table::contains(&db.database, header)) {
-            abort ERROR_CONSTANT_DOES_NOT_EXIST;
-        };
-
-        let constant = get_constant(db, header, name);
-
-        if (!constant.editable) {
-            abort ERROR_CONSTANT_CANT_BE_EDITED
-        };
-
-        let old_constant = make_constant(
-            constant.name,
-            constant.value,
-            constant.editable,
-            constant.index
-        );
-
-        // Update the constant
-        //assert!(constant.value.type == type_info::type_name<T>(), ERROR_INVALID_VALUE_TYPE);
-        if (isAdd) {
-            vector::append(&mut constant.value.data, bc::to_bytes(&new_value));
-        } else {
-            let to_remove = bc::to_bytes(&new_value);
-            let to_remove_len = vector::length(&to_remove);
-            let data_len = vector::length(&constant.value.data);
-            
-            // Find where the sub-vector starts
-            let found = false;
-            let start_index = 0;
-            
-            while (start_index <= data_len - to_remove_len) {
-                let matches = true;
-                let j = 0;
-                while (j < to_remove_len) {
-                    if (*vector::borrow(&constant.value.data, start_index + j) != *vector::borrow(&to_remove, j)) {
-                        matches = false;
-                        break
-                    };
-                    j = j + 1;
-                };
-                
-                if (matches) {
-                    found = true;
-                    break
-                };
-                start_index = start_index + 1;
-            };
-
-            // If found, remove the bytes one by one from that index
-            if (found) {
-                let k = 0;
-                while (k < to_remove_len) {
-                    vector::remove(&mut constant.value.data, start_index);
-                    k = k + 1;
-                };
-            } else {
-                abort ERROR_VALUE_NOT_IN_VECTOR
-            };
-        };
 
         let new_constant = make_constant(
             constant.name,
