@@ -1,4 +1,4 @@
-module dev::QiaraGenesisV18 {
+module dev::QiaraGenesisV19 {
     use std::vector;
     use std::signer;
     use std::timestamp;
