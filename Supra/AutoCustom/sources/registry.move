@@ -1,4 +1,4 @@
-module dev::QiaraAutomationV4 {
+module dev::QiaraAutomationV5 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::timestamp;
@@ -8,7 +8,7 @@ module dev::QiaraAutomationV4 {
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use supra_framework::event;
 
-    use dev::QiaraTokensSharedV6::{Self as TokensShared};
+    use dev::QiaraTokensSharedV7::{Self as TokensShared};
 
 
 // === ACCESS === //
