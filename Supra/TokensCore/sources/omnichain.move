@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV5{
+module dev::QiaraTokensOmnichainV6{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -37,6 +37,14 @@ module dev::QiaraTokensOmnichainV5{
 
 // === STRUCTS === //
 
+    // For Pagination purposes
+    struct AddressCounter has key {
+        counter: u64,
+    }
+    // Needed to track addresses, to avoid duplication
+    struct AddressDatabase has key {
+        table: Table<vector<u8>, u64>,
+    }
     // Tracks allowed/supported chains for each Token.
     // i.e Ethereum (token) -> Base/Sui/Solana (chains)
     struct TokensChains has key{
@@ -48,9 +56,9 @@ module dev::QiaraTokensOmnichainV5{
         book: Map<String, Map<String, u256>>
     }
     // Tracks "liqudity" across chains for each address
-    // i.e 0x...123 (user) -> Base/Sui/Solana (chains).. -> Ethereum (token) -> supply
+    // i.e 0/1/2...(page) -> 0x...123 (user) -> Base/Sui/Solana (chains).. -> Ethereum (token) -> supply
     struct UserCrosschainBook has key{
-        book: Table<vector<u8>, Map<String, Map<String, u256>>>
+        book: Table<u64,Map<vector<u8>, Map<String, Map<String, u256>>>>
     }
 
 
@@ -77,6 +85,12 @@ module dev::QiaraTokensOmnichainV5{
     fun init_module(admin: &signer) {
         assert!(signer::address_of(admin) == @dev, 1);
 
+        if (!exists<AddressCounter>(@dev)) {
+            move_to(admin, AddressCounter { counter: 0 });
+        };
+        if (!exists<AddressDatabase>(@dev)) {
+            move_to(admin, AddressDatabase { table: table::new<vector<u8>, u64>() });
+        };
         if (!exists<TokensChains>(@dev)) {
             move_to(admin, TokensChains { book: map::new<String, vector<String>>() });
         };
@@ -84,7 +98,7 @@ module dev::QiaraTokensOmnichainV5{
             move_to(admin, CrosschainBook { book: map::new<String,Map<String, u256>>() });
         };
         if (!exists<UserCrosschainBook>(@dev)) {
-            move_to(admin, UserCrosschainBook { book: table::new<vector<u8>, Map<String, Map<String, u256>>>() });
+            move_to(admin, UserCrosschainBook { book: table::new<u64, Map<vector<u8>, Map<String, Map<String, u256>>>>() });
         };
     }
 
@@ -131,19 +145,33 @@ module dev::QiaraTokensOmnichainV5{
     }
 
 
-    public fun change_UserTokenSupply(token: String, chain: String, address: vector<u8>, amount: u64, isMint: bool, _perm: Permission) acquires UserCrosschainBook {
+    public fun change_UserTokenSupply(token: String, chain: String, address: vector<u8>, amount: u64, isMint: bool, _perm: Permission) acquires AddressCounter, AddressDatabase, UserCrosschainBook {
         let book = borrow_global_mut<UserCrosschainBook>(@dev);
-        
-        // Ensure the address and chain exist in the map first
-        if (!table::contains(&book.book, address)) {
-            table::add(&mut book.book, address, map::new<String, Map<String, u256>>());
+        let addressCounter_ref = borrow_global_mut<AddressCounter>(@dev);
+        let addressDatabase_ref = borrow_global_mut<AddressDatabase>(@dev);
+        let page_number = addressCounter_ref.counter / 100;
+
+        if (!table::contains(&addressDatabase_ref.table, address)) {
+            table::add(&mut addressDatabase_ref.table, address, page_number); // Store the page!
+            addressCounter_ref.counter = addressCounter_ref.counter + 1;
         };
-        let user_book = table::borrow_mut(&mut book.book, address);
         
-        if(!map::contains_key(user_book, &chain)) {
-            map::add(user_book, chain, map::new<String, u256>());
+        if (!table::contains(&book.book, page_number)) {
+            table::add(&mut book.book, page_number, map::new<vector<u8>, Map<String, Map<String, u256>>>());
         };
-        let token_map = map::borrow_mut(user_book, &chain);
+
+        // handling pagination
+        let users = table::borrow_mut(&mut book.book, page_number);
+        if (!map::contains_key(users, &address)) {
+            map::add(users, address, map::new<String, Map<String, u256>>());
+        };
+
+        // handling user
+        let user = map::borrow_mut(users, &address);
+        if(!map::contains_key(user, &chain)) {
+            map::add(user, chain, map::new<String, u256>());
+        };
+        let token_map = map::borrow_mut(user, &chain);
 
         // --- CRITICAL FIX: MOVE THIS OUTSIDE THE ELSE BLOCK ---
         if (!map::contains_key(token_map, &token)) {
@@ -219,21 +247,34 @@ module dev::QiaraTokensOmnichainV5{
     
 
     #[view]
-    public fun return_address_full_balance(address: vector<u8>): Map<String, Map<String, u256>> acquires UserCrosschainBook {
+    public fun return_address_full_balance(address: vector<u8>): Map<String, Map<String, u256>> acquires UserCrosschainBook, AddressDatabase {
         let book = borrow_global<UserCrosschainBook>(@dev);
-        if (!table::contains(&book.book, address)) {
+        let addressDatabase_ref = borrow_global<AddressDatabase>(@dev);
+
+        if (!table::contains(&addressDatabase_ref.table, address)) {
             abort ERROR_ADDRESS_NOT_INITIALIZED
         };
-        return *table::borrow(&book.book, address)
+        let user_pagination = table::borrow(&addressDatabase_ref.table, address);
+
+        let users = table::borrow(&book.book, *user_pagination);
+        return *map::borrow(users, &address)
     }
     #[view]
-    public fun return_address_balance_by_chain_for_token(address: vector<u8>, chain:String, token:String,): u256 acquires UserCrosschainBook {
+    public fun return_address_balance_by_chain_for_token(address: vector<u8>, chain:String, token:String,): u256 acquires UserCrosschainBook, AddressDatabase {
         let book = borrow_global<UserCrosschainBook>(@dev);
-        if (!table::contains(&book.book, address)) {
+        let addressDatabase_ref = borrow_global<AddressDatabase>(@dev);
+
+        if (!table::contains(&addressDatabase_ref.table, address)) {
+            abort ERROR_ADDRESS_NOT_INITIALIZED
+        };
+        let user_pagination = table::borrow(&addressDatabase_ref.table, address);
+
+        let users = table::borrow(&book.book, *user_pagination);
+        if(!map::contains_key(users, &address)) {
             abort ERROR_ADDRESS_NOT_INITIALIZED
         };
 
-        let user_book = table::borrow(&book.book, address);
+        let user_book = map::borrow(users, &address);
         if(!map::contains_key(user_book, &token)) {
             abort ERROR_TOKEN_IN_ADDRESS_NOT_INITIALIZED 
         };
