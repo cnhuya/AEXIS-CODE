@@ -471,8 +471,8 @@ module dev::QiaraBridgeV18 {
                 let (shared_storage_name, pub_key_x, pub_key_y, pub_key, power) = Payload::prepare_register_validator(type_names, payload);
                 Validators::c_register_validator(signer, shared_storage_name, pub_key_x, pub_key_y, pub_key,power, Validators::give_permission(&borrow_global<Permissions>(@dev).validators)) 
             } else if(event_type == utf8(b"Request Bridge")){
-                let (symbol: String, chain: String, amount: u64, y) = Payload::prepare_finalize_bridge(type_names, payload);
-                Validators::c_finalize_bridge(signer, shared_storage_name, pub_key, Validators::give_permission(&borrow_global<Permissions>(@dev).validators))
+                let (symbol, chain, amount) = Payload::prepare_finalize_bridge(type_names, payload);
+                TokensCore::c_finalize_bridge(signer, symbol, chain, amount,  TokensCore::give_permission(&borrow_global<Permissions>(@dev).tokens_core))
             }  else{
                 abort(ERROR_INVALID_MESSAGE);
             };
