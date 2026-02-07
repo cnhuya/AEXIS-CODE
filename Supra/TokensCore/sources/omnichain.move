@@ -245,7 +245,12 @@ module dev::QiaraTokensOmnichainV6{
 
     }
     
+    #[view]
+    public fun return_balance_page(page_number: u64): Map<vector<u8>,Map<String, Map<String, u256>>> acquires UserCrosschainBook {
+        let book = borrow_global<UserCrosschainBook>(@dev);
 
+        *table::borrow(&book.book, page_number)
+    }
     #[view]
     public fun return_address_full_balance(address: vector<u8>): Map<String, Map<String, u256>> acquires UserCrosschainBook, AddressDatabase {
         let book = borrow_global<UserCrosschainBook>(@dev);
