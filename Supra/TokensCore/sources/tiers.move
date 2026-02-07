@@ -1,10 +1,10 @@
-module dev::QiaraTokensTiersV6{
+module dev::QiaraTokensTiersV7{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::type_info::{Self, TypeInfo};
     use supra_oracle::supra_oracle_storage;
-    use dev::QiaraStorageV3::{Self as storage};
+    use dev::QiaraStorageV6::{Self as storage};
 
 
 // === ERRORS === //

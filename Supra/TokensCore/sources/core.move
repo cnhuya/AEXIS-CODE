@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV6 {
+module dev::QiaraTokensCoreV7 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -15,16 +15,16 @@ module dev::QiaraTokensCoreV6 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV6::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV6::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensStoragesV6::{Self as TokensStorage, Access as TokensStorageAccess};
-    use dev::QiaraTokensTiersV6::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV6::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV7::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV7::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensStoragesV7::{Self as TokensStorage, Access as TokensStorageAccess};
+    use dev::QiaraTokensTiersV7::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV7::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
     use dev::QiaraEventV5::{Self as Event};
 
-    use dev::QiaraChainTypesV7::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV7::{Self as TokensType};
+    use dev::QiaraChainTypesV8::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV8::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
@@ -220,12 +220,12 @@ module dev::QiaraTokensCoreV6 {
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV6"),
+            string::utf8(b"QiaraTokensCoreV7"),
             string::utf8(b"c_deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV6"),
+            string::utf8(b"QiaraTokensCoreV7"),
             string::utf8(b"c_withdraw"),
         );
    
@@ -260,7 +260,7 @@ module dev::QiaraTokensCoreV6 {
            return
         };
         //tttta(1000);
-        TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain, bcs::to_bytes(&store), fungible_asset::amount(&fa), true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        TokensOmnichain::change_UserTokenSupply(fungible_asset::name(fungible_asset::store_metadata(store)), chain,  bcs::to_bytes(&object::owner(store)), fungible_asset::amount(&fa), true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         //tttta(147);
         fungible_asset::deposit_with_ref(&managed.transfer_ref, store, fa);
     }

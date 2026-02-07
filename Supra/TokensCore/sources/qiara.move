@@ -1,4 +1,4 @@
-module dev::QiaraTokensQiaraV6 {
+module dev::QiaraTokensQiaraV7 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -14,10 +14,10 @@ module dev::QiaraTokensQiaraV6 {
     use supra_framework::event;
     use std::string::{Self as string, String, utf8};
 
-    use dev::QiaraTokensCoreV6::{Self as TokensCore};
+    use dev::QiaraTokensCoreV7::{Self as TokensCore};
 
-    use dev::QiaraCapabilitiesV3::{Self as capabilities};
-    use dev::QiaraStorageV3::{Self as storage};
+    use dev::QiaraCapabilitiesV6::{Self as capabilities};
+    use dev::QiaraStorageV6::{Self as storage};
     const ADMIN: address = @dev;
 
     const ERROR_NOT_ADMIN: u64 = 1;
