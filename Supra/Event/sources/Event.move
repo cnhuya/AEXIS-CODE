@@ -1,4 +1,4 @@
-module dev::QiaraEventV6 {
+module dev::QiaraEventV1 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -54,10 +54,6 @@ module dev::QiaraEventV6 {
     }
     #[event]
     struct BridgeEvent has copy, drop, store {
-        aux: vector<Data>,
-    }
-    #[event]
-    struct Event has copy, drop, store {
         aux: vector<Data>,
     }
     #[event]
