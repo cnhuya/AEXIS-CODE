@@ -1,4 +1,4 @@
-module dev::QiaraMarginV8{
+module dev::QiaraMarginV1{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -8,10 +8,10 @@ module dev::QiaraMarginV8{
     use supra_oracle::supra_oracle_storage;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 
-    use dev::QiaraTokensMetadataV9::{Self as TokensMetadata};
+    use dev::QiaraTokensMetadataV1::{Self as TokensMetadata};
     use dev::QiaraSharedV1::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV9::{Self as TokensType};
+    use dev::QiaraTokenTypesV1::{Self as TokensType};
     
     use dev::QiaraMathV1::{Self as QiaraMath};
 
@@ -156,7 +156,7 @@ module dev::QiaraMarginV8{
     }
 
     public fun update_reward_index(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, index: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+        //TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
         balance.reward_index_snapshot = index;
         balance.last_update = timestamp::now_seconds();
@@ -183,7 +183,7 @@ module dev::QiaraMarginV8{
     }
 
     public fun add_stake(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+      //  TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
         {
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
             balance.staked = balance.staked + value;
@@ -286,7 +286,7 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
     let i = 0;
     let vect = vector::empty<Credit>();
 
-    while (i < len_tokens) { // go through all tokens
+    while (i < len_tokens) {
         let token = *vector::borrow(&tokens, i);
 
         if (!table::contains(&tokens_holdings.holdings, shared_storage_name)) {
@@ -294,134 +294,100 @@ public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u
             continue;
         };
 
-        // Store all the data we need first
-        let vect_token = vector::empty<String>();
-        let vect_chain = vector::empty<String>();
-        let vect_provider = vector::empty<String>();
-        
+        // Get Metadata once per token type
         let metadata = TokensMetadata::get_coin_metadata_by_symbol(token);
         let price = (TokensMetadata::get_coin_metadata_price(&metadata) as u256);
         let denom = (TokensMetadata::get_coin_metadata_denom(&metadata) as u256);
-        
+        let efficiency = (TokensMetadata::get_coin_metadata_tier_efficiency(&metadata) as u256);
+
+        // Pre-collect keys to avoid borrow conflicts
+        let vect_chain = vector::empty<String>();
+        let vect_provider = vector::empty<String>();
+
         {
-            let user_holdings_ref = table::borrow_mut(&mut tokens_holdings.holdings, shared_storage_name);
+            let user_holdings_ref = table::borrow(&tokens_holdings.holdings, shared_storage_name);
             if (!table::contains(user_holdings_ref, token)) {
                 i = i + 1;
                 continue;
             };
 
-            let chain_map = table::borrow_mut(user_holdings_ref, token);
+            let chain_map = table::borrow(user_holdings_ref, token);
             let chains = map::keys(chain_map);
-
             let len_chain = vector::length(&chains);
             let y = 0;
-            while (y < len_chain) { // go through all chains
+            while (y < len_chain) {
                 let chain = *vector::borrow(&chains, y);
-
-                // skip if denom is 0
-                if (denom == 0) {
-                    y = y + 1;
-                    continue;
-                };
-
                 let providers_map = map::borrow(chain_map, &chain);
                 let providers = map::keys(providers_map);
-
                 let len_providers = vector::length(&providers);
                 let x = 0;
-                while (x < len_providers) { // go through all providers        
-                    let provider = *vector::borrow(&providers, x);
-                    
-                    // Collect data to process later - just the identifiers
-                    vector::push_back(&mut vect_token, token);
+                while (x < len_providers) {
                     vector::push_back(&mut vect_chain, chain);
-                    vector::push_back(&mut vect_provider, provider);
+                    vector::push_back(&mut vect_provider, *vector::borrow(&providers, x));
                     x = x + 1;
                 };
                 y = y + 1;
             };
-        }; // End of borrow scope - all borrows are released here
-        
-        // Now process each item without active borrows
+        };
+
+        // Process collected items for this token
         let j = 0;
-        while (j < vector::length(&vect_token)) {
-            let token_copy =  *vector::borrow(&vect_token, j);
-            let chain_copy =  *vector::borrow(&vect_chain, j);
-            let provider_copy =  *vector::borrow(&vect_provider, j);
+        let len_inner = vector::length(&vect_chain);
+        while (j < len_inner) {
+            let chain_copy = *vector::borrow(&vect_chain, j);
+            let provider_copy = *vector::borrow(&vect_provider, j);
             
-            // Now we can safely call find_balance
-            let uv_ref = find_balance(tokens_holdings, shared_storage_name, token_copy, chain_copy, provider_copy);
-            let uv = *uv_ref; // Dereference to get a copy
-            
+            let uv_ref = find_balance(tokens_holdings, shared_storage_name, token, chain_copy, provider_copy);
+            let uv = *uv_ref;
             vector::push_back(&mut vect, uv);
-            let dep_usd = uv.deposited * price / denom;
-            let bor_usd = uv.borrowed * price / denom;
-            let current_raw_borrow = uv.borrowed * price / denom;
-            let reward_usd = uv.rewards * price / denom;
-            let interest_usd = uv.interest * price / denom;
-            let locked_fees_usd = (uv.locked_fee as u256) * price / denom;
-            let staked_usd = 0;
-            if(token_copy == utf8(b"Qiara")){
-                staked_usd = uv.staked / denom;
-            } else {
-                let staked_usd = uv.staked * price / denom;
-            };
-    
-            let utilization = if (current_raw_borrow == 0) {
-                0
-            } else {
-                (bor_usd * 100) / current_raw_borrow
-            };
 
-           /* let (margin_interest, _, _) = QiaraMath::compute_rate(
-                utilization,
-                (TokensMetadata::get_coin_metadata_market_rate(&metadata, chain_copy) as u256),
-                (TokensMetadata::get_coin_metadata_rate_scale(&metadata, false) as u256),
-                false,
-                5
-            );*/
-            let credit = find_credit(tokens_holdings, shared_storage_name);
+            // Safety check for division
+            if (denom > 0) {
+                let dep_usd = (uv.deposited * price) / denom;
+                let bor_usd = (uv.borrowed * price) / denom;
+                let reward_usd = (uv.rewards * price) / denom;
+                let interest_usd = (uv.interest * price) / denom;
+                let locked_fees_usd = ((uv.locked_fee as u256) * price) / denom;
 
-            if (credit.isPositive) {
-                total_available = total_available + credit.value;
-                total_margin = total_margin + credit.value;
-            } else {
-                if (total_available > credit.value) {
-                    total_available = total_available - credit.value;
+                // FIXED: Using a helper variable to avoid 'let' shadowing bugs
+                let current_staked_usd: u256;
+                if (token == utf8(b"Qiara")) {
+                    current_staked_usd = uv.staked / denom;
                 } else {
-                    total_available = 0;
+                    current_staked_usd = (uv.staked * price) / denom;
                 };
 
-                if (total_margin > credit.value) {
-                    total_margin = total_margin - credit.value;
-                } else {
-                    total_margin = 0;
-                };
+                // Accumulate totals
+                total_staked = total_staked + current_staked_usd;
+                total_dep = total_dep + dep_usd;
+                total_bor = total_bor + bor_usd;
+                total_rew = total_rew + reward_usd;
+                total_int = total_int + interest_usd;
+                total_locked_fees = total_locked_fees + locked_fees_usd;
+                total_margin = total_margin + (dep_usd * efficiency / 10000);
             };
-
-            total_staked = total_staked + staked_usd;
-            total_dep = total_dep + dep_usd;
-            total_margin = total_margin + (dep_usd * (((TokensMetadata::get_coin_metadata_tier_efficiency(&metadata)) as u256)) / 10000);
-            total_bor = total_bor + bor_usd;
-            total_rew = total_rew + reward_usd;
-            total_int = total_int + interest_usd;
-            total_locked_fees = total_locked_fees + locked_fees_usd;
-            total_expected_interest = total_expected_interest;
-
             j = j + 1;
         };
-        
         i = i + 1;
     };
 
-    let avg_interest = if (total_dep == 0) 0 else total_expected_interest / total_dep;
-    let deducted_margin = if (total_margin > total_staked) { total_margin - total_staked } else {0u256};
+    // Credit Processing (Calculated once outside token loop to avoid inflation)
+    let credit = find_credit(tokens_holdings, shared_storage_name);
+    if (credit.isPositive) {
+        total_available = total_available + credit.value;
+        total_margin = total_margin + credit.value;
+    } else {
+        total_available = if (total_available > credit.value) { total_available - credit.value } else { 0 };
+        total_margin = if (total_margin > credit.value) { total_margin - credit.value } else { 0 };
+    };
 
+    let avg_interest = if (total_dep == 0) 0 else total_expected_interest / total_dep;
+    let deducted_margin = if (total_margin > total_staked) { total_margin - total_staked } else { 0 };
 
     (
         total_dep,
         deducted_margin,
-        if (deducted_margin > total_bor) { deducted_margin - total_bor } else {0u256},
+        if (deducted_margin > total_bor) { deducted_margin - total_bor } else { 0 },
         total_bor,
         total_available,
         total_rew,
