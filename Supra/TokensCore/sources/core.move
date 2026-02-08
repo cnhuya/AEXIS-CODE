@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV9 {
+module dev::QiaraTokensCoreV1 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -14,16 +14,16 @@ module dev::QiaraTokensCoreV9 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV9::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV9::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensTiersV9::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV9::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV1::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV1::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensTiersV1::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV1::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
-    use dev::QiaraEventV6::{Self as Event};
-    use dev::QiaraStoragesV2::{Self as Storages};
+    use dev::QiaraEventV1::{Self as Event};
+    use dev::QiaraStoragesV1::{Self as Storages};
 
-    use dev::QiaraChainTypesV9::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV9::{Self as TokensType};
+    use dev::QiaraChainTypesV1::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV1::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
@@ -219,12 +219,12 @@ module dev::QiaraTokensCoreV9 {
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV9"),
+            string::utf8(b"QiaraTokensCoreV1"),
             string::utf8(b"c_deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV9"),
+            string::utf8(b"QiaraTokensCoreV1"),
             string::utf8(b"c_withdraw"),
         );
    
@@ -359,15 +359,18 @@ module dev::QiaraTokensCoreV9 {
 
         let legit_amount = (TokensOmnichain::return_address_balance_by_chain_for_token(bcs::to_bytes(&signer::address_of(user)), chain, symbol) as u64);
         assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
+        let total_outflow = (TokensOmnichain::return_address_outflow_by_chain_for_token(bcs::to_bytes(&signer::address_of(user)), chain, symbol) as u64);
 
+        TokensOmnichain::change_UserTokenSupply(symbol, chain, bcs::to_bytes(&signer::address_of(user)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        TokensOmnichain::increment_UserOutflow(symbol, chain, bcs::to_bytes(&signer::address_of(user)), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         internal_deposit(Storages::return_lock_storage(symbol, chain), fa, chain,managed);
-    
         let data = vector[
             Event::create_data_struct(utf8(b"user"), utf8(b"address"), bcs::to_bytes(&signer::address_of(user))),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"chainTo"), utf8(b"string"), bcs::to_bytes(&chainTo)),
-            Event::create_data_struct(utf8(b"amount"), utf8(b"u64"), bcs::to_bytes(&amount)),
+            Event::create_data_struct(utf8(b"total_outflow"), utf8(b"u64"), bcs::to_bytes(&total_outflow)),
+            Event::create_data_struct(utf8(b"additional_outflow"), utf8(b"u64"), bcs::to_bytes(&amount)),
         ];
         Event::emit_consensus_event(utf8(b"Request Bridge"), data, utf8(b"zk"));
 

@@ -1,10 +1,10 @@
     [package]
-    name = "QiaraTokensV10"
+    name = "QiaraTokensV1"
     version = "2.1.1"
     authors = []
 
     [addresses]
-    dev = "0x434efed497f5b9ed8f975dd60df271297e35a1bbe9e4a17bc65920273bfca1c6"
+    dev = "0x2ac776b09a5a0d55b03be6328ac874bb8897b3978c3b4dc0905622fbef629833"
     supra_framework = "0x1"
     std = "0x1"
     aptos_std = "0x1"
@@ -37,7 +37,7 @@
     rev = 'main'
     subdir = 'Supra/Shared'
 
-    [dependencies.QiaraTypesV9]
+    [dependencies.QiaraTypesV1]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
@@ -47,17 +47,17 @@
     rev = 'main'
     subdir = 'Supra/oracle'
 
-    [dependencies.QiaraStorageV6]
+    [dependencies.QiaraStorageV1]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraEventV6]
+    [dependencies.QiaraEventV1]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Event'
 
-    [dependencies.QiaraStoragesV2]
+    [dependencies.QiaraStoragesV1]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Storages'

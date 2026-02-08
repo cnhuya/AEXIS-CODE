@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV9{
+module dev::QiaraTokensOmnichainV1{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -369,25 +369,26 @@ module dev::QiaraTokensOmnichainV9{
         let addressDatabase_ref = borrow_global<AddressDatabase>(@dev);
 
         if (!table::contains(&addressDatabase_ref.table_outflow, address)) {
-            abort ERROR_ADDRESS_NOT_INITIALIZED
+            return 0 //abort ERROR_ADDRESS_NOT_INITIALIZED
         };
         let user_pagination = table::borrow(&addressDatabase_ref.table_outflow, address);
 
         let users = table::borrow(&book.outflows, *user_pagination);
         if(!map::contains_key(users, &address)) {
-            abort ERROR_ADDRESS_NOT_INITIALIZED
+            return 0 // abort ERROR_ADDRESS_NOT_INITIALIZED
         };
 
         let user_book = map::borrow(users, &address);
         if(!map::contains_key(user_book, &chain)) {
-            abort ERROR_TOKEN_ON_CHAIN_IN_ADDRESS_NOT_INITIALIZED 
+             return 0 //abort ERROR_TOKEN_ON_CHAIN_IN_ADDRESS_NOT_INITIALIZED 
         };
         let map = map::borrow(user_book, &chain);
         if(!map::contains_key(map, &token)) {
-            abort ERROR_TOKEN_IN_ADDRESS_NOT_INITIALIZED
+             return 0 //abort ERROR_TOKEN_IN_ADDRESS_NOT_INITIALIZED
         };
         return *map::borrow(map, &token)
 
     }
+    
 
 }
