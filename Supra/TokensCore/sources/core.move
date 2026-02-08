@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV8 {
+module dev::QiaraTokensCoreV9 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -14,10 +14,10 @@ module dev::QiaraTokensCoreV8 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV8::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV8::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensTiersV8::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV8::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV9::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV9::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensTiersV9::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV9::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
     use dev::QiaraEventV6::{Self as Event};
     use dev::QiaraStoragesV2::{Self as Storages};
@@ -219,12 +219,12 @@ module dev::QiaraTokensCoreV8 {
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV7"),
+            string::utf8(b"QiaraTokensCoreV9"),
             string::utf8(b"c_deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV7"),
+            string::utf8(b"QiaraTokensCoreV9"),
             string::utf8(b"c_withdraw"),
         );
    

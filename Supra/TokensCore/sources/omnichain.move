@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV8{
+module dev::QiaraTokensOmnichainV9{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -40,10 +40,12 @@ module dev::QiaraTokensOmnichainV8{
     // For Pagination purposes
     struct AddressCounter has key {
         counter: u64,
+        counter_outflow: u64
     }
     // Needed to track addresses, to avoid duplication
     struct AddressDatabase has key {
         table: Table<vector<u8>, u64>,
+        table_outflow: Table<vector<u8>, u64>,
     }
     // Tracks allowed/supported chains for each Token.
     // i.e Ethereum (token) -> Base/Sui/Solana (chains)
@@ -87,10 +89,10 @@ module dev::QiaraTokensOmnichainV8{
         assert!(signer::address_of(admin) == @dev, 1);
 
         if (!exists<AddressCounter>(@dev)) {
-            move_to(admin, AddressCounter { counter: 0 });
+            move_to(admin, AddressCounter { counter: 0, counter_outflow: 0 });
         };
         if (!exists<AddressDatabase>(@dev)) {
-            move_to(admin, AddressDatabase { table: table::new<vector<u8>, u64>() });
+            move_to(admin, AddressDatabase { table: table::new<vector<u8>, u64>(), table_outflow: table::new<vector<u8>, u64>() });
         };
         if (!exists<TokensChains>(@dev)) {
             move_to(admin, TokensChains { book: map::new<String, vector<String>>() });
@@ -202,9 +204,9 @@ module dev::QiaraTokensOmnichainV8{
         let addressDatabase_ref = borrow_global_mut<AddressDatabase>(@dev);
         let page_number = addressCounter_ref.counter / 100;
 
-        if (!table::contains(&addressDatabase_ref.table, address)) {
-            table::add(&mut addressDatabase_ref.table, address, page_number); // Store the page!
-            addressCounter_ref.counter = addressCounter_ref.counter + 1;
+        if (!table::contains(&addressDatabase_ref.table_outflow, address)) {
+            table::add(&mut addressDatabase_ref.table_outflow, address, page_number); // Store the page!
+            addressCounter_ref.counter_outflow = addressCounter_ref.counter_outflow + 1;
         };
         
         if (!table::contains(&book.outflows, page_number)) {
@@ -353,10 +355,10 @@ module dev::QiaraTokensOmnichainV8{
         let book = borrow_global<UserCrosschainBook>(@dev);
         let addressDatabase_ref = borrow_global<AddressDatabase>(@dev);
 
-        if (!table::contains(&addressDatabase_ref.table, address)) {
+        if (!table::contains(&addressDatabase_ref.table_outflow, address)) {
             abort ERROR_ADDRESS_NOT_INITIALIZED
         };
-        let user_pagination = table::borrow(&addressDatabase_ref.table, address);
+        let user_pagination = table::borrow(&addressDatabase_ref.table_outflow, address);
 
         let users = table::borrow(&book.outflows, *user_pagination);
         return *map::borrow(users, &address)
@@ -366,10 +368,10 @@ module dev::QiaraTokensOmnichainV8{
         let book = borrow_global<UserCrosschainBook>(@dev);
         let addressDatabase_ref = borrow_global<AddressDatabase>(@dev);
 
-        if (!table::contains(&addressDatabase_ref.table, address)) {
+        if (!table::contains(&addressDatabase_ref.table_outflow, address)) {
             abort ERROR_ADDRESS_NOT_INITIALIZED
         };
-        let user_pagination = table::borrow(&addressDatabase_ref.table, address);
+        let user_pagination = table::borrow(&addressDatabase_ref.table_outflow, address);
 
         let users = table::borrow(&book.outflows, *user_pagination);
         if(!map::contains_key(users, &address)) {
