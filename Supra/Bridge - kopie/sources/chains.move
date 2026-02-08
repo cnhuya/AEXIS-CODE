@@ -1,4 +1,4 @@
-module dev::QiaraBridgeV20 {
+module dev::QiaraBridgeV1 {
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
@@ -15,19 +15,19 @@ module dev::QiaraBridgeV20 {
     use supra_framework::fungible_asset::{Self, Metadata, FungibleAsset};
     use supra_framework::object::{Self, Object};
     use supra_framework::primary_fungible_store;
-    use dev::QiaraEventV5::{Self as Event};
-    use dev::QiaraStorageV6::{Self as storage};
+    use dev::QiaraEventV1::{Self as Event};
+    use dev::QiaraStorageV1::{Self as storage};
 
-    use dev::QiaraTokensCoreV7::{Self as TokensCore, Access as TokensCoreAccess};
-    use dev::QiaraTokensValidatorsV7::{Self as TokensValidators};
-    use dev::QiaraTokensSharedV7::{Self as TokensShared};
+    use dev::QiaraTokensCoreV1::{Self as TokensCore, Access as TokensCoreAccess};
+    use dev::QiaraTokensValidatorsV1::{Self as TokensValidators};
+    use dev::QiaraSharedV1::{Self as TokensShared};
     
-    use dev::QiaraVaultsV12::{Self as Market, Access as MarketAccess};
+    use dev::QiaraVaultsV1::{Self as Market, Access as MarketAccess};
 
-    use dev::QiaraMarginV6::{Self as Margin};
+    use dev::QiaraMarginV1::{Self as Margin};
 
-    use dev::QiaraPayloadV20::{Self as Payload};
-    use dev::QiaraValidatorsV20::{Self as Validators, Access as ValidatorsAccess};
+    use dev::QiaraPayloadV1::{Self as Payload};
+    use dev::QiaraValidatorsV1::{Self as Validators, Access as ValidatorsAccess};
     /// Admin address constant
     const STORAGE: address = @dev;
 
@@ -45,6 +45,8 @@ module dev::QiaraBridgeV20 {
     const ERROR_NOT_FOUND: u64 = 11;
     const ERROR_CAPS_NOT_PUBLISHED: u64 = 11;
     const ERROR_NOT_ENOUGH_VOTING_POWER: u64 = 12;
+    const ERROR_INVALID_VOTING_POWER: u64 = 13;
+    const ERROR_INVALID_TYPE: u64 = 14;
 
 
 // === ACCESS === //
@@ -136,12 +138,27 @@ module dev::QiaraBridgeV20 {
         if (!exists<Permissions>(@dev)) {
             move_to(admin, Permissions {market: Market::give_access(admin), tokens_core: TokensCore::give_access(admin), validators: Validators::give_access(admin)});
         };
+        if (!exists<TxCount>(@dev)) {
+            move_to(admin, TxCount {count: 0});
+        };
+        if (!exists<Pending>(@dev)) {
+            move_to(admin, Pending {main: table::new<u256, MainVotes>(), zk: table::new<u256, ZkVotes>()});
+        };
+        if (!exists<Validated>(@dev)) {
+            move_to(admin, Validated {main: table::new<u256, MainVotes>(), zk: table::new<u256, ZkVotes>()});
+        };
+    }
+
+    fun tttta(error: u64){
+        abort error
     }
 
 // === FUNCTIONS === //
     public entry fun register_event(validator: &signer, shared_storage_name: String, type_names: vector<String>, payload: vector<vector<u8>>) acquires TxCount, Pending, Validated, Permissions {
         TokensShared::assert_is_owner(bcs::to_bytes(&signer::address_of(validator)), shared_storage_name);
+        //tttta(1);
         Payload::ensure_valid_payload(type_names, payload);
+        //tttta(97);
         let (_, type) = Payload::find_payload_value(utf8(b"type"), type_names, payload);
         let (_, event_type) = Payload::find_payload_value(utf8(b"event_type"), type_names, payload);
         let (pub_key_x, pub_key_y, pubkey, _, _, _, _) = Validators::return_validator_raw(shared_storage_name);
@@ -151,8 +168,9 @@ module dev::QiaraBridgeV20 {
         let validated = borrow_global_mut<Validated>(STORAGE);
         let tx_count = borrow_global_mut<TxCount>(STORAGE);
 
+        
         // Store event in both pending and chain storage
-        if(type == b"main"){
+        if(from_bcs::to_string(type) == utf8(b"main")){
             let (_, message) = Payload::find_payload_value(utf8(b"message"), type_names, payload);
             let (_, _signature) = Payload::find_payload_value(utf8(b"signature"), type_names, payload);
             let pubkey_struct = Crypto::new_unvalidated_public_key_from_bytes(pubkey);
@@ -172,7 +190,7 @@ module dev::QiaraBridgeV20 {
                 shared_storage_name,
                 from_bcs::to_string(event_type)
             );
-        } else if (type == b"zk"){
+        } else if (from_bcs::to_string(type) == utf8(b"zk")){
             handle_zk_event(
                 validator,
                 (signer::address_of(validator)),
@@ -186,6 +204,10 @@ module dev::QiaraBridgeV20 {
                 from_bcs::to_string(event_type)
 
             );
+        } else if (from_bcs::to_string(type) == utf8(b"none")){
+            return
+        } else {
+            abort(ERROR_INVALID_TYPE);
         };
 
 
@@ -281,7 +303,7 @@ module dev::QiaraBridgeV20 {
             abort(ERROR_DUPLICATE_EVENT);
         };
         let (_, _, _, _, _, _, _, _, vote_weight, _, _) = Margin::get_user_total_usd(shared_storage_name);
-        assert!(vote_weight > (storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTING_POWER"))) as u256), ERROR_NOT_ENOUGH_VOTING_POWER);
+        //assert!(vote_weight > (storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTING_POWER"))) as u256), ERROR_NOT_ENOUGH_VOTING_POWER);
         // Update pending validators
         let vote_count = if (table::contains(pending_table, index)) {
             let votes = table::borrow_mut(pending_table, index);
@@ -384,13 +406,13 @@ module dev::QiaraBridgeV20 {
     }
     fun handle_zk_event(signer: &signer, validator: address, pending_table: &mut table::Table<u256, ZkVotes>, validated_table: &mut table::Table<u256, ZkVotes>, index: u256,  type_names: vector<String>, payload: vector<vector<u8>>, zk_vote: ZkVote, shared_storage_name: String, event_type: String ) acquires Permissions {
         let quorum = storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT")));
-
+        //tttta(1);
         // Already validated?
         if (table::contains(validated_table, index)) {
             abort(ERROR_DUPLICATE_EVENT);
         };
         let (_, _, _, _, _, _, _, _, vote_weight, _, _) = Margin::get_user_total_usd(shared_storage_name);
-        assert!(vote_weight > (storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTING_POWER"))) as u256), ERROR_NOT_ENOUGH_VOTING_POWER);
+       // assert!(vote_weight > (storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTING_POWER"))) as u256), ERROR_NOT_ENOUGH_VOTING_POWER);
         // Update pending validators
         let vote_count = if (table::contains(pending_table, index)) {
             let votes = table::borrow_mut(pending_table, index);

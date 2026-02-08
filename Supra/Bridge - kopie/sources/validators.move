@@ -1,4 +1,4 @@
-module dev::QiaraValidatorsV20 {
+module dev::QiaraValidatorsV1 {
     use std::signer;
     use std::vector;
     use std::bcs;
@@ -8,11 +8,11 @@ module dev::QiaraValidatorsV20 {
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::string::{Self as String, String, utf8};
 
-    use dev::QiaraEventV5::{Self as Event};
-    use dev::QiaraTokensSharedV7::{Self as TokensShared};
-    use dev::QiaraMarginV6::{Self as Margin};
+    use dev::QiaraEventV1::{Self as Event};
+    use dev::QiaraSharedV1::{Self as TokensShared};
+    use dev::QiaraMarginV1::{Self as Margin};
 
-    use dev::QiaraGenesisV20::{Self as Genesis};
+    use dev::QiaraGenesisV1::{Self as Genesis};
     // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
     const ERROR_NOT_VALIDATOR: u64 = 1;
@@ -75,7 +75,6 @@ module dev::QiaraValidatorsV20 {
 // === PUBLIC FUNCTIONS === //
 
     public entry fun dev_register_validator(signer: &signer, validator: vector<u8>, shared_storage_name: String, pub_key_x: String, pub_key_y: String, pub_key: vector<u8>, power:u256) acquires ActiveValidators, Validators {
-        assert!(signer::address_of(signer) == @dev, ERROR_NOT_ADMIN);
         TokensShared::assert_is_owner(validator, shared_storage_name);
         let active_validators = borrow_global_mut<ActiveValidators>(@dev); 
         let validators = borrow_global_mut<Validators>(@dev);

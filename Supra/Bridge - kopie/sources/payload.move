@@ -1,12 +1,12 @@
-module dev::QiaraPayloadV20 {
+module dev::QiaraPayloadV1 {
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
     use std::table;
     use aptos_std::from_bcs;
 
-    use dev::QiaraChainTypesV8::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV8::{Self as TokenTypes};
+    use dev::QiaraChainTypesV1::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV1::{Self as TokenTypes};
     
 
     const ERROR_PAYLOAD_LENGTH_MISMATCH_WITH_TYPES: u64 = 0;
@@ -23,19 +23,22 @@ module dev::QiaraPayloadV20 {
         assert!(signer::address_of(admin) == @dev, 1);
     }
 
+    fun tttta(error: u64){
+        abort error
+    }
 
     public fun ensure_valid_payload(type_names: vector<String>, payload: vector<vector<u8>>){
         let len = vector::length(&type_names);
         let payload_len = vector::length(&payload);
         assert!(len == payload_len, ERROR_PAYLOAD_LENGTH_MISMATCH_WITH_TYPES);
 
-        assert!(vector::contains(&type_names, &utf8(b"hash")), ERROR_PAYLOAD_MISS_HASH);
+       // assert!(vector::contains(&type_names, &utf8(b"hash")), ERROR_PAYLOAD_MISS_HASH);
         assert!(vector::contains(&type_names, &utf8(b"time")), ERROR_PAYLOAD_MISS_TIME);
         assert!(vector::contains(&type_names, &utf8(b"type")), ERROR_PAYLOAD_MISS_TYPE);
 
         let (_, chain) = find_payload_value(utf8(b"chain"), type_names, payload);
         ChainTypes::ensure_valid_chain_name(from_bcs::to_string(chain));
-
+    //    tttta(100);
         if(vector::contains(&type_names, &utf8(b"token"))){
             let (_, token) = find_payload_value(utf8(b"token"), type_names, payload);
             TokenTypes::ensure_valid_token_nick_name(from_bcs::to_string(token));
