@@ -1,4 +1,4 @@
-module dev::QiaraBridgeV19 {
+module dev::QiaraBridgeV20 {
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
@@ -26,8 +26,8 @@ module dev::QiaraBridgeV19 {
 
     use dev::QiaraMarginV6::{Self as Margin};
 
-    use dev::QiaraPayloadV19::{Self as Payload};
-    use dev::QiaraValidatorsV19::{Self as Validators, Access as ValidatorsAccess};
+    use dev::QiaraPayloadV20::{Self as Payload};
+    use dev::QiaraValidatorsV20::{Self as Validators, Access as ValidatorsAccess};
     /// Admin address constant
     const STORAGE: address = @dev;
 
@@ -115,7 +115,7 @@ module dev::QiaraBridgeV19 {
         s: String,
         pub_key_x: String,
         pub_key_y: String,
-        index: u16,
+     //   index: u16,
     }
 
     struct MainVotes has key, copy, store, drop {
@@ -144,7 +144,6 @@ module dev::QiaraBridgeV19 {
         Payload::ensure_valid_payload(type_names, payload);
         let (_, type) = Payload::find_payload_value(utf8(b"type"), type_names, payload);
         let (_, event_type) = Payload::find_payload_value(utf8(b"event_type"), type_names, payload);
-        let (_, message) = Payload::find_payload_value(utf8(b"message"), type_names, payload);
         let (pub_key_x, pub_key_y, pubkey, _, _, _, _) = Validators::return_validator_raw(shared_storage_name);
 
 
@@ -154,7 +153,7 @@ module dev::QiaraBridgeV19 {
 
         // Store event in both pending and chain storage
         if(type == b"main"){
-
+            let (_, message) = Payload::find_payload_value(utf8(b"message"), type_names, payload);
             let (_, _signature) = Payload::find_payload_value(utf8(b"signature"), type_names, payload);
             let pubkey_struct = Crypto::new_unvalidated_public_key_from_bytes(pubkey);
             let signature = Crypto::new_signature_from_bytes(from_bcs::to_bytes(_signature));
@@ -194,9 +193,9 @@ module dev::QiaraBridgeV19 {
 
     fun build_zkVote_from_payload(pubkwey_x: String, pubkey_y: String, type_names: vector<String>, payload: vector<vector<u8>>): ZkVote {
         let (_, s_r8x) = Payload::find_payload_value(utf8(b"s_r8x"), type_names, payload);
-        let (_, s_r8y) = Payload::find_payload_value(utf8(b"s_r8x"), type_names, payload);
-        let (_, s) = Payload::find_payload_value(utf8(b"s_r8x"), type_names, payload);
-        let (_, index) = Payload::find_payload_value(utf8(b"s_r8x"), type_names, payload);
+        let (_, s_r8y) = Payload::find_payload_value(utf8(b"s_r8y"), type_names, payload);
+        let (_, s) = Payload::find_payload_value(utf8(b"s"), type_names, payload);
+        //let (_, index) = Payload::find_payload_value(utf8(b"index"), type_names, payload);
 
         return ZkVote {
             weight: 0,
@@ -205,7 +204,7 @@ module dev::QiaraBridgeV19 {
             s:  from_bcs::to_string(s), //s_r8y,
             pub_key_x: pubkwey_x,
             pub_key_y: pubkey_y,
-            index:  from_bcs::to_u16(s), //s_r8y,
+            //index:  from_bcs::to_u16(s), //s_r8y,
         }
     }
 
