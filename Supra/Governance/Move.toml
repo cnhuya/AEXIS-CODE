@@ -1,5 +1,5 @@
 [package]
-name = "QiaraGovernanceV5"
+name = "QiaraGovernanceV6"
 version = "1.0.0"
 authors = []
 
@@ -18,24 +18,24 @@ git = "https://github.com/Entropy-Foundation/aptos-core.git"
 rev = "dev"
 subdir = "aptos-move/framework/aptos-stdlib"
 
-    [dependencies.QiaraMarginV4]
+    [dependencies.QiaraMarginV8]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
 
-    [dependencies.QiaraEventV5]
+    [dependencies.QiaraEventV6]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Event'
 
-    [dependencies.QiaraStorageV3]
+    [dependencies.QiaraStorageV6]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraTokensV6]
+    [dependencies.QiaraSharedV1]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
-    subdir = 'Supra/TokensCore'
+    subdir = 'Supra/Shared'
 
 [dev-dependencies]

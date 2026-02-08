@@ -1,4 +1,4 @@
-module dev::QiaraGovernanceV2 {
+module dev::QiaraGovernanceV6 {
     use std::signer;
     use std::string::{Self, String, utf8};
     use std::vector;
@@ -11,13 +11,13 @@ module dev::QiaraGovernanceV2 {
     use supra_framework::primary_fungible_store;
     use aptos_std::from_bcs;
 
-    use dev::QiaraEventV5::{Self as Event};
-    use dev::QiaraMarginV4::{Self as Margin};
+    use dev::QiaraEventV6::{Self as Event};
+    use dev::QiaraMarginV8::{Self as Margin};
 
-    use dev::QiaraStorageV3::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV3::{Self as capabilities, Access as CapabilitiesAccess};
-    use dev::QiaraFunctionsV3::{Self as functions, Access as FunctionAccess};
-    use dev::QiaraTokensSharedV5::{Self as TokensShared};
+    use dev::QiaraStorageV6::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV6::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraFunctionsV6::{Self as functions, Access as FunctionAccess};
+    use dev::QiaraSharedV1::{Self as TokensShared};
     const OWNER: address = @dev;
 
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -135,20 +135,6 @@ module dev::QiaraGovernanceV2 {
 
         let proposal = make_proposal(proposal_id, type, addr, duration, header, constant_name, isChange, editable, new_value, value_type);
         vector::push_back(&mut registry.proposals, proposal);
-
-        /*event::emit(ProposeEvent {
-            id: proposal_id,
-            type: type,
-            proposer: addr,
-            start: timestamp::now_seconds(),
-            end: timestamp::now_seconds() + duration,
-            header,
-            constant: constant_name,
-            isChange,
-            editable,
-            new_value,
-            value_type,
-        });*/
 
         count_ref.count = count_ref.count + 1;
     }
