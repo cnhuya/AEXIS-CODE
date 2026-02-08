@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV12 {
+module dev::QiaraVaultsV13 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -14,22 +14,22 @@ module dev::QiaraVaultsV12 {
     use supra_framework::object::{Self, Object};
     use supra_framework::account;
 
-    use dev::QiaraTokensCoreV7::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
-    use dev::QiaraTokensMetadataV7::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
-    use dev::QiaraTokensSharedV7::{Self as TokensShared};
-    use dev::QiaraTokensRatesV7::{Self as TokensRates, Access as TokensRatesAccess};
-    use dev::QiaraTokensTiersV7::{Self as TokensTiers};
-    use dev::QiaraTokensOmnichainV7::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensCoreV9::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
+    use dev::QiaraTokensMetadataV9::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
+    use dev::QiaraSharedV1::{Self as TokensShared};
+    use dev::QiaraTokensRatesV9::{Self as TokensRates, Access as TokensRatesAccess};
+    use dev::QiaraTokensTiersV9::{Self as TokensTiers};
+    use dev::QiaraTokensOmnichainV9::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
-    use dev::QiaraMarginV6::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraPointsV6::{Self as Points, Access as PointsAccess};
-    use dev::QiaraRIV6::{Self as RI};
+    use dev::QiaraMarginV8::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraPointsV8::{Self as Points, Access as PointsAccess};
+    use dev::QiaraRIV8::{Self as RI};
 
-    use dev::QiaraAutomationV5::{Self as auto, Access as AutoAccess};
+    use dev::QiaraAutomationV6::{Self as auto, Access as AutoAccess};
 
-    use dev::QiaraTokenTypesV8::{Self as TokensTypes};
-    use dev::QiaraChainTypesV8::{Self as ChainTypes};
-    use dev::QiaraProviderTypesV8::{Self as ProviderTypes};
+    use dev::QiaraTokenTypesV9::{Self as TokensTypes};
+    use dev::QiaraChainTypesV9::{Self as ChainTypes};
+    use dev::QiaraProviderTypesV9::{Self as ProviderTypes};
 
     use dev::QiaraMathV1::{Self as QiaraMath};
 
@@ -37,7 +37,7 @@ module dev::QiaraVaultsV12 {
     use dev::QiaraCapabilitiesV6::{Self as capabilities, Access as CapabilitiesAccess};
 
 
-    use dev::QiaraEventV5::{Self as Event};
+    use dev::QiaraEventV6::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
