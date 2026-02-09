@@ -594,7 +594,7 @@ module dev::QiaraVaultsV5 {
         Event::emit_market_event(utf8(b"Unstake"), data, utf8(b"none"));
     }
 
-    public entry fun swap(signer: &signer, shared_storage_owner: vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom:String, amount: u64, tokenTo: String, chainTo:String, providerTo:String) acquires GlobalVault, Permissions {
+    public entry fun swap(signer: &signer, shared_storage_owner: vector<u8>, shared_storage_name: String, tokenFrom: String, chainFrom: String, providerFrom:String, amount: u64, tokenTo: String, chainTo:String, providerTo:String, addressTo: vector<u8>) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         let amount_u256 = (amount as u256)*1000000000000000000;
@@ -603,7 +603,7 @@ module dev::QiaraVaultsV5 {
         // Request bridge
 
         withdraw(signer, shared_storage_owner, shared_storage_name, signer::address_of(signer), tokenFrom, chainFrom, providerFrom, amount);
-        TokensCore::request_bridge(signer, tokenFrom, chainFrom, amount, tokenTo, chainTo);
+        TokensCore::request_bridge(signer, tokenFrom, chainFrom, amount, tokenTo, chainTo, addressTo);
 
         // Then Web asks to send tx for Lifi Swap Aggregrator
 
