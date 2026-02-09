@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV3 {
+module dev::QiaraTokensCoreV4 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -14,16 +14,16 @@ module dev::QiaraTokensCoreV3 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV3::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV3::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensTiersV3::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV3::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV4::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensTiersV4::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV4::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
-    use dev::QiaraEventV3::{Self as Event};
-    use dev::QiaraStoragesV3::{Self as Storages};
+    use dev::QiaraEventV4::{Self as Event};
+    use dev::QiaraStoragesV4::{Self as Storages};
 
-    use dev::QiaraChainTypesV3::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV3::{Self as TokensType};
+    use dev::QiaraChainTypesV4::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV4::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
@@ -351,7 +351,7 @@ module dev::QiaraTokensCoreV3 {
         internal_deposit(to, fa, chain, managed);
     }
 
-    public entry fun request_bridge(user: &signer, symbol: String, chain: String, amount: u64, tokenTo: String, chainTo: String) acquires Permissions, ManagedFungibleAsset{
+    public entry fun request_bridge(user: &signer, symbol: String, chain: String, amount: u64, tokenTo: String, receiver: vector<u8>) acquires Permissions, ManagedFungibleAsset{
         ensure_safety(symbol, chain);
         let managed = authorized_borrow_refs(symbol);
         let wallet = primary_fungible_store::primary_store(signer::address_of(user), get_metadata(symbol));
@@ -362,13 +362,13 @@ module dev::QiaraTokensCoreV3 {
         let total_outflow = (TokensOmnichain::return_address_outflow_by_chain_for_token(bcs::to_bytes(&signer::address_of(user)), chain, symbol) as u64);
 
         TokensOmnichain::change_UserTokenSupply(symbol, chain, bcs::to_bytes(&signer::address_of(user)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
-        TokensOmnichain::increment_UserOutflow(symbol, chain, bcs::to_bytes(&signer::address_of(user)), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+        TokensOmnichain::increment_UserOutflow(symbol, chain, bcs::to_bytes(&receiver), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         internal_deposit(Storages::return_lock_storage(symbol, chain), fa, chain,managed);
         let data = vector[
-            Event::create_data_struct(utf8(b"user"), utf8(b"address"), bcs::to_bytes(&signer::address_of(user))),
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(user))),
+            Event::create_data_struct(utf8(b"receiver"), utf8(b"address"), bcs::to_bytes(&receiver)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
-            Event::create_data_struct(utf8(b"chainTo"), utf8(b"string"), bcs::to_bytes(&chainTo)),
             Event::create_data_struct(utf8(b"total_outflow"), utf8(b"u64"), bcs::to_bytes(&total_outflow)),
             Event::create_data_struct(utf8(b"additional_outflow"), utf8(b"u64"), bcs::to_bytes(&amount)),
         ];
@@ -387,19 +387,21 @@ module dev::QiaraTokensCoreV3 {
 
     // Function to pre-"burn" tokens when bridging out, but the transaction isnt yet validated so the tokens arent really burned yet.
     // Later implement function to claim locked tokens if the bridge tx fails
-    public fun p_request_bridge(validator: &signer, user: vector<u8>, symbol: String, chain: String, amount: u64, chainTo: String,perm: Permission) acquires Permissions{
+    public fun p_request_bridge(validator: &signer, user: vector<u8>, symbol: String, chain: String, amount: u64, receiver: vector<u8>,perm: Permission) acquires Permissions{
         ensure_safety(symbol, chain);
         let legit_amount = (TokensOmnichain::return_address_balance_by_chain_for_token(user, chain, symbol) as u64);
         assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
+        let total_outflow = (TokensOmnichain::return_address_outflow_by_chain_for_token(bcs::to_bytes(&user), chain, symbol) as u64);
 
         TokensOmnichain::change_UserTokenSupply(symbol, chain, user, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
 
         let data = vector[
-            Event::create_data_struct(utf8(b"user"), utf8(b"address"), bcs::to_bytes(&user)),
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
+            Event::create_data_struct(utf8(b"receiver"), utf8(b"address"), bcs::to_bytes(&receiver)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
-            Event::create_data_struct(utf8(b"chainTo"), utf8(b"string"), bcs::to_bytes(&chainTo)),
-            Event::create_data_struct(utf8(b"amount"), utf8(b"u64"), bcs::to_bytes(&amount)),
+            Event::create_data_struct(utf8(b"total_outflow"), utf8(b"u64"), bcs::to_bytes(&total_outflow)),
+            Event::create_data_struct(utf8(b"additional_outflow"), utf8(b"u64"), bcs::to_bytes(&amount)),
         ];
         Event::emit_consensus_event(utf8(b"Request Bridge"), data, utf8(b"zk"));
 
