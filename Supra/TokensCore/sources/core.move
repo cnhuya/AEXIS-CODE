@@ -19,7 +19,7 @@ module dev::QiaraTokensCoreV3 {
     use dev::QiaraTokensTiersV3::{Self as TokensTiers};
     use dev::QiaraTokensQiaraV3::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
-    use dev::QiaraEventV2::{Self as Event};
+    use dev::QiaraEventV3::{Self as Event};
     use dev::QiaraStoragesV3::{Self as Storages};
 
     use dev::QiaraChainTypesV3::{Self as ChainTypes};
