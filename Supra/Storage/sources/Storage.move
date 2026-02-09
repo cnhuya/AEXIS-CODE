@@ -1,4 +1,4 @@
-module dev::QiaraStorageV1 {
+module dev::QiaraStorageV2 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -174,24 +174,24 @@ module dev::QiaraStorageV1 {
     public entry fun more2(admin: &signer) acquires ConstantDatabase, KeyRegistry, ConstantCounter{
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
         register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"FEE"), 100_000, true, &give_permission(&give_access(admin))); // 0.001%  
-        register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"), 5, false, &give_permission(&give_access(admin))); // 5
-        register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"), 3, false, &give_permission(&give_access(admin))); // 3
-        register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT"), 10_000, false, &give_permission(&give_access(admin))); // 10000$
-        register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTING_POWER"), 100_000_000, false, &give_permission(&give_access(admin))); // 100$
+        register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"), 5, true, &give_permission(&give_access(admin))); // 5
+        register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"), 3, true, &give_permission(&give_access(admin))); // 3
+        register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT"), 10_000, true, &give_permission(&give_access(admin))); // 10000$
+        register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTING_POWER"), 100_000_000, true, &give_permission(&give_access(admin))); // 100$
 
-        register_constant<u64>(admin, utf8(b"QiaraOracle"), utf8(b"NATIVE_ORACLE_WEIGHT"), 1_000_000, false, &give_permission(&give_access(admin))); // 1x
-        register_constant<u64>(admin, utf8(b"QiaraOracle"), utf8(b"NATIVE_ORACLE_WEIGHT_SLASHING"), 10_000_000, false, &give_permission(&give_access(admin))); // 10
-        register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"MAX_LEVERAGE"), 1_000_000, false, &give_permission(&give_access(admin))); // 1x
-        register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"MAX_LEVERAGE_SLASHING"), 2_000_000, false, &give_permission(&give_access(admin))); // 25x
-        register_constant<u64>(admin, utf8(b"QiaraValidator"), utf8(b"VALIDATOR_COMPUTATION_FEE"), 1_000, false, &give_permission(&give_access(admin))); // 0.001%
+        register_constant<u64>(admin, utf8(b"QiaraOracle"), utf8(b"NATIVE_ORACLE_WEIGHT"), 1_000_000, true, &give_permission(&give_access(admin))); // 1x
+        register_constant<u64>(admin, utf8(b"QiaraOracle"), utf8(b"NATIVE_ORACLE_WEIGHT_SLASHING"), 10_000_000, true, &give_permission(&give_access(admin))); // 10
+        register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"MAX_LEVERAGE"), 1_000_000, true, &give_permission(&give_access(admin))); // 1x
+        register_constant<u64>(admin, utf8(b"QiaraPerps"), utf8(b"MAX_LEVERAGE_SLASHING"), 2_000_000, true, &give_permission(&give_access(admin))); // 25x
+        register_constant<u64>(admin, utf8(b"QiaraValidator"), utf8(b"VALIDATOR_COMPUTATION_FEE"), 1_000, true, &give_permission(&give_access(admin))); // 0.001%
 
-        register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"ANY_FEE_CONVERSION"), 1_000_000, false, &give_permission(&give_access(admin))); // 1x
-        register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"PERPS_VOLUME_CONVERSION"), 100_000, false, &give_permission(&give_access(admin))); // 0.1x
-        register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"MARKET_LIQUIDITY_PROVISION_CONVERSION"), 1_000_000, false, &give_permission(&give_access(admin))); // 0.05/s/$
-        register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"DAILY_CLAIM"), 100_000_000, false, &give_permission(&give_access(admin))); // 100*level
+        register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"ANY_FEE_CONVERSION"), 1_000_000, true, &give_permission(&give_access(admin))); // 1x
+        register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"PERPS_VOLUME_CONVERSION"), 100_000, true, &give_permission(&give_access(admin))); // 0.1x
+        register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"MARKET_LIQUIDITY_PROVISION_CONVERSION"), 1_000_000, true, &give_permission(&give_access(admin))); // 0.05/s/$
+        register_constant<u64>(admin, utf8(b"QiaraPoints"), utf8(b"DAILY_CLAIM"), 100_000_000, true, &give_permission(&give_access(admin))); // 100*level
     
-        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"BORROW_INTEREST_MULTIPLIER"), 100_000, false, &give_permission(&give_access(admin))); // 0.1x
-        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"BORROW_INTEREST_MULTIPLIER_SLASHING"), 10_000_000, false, &give_permission(&give_access(admin))); // 10x
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"BORROW_INTEREST_MULTIPLIER"), 100_000, true, &give_permission(&give_access(admin))); // 0.1x
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"BORROW_INTEREST_MULTIPLIER_SLASHING"), 10_000_000, true, &give_permission(&give_access(admin))); // 10x
     }
     public entry fun more6(admin: &signer) acquires ConstantDatabase, KeyRegistry, ConstantCounter{
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
