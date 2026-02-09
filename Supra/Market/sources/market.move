@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV1 {
+module dev::QiaraVaultsV2 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -21,9 +21,9 @@ module dev::QiaraVaultsV1 {
     use dev::QiaraTokensTiersV1::{Self as TokensTiers};
     use dev::QiaraTokensOmnichainV1::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
-    use dev::QiaraMarginV1::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraPointsV1::{Self as Points, Access as PointsAccess};
-    use dev::QiaraRIV1::{Self as RI};
+    use dev::QiaraMarginV3::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraPointsV3::{Self as Points, Access as PointsAccess};
+    use dev::QiaraRIV3::{Self as RI};
 
     use dev::QiaraAutomationV1::{Self as auto, Access as AutoAccess};
 
@@ -62,6 +62,7 @@ module dev::QiaraVaultsV1 {
     const ERROR_PROVIDER_DOESNT_SUPPORT_THIS_TOKEN_ON_THIS_CHAIN: u64 = 19;
     const ERROR_SENDER_DOESNT_MATCH_SIGNER: u64 = 20;
     const ERROR_WITHDRAW_LIMIT_EXCEEDED: u64 = 21;
+    const ERROR_ARGUMENT_LENGHT_MISSMATCH: u64 = 22;
 
 
     const ERROR_A: u64 = 101;
@@ -555,29 +556,40 @@ module dev::QiaraVaultsV1 {
         Event::emit_market_event(utf8(b"Stake"), data, utf8(b"none"));
     }
 
-    public entry fun unstake(signer: &signer, shared_storage_owner: vector<u8>, shared_storage_name: String, token: String, chain: String, provider: String, amount: u64) acquires GlobalVault, Permissions {
+    public entry fun unstake(signer: &signer, shared_storage_owner: vector<u8>, shared_storage_name: String, token: vector<String>, chain: vector<String>, provider: vector<String>, amount: vector<u64>) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
-        let amount_u256 = (amount as u256)*1000000000000000000;
+        assert!(vector::length(&token) == vector::length(&chain), ERROR_ARGUMENT_LENGHT_MISSMATCH);
 
-        let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
+        let vect_amnt = vector::empty<u256>();
 
+        let len = vector::length(&token);
+        while(len>0){
+            let _chain = *vector::borrow(&chain, len-1);
+            let _token = *vector::borrow(&token, len-1);
+            let _provider = *vector::borrow(&provider, len-1);
+            let _amount = *vector::borrow(&amount, len-1);
+            let amount_u256 = (_amount as u256)*1000000000000000000;
+            let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), _token, _chain, _provider);
+            len=len-1;
 
-        let obj = primary_fungible_store::ensure_primary_store_exists(signer::address_of(signer),TokensCore::get_metadata(token));
-        let fa = TokensCore::withdraw(provider_vault.balance, amount, chain);
-        TokensCore::deposit(primary_fungible_store::ensure_primary_store_exists(signer::address_of(signer),TokensCore::get_metadata(token)), fa, chain);
-        provider_vault.total_deposited = provider_vault.total_deposited - amount_u256;
+            let obj = primary_fungible_store::ensure_primary_store_exists(signer::address_of(signer),TokensCore::get_metadata(_token));
+            let fa = TokensCore::withdraw(provider_vault.balance, _amount, _chain);
+            TokensCore::deposit(primary_fungible_store::ensure_primary_store_exists(signer::address_of(signer),TokensCore::get_metadata(_token)), fa, _chain);
+            provider_vault.total_deposited = provider_vault.total_deposited - amount_u256;
+            vector::push_back(&mut vect_amnt, amount_u256);
+            Margin::update_reward_index(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), _token, _chain, _provider, provider_vault.total_accumulated_rewards, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
+        };
 
-        Margin::update_reward_index(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, provider_vault.total_accumulated_rewards, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
-        Margin::remove_stake(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, amount_u256, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::remove_stake(shared_storage_owner, shared_storage_name, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, vect_amnt, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         
         let data = vector[
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
             Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
             Event::create_data_struct(utf8(b"to"), utf8(b"address"), bcs::to_bytes(&shared_storage_owner)),
-            Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
-            Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
-            Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
-            Event::create_data_struct(utf8(b"amount"), utf8(b"u256"), bcs::to_bytes(&amount_u256)),
+            Event::create_data_struct(utf8(b"token"), utf8(b"vector<String>"), bcs::to_bytes(&token)),
+            Event::create_data_struct(utf8(b"chain"), utf8(b"vector<String>"), bcs::to_bytes(&chain)),
+            Event::create_data_struct(utf8(b"provider"), utf8(b"vector<String>"), bcs::to_bytes(&provider)),
+            Event::create_data_struct(utf8(b"amount"), utf8(b"vector<u256>"), bcs::to_bytes(&vect_amnt)),
         ];
         Event::emit_market_event(utf8(b"Unstake"), data, utf8(b"none"));
     }
