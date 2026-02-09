@@ -175,7 +175,7 @@ module dev::QiaraStorageV1 {
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
         register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"FEE"), 100_000, true, &give_permission(&give_access(admin))); // 0.001%  
         register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"), 5, false, &give_permission(&give_access(admin))); // 5
-        register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"), 5, false, &give_permission(&give_access(admin))); // 5
+        register_constant<u8>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"), 3, false, &give_permission(&give_access(admin))); // 3
         register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT"), 10_000, false, &give_permission(&give_access(admin))); // 10000$
         register_constant<u64>(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTING_POWER"), 100_000_000, false, &give_permission(&give_access(admin))); // 100$
 
@@ -199,6 +199,13 @@ module dev::QiaraStorageV1 {
         register_constant<String>(admin, utf8(b"QiaraBaseAssets"), utf8(b"testToken_token"),utf8(b"0x0D5322Af414db3bd855cC44424F8532859469957"), true, &give_permission(&give_access(admin))); // 0.001%  
 
     }
+
+    public entry fun more7(admin: &signer) acquires ConstantDatabase{
+        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
+        change_constant(admin, utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"), bc::to_bytes(&3), &give_permission(&give_access(admin))); // 5
+        change_constant(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"), bc::to_bytes(&3), &give_permission(&give_access(admin))); // 3
+    }
+
 
     fun register_constant<T: drop>(address: &signer, header: String, constant_name: String, value: T, editable: bool, permission: &Permission) acquires ConstantCounter, ConstantDatabase, KeyRegistry {
         assert!(signer::address_of(address) == OWNER, ERROR_NOT_ADMIN);
