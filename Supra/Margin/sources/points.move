@@ -1,4 +1,4 @@
-module dev::QiaraPointsV4{
+module dev::QiaraPointsV5{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -6,10 +6,10 @@ module dev::QiaraPointsV4{
 
     use dev::QiaraSharedV1::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV2::{Self as TokensType};
-    use dev::QiaraChainTypesV2::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV3::{Self as TokensType};
+    use dev::QiaraChainTypesV3::{Self as ChainTypes};
 
-    use dev::QiaraStorageV1::{Self as storage, Access as StorageAccess};
+    use dev::QiaraStorageV2::{Self as storage, Access as StorageAccess};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
