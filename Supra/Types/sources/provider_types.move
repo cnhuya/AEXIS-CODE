@@ -1,4 +1,4 @@
-module dev::QiaraProviderTypesV1{
+module dev::QiaraProviderTypesV2{
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
