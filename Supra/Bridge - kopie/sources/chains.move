@@ -1,4 +1,4 @@
-module dev::QiaraBridgeV1 {
+module dev::QiaraBridgeV7 {
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
@@ -15,19 +15,19 @@ module dev::QiaraBridgeV1 {
     use supra_framework::fungible_asset::{Self, Metadata, FungibleAsset};
     use supra_framework::object::{Self, Object};
     use supra_framework::primary_fungible_store;
-    use dev::QiaraEventV1::{Self as Event};
-    use dev::QiaraStorageV1::{Self as storage};
+    use dev::QiaraEventV2::{Self as Event};
+    use dev::QiaraStorageV2::{Self as storage};
 
-    use dev::QiaraTokensCoreV1::{Self as TokensCore, Access as TokensCoreAccess};
-    use dev::QiaraTokensValidatorsV1::{Self as TokensValidators};
+    use dev::QiaraTokensCoreV3::{Self as TokensCore, Access as TokensCoreAccess};
+    use dev::QiaraTokensValidatorsV3::{Self as TokensValidators};
     use dev::QiaraSharedV1::{Self as TokensShared};
     
-    use dev::QiaraVaultsV1::{Self as Market, Access as MarketAccess};
+    use dev::QiaraVaultsV4::{Self as Market, Access as MarketAccess};
 
-    use dev::QiaraMarginV1::{Self as Margin};
+    use dev::QiaraMarginV5::{Self as Margin};
 
-    use dev::QiaraPayloadV1::{Self as Payload};
-    use dev::QiaraValidatorsV1::{Self as Validators, Access as ValidatorsAccess};
+    use dev::QiaraPayloadV7::{Self as Payload};
+    use dev::QiaraValidatorsV7::{Self as Validators, Access as ValidatorsAccess};
     /// Admin address constant
     const STORAGE: address = @dev;
 
@@ -161,7 +161,7 @@ module dev::QiaraBridgeV1 {
         //tttta(97);
         let (_, type) = Payload::find_payload_value(utf8(b"type"), type_names, payload);
         let (_, event_type) = Payload::find_payload_value(utf8(b"event_type"), type_names, payload);
-        let (pub_key_x, pub_key_y, pubkey, _, _, _, _) = Validators::return_validator_raw(shared_storage_name);
+        let (pub_key_x, pub_key_y, pubkey, _, _) = Validators::return_validator_raw(shared_storage_name);
 
 
         let pending = borrow_global_mut<Pending>(STORAGE);
@@ -281,16 +281,19 @@ module dev::QiaraBridgeV1 {
         let xv = vector::empty<address>();
 
         let min_uniq_validators = storage::expect_u8(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS")));
+        let max_rewarded_validators = storage::expect_u8(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS")));
         while(len>0){
-            if(vector::length(&xv) < (min_uniq_validators as u64)){
+            if(vector::length(&xv) < (max_rewarded_validators as u64)){
                 let validator = vector::borrow(&vect, len-1);
                 if(!vector::contains(&xv, validator)){
                     vector::push_back(&mut xv, *validator);
                 };
-            } else{
-                return true
             };
             len=len-1;
+        };
+
+        if(vector::length(&xv) >= (min_uniq_validators as u64)){
+            return true
         };
         return false
     }
@@ -334,14 +337,7 @@ module dev::QiaraBridgeV1 {
 
 
             } else {
-                // If validator already voted, check if we have enough unique validators
-                let enough_validators = ensure_unique_validators(map::keys(&votes.votes));
-                if (!enough_validators) {
-                    1  // Not enough validators yet
-                } else {
-                    // Return current total weight if validator already voted and we have enough validators
-                    votes.total_weight
-                }
+                votes.total_weight
             }
         } else {
             // First vote for this message
@@ -372,6 +368,12 @@ module dev::QiaraBridgeV1 {
             // Defensive: ensure key exists before remove
             assert!(table::contains(pending_table, index), ERROR_NOT_FOUND);
             let votes_from_pending = table::remove(pending_table, index);
+
+            let enough_validators = ensure_unique_validators(map::keys(&votes_from_pending.votes));
+            if (!enough_validators) {
+                return  // Not enough validators yet
+            };
+
 
             if (table::contains(validated_table, index)) {
                 abort(ERROR_DUPLICATE_EVENT);
@@ -419,6 +421,8 @@ module dev::QiaraBridgeV1 {
             let (did_validate, existing_weight) = check_validator_validation_zk(validator, votes.votes);
 
             // If validator did not validate this tx yet, add them
+
+
             if (!did_validate) {
                 zk_vote.weight = (vote_weight as u128);
                 map::add(&mut votes.votes, validator, zk_vote);
@@ -441,14 +445,7 @@ module dev::QiaraBridgeV1 {
                 // Return updated total weight
                 votes.total_weight
             } else {
-                // If validator already voted, check if we have enough unique validators
-                let enough_validators = ensure_unique_validators(map::keys(&votes.votes));
-                if (!enough_validators) {
-                    1  // Not enough validators yet
-                } else {
-                    // Return current total weight if validator already voted and we have enough validators
-                    votes.total_weight
-                }
+                votes.total_weight
             }
         } else {
             // First vote for this message
@@ -479,6 +476,11 @@ module dev::QiaraBridgeV1 {
             assert!(table::contains(pending_table, index), ERROR_NOT_FOUND);
             let votes_from_pending = table::remove(pending_table, index);
 
+            let enough_validators = ensure_unique_validators(map::keys(&votes_from_pending.votes));
+            if (!enough_validators) {
+                return  // Not enough validators yet
+            };
+
             if (table::contains(validated_table, index)) {
                 abort(ERROR_DUPLICATE_EVENT);
             };
@@ -486,11 +488,11 @@ module dev::QiaraBridgeV1 {
 
             assert!(exists<Permissions>(@dev), ERROR_CAPS_NOT_PUBLISHED);
             let cap = borrow_global<Permissions>(@dev);
-            if(event_type == utf8(b"Check Validators")){
-                Validators::c_re_check_active_validators(signer, Validators::give_permission(&borrow_global<Permissions>(@dev).validators));
-            } else if(event_type == utf8(b"Register Validator")){
-                let (shared_storage_name, pub_key_x, pub_key_y, pub_key, power) = Payload::prepare_register_validator(type_names, payload);
-                Validators::c_register_validator(signer, shared_storage_name, pub_key_x, pub_key_y, pub_key,power, Validators::give_permission(&borrow_global<Permissions>(@dev).validators)) 
+      //      if(event_type == utf8(b"Check Validators")){
+      //          Validators::c_re_check_active_validators(signer, Validators::give_permission(&borrow_global<Permissions>(@dev).validators));
+            if(event_type == utf8(b"Register Validator")){
+                let (shared_storage_name, pub_key_x, pub_key_y, pub_key) = Payload::prepare_register_validator(type_names, payload);
+                Validators::c_register_validator(signer, shared_storage_name, pub_key_x, pub_key_y, pub_key, Validators::give_permission(&borrow_global<Permissions>(@dev).validators)) 
             } else if(event_type == utf8(b"Request Bridge")){
                 let (symbol, chain, amount) = Payload::prepare_finalize_bridge(type_names, payload);
                 TokensCore::c_finalize_bridge(signer, symbol, chain, amount,  TokensCore::give_permission(&borrow_global<Permissions>(@dev).tokens_core))

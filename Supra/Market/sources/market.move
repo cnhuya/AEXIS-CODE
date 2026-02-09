@@ -23,7 +23,7 @@ module dev::QiaraVaultsV4 {
 
     use dev::QiaraMarginV5::{Self as Margin, Access as MarginAccess};
     use dev::QiaraPointsV5::{Self as Points, Access as PointsAccess};
-    use dev::QiaraRIV2::{Self as RI};
+    use dev::QiaraRIV5::{Self as RI};
 
     use dev::QiaraAutomationV1::{Self as auto, Access as AutoAccess};
 
