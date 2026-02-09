@@ -1,4 +1,4 @@
-module dev::QiaraMarginV2{
+module dev::QiaraMarginV3{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -22,6 +22,8 @@ module dev::QiaraMarginV2{
     const ERROR_USER_NOT_REGISTERED: u64 = 2;
     const ERROR_CANT_UPDATE_MARGIN_FOR_THIS_VAULT: u64 = 3;
     const ERROR_NOT_ENOUGH_LIQUIDITY: u64 = 4;
+    const ERROR_STAKE_LOCKED: u64 = 5;
+    const ERROR_ARGUMENT_LENGHT_MISSMATCH: u64 = 6;
 
 // === ACCESS === //
     struct Access has store, key, drop {}
@@ -204,15 +206,27 @@ module dev::QiaraMarginV2{
         };
     }
 
-    public fun remove_stake(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
+    public fun remove_stake(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: vector<String>, chain: vector<String>,provider: vector<String>, value: vector<u256>, cap: Permission) acquires StakeLock, TokenHoldings{
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
-        {
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
-            if(value > balance.staked){
+        assert!(vector::length(&token) == vector::length(&chain) && vector::length(&token) == vector::length(&provider) && vector::length(&token) == vector::length(&value), ERROR_ARGUMENT_LENGHT_MISSMATCH);
+
+        let lock = find_stake_lock(&mut borrow_global_mut<StakeLock>(@dev).map,shared_storage_name);
+        assert!(*lock+2 <= (Genesis::return_epoch() as u64), ERROR_STAKE_LOCKED);
+
+        let len = vector::length(&token);
+        while(len>0){
+            let token = vector::borrow(&token, len-1);
+            let chain = vector::borrow(&chain, len-1);
+            let provider = vector::borrow(&provider, len-1);
+            let value = vector::borrow(&value, len-1);
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, *token, *chain, *provider);
+
+            if(*value > balance.staked){
                 balance.staked = 0
             } else {
-                balance.staked = balance.staked - value;
+                balance.staked = balance.staked - *value;
             };
+            len = len-1
         };
     }
 
@@ -514,6 +528,12 @@ module dev::QiaraMarginV2{
     public fun get_user_credit(shared_storage_name: String,): (u256, bool) acquires TokenHoldings {
         let credit = *find_credit(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name);
         return (credit.value, credit.isPositive)
+    }
+
+    #[view]
+    public fun get_user_stake_lock(shared_storage_name: String,): u64 acquires StakeLock {
+        let lock = *find_stake_lock(&mut borrow_global_mut<StakeLock>(@dev).map,shared_storage_name);
+        return lock
     }
 
 // === MUT RETURNS === //
