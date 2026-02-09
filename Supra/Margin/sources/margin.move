@@ -1,4 +1,4 @@
-module dev::QiaraMarginV1{
+module dev::QiaraMarginV2{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -14,6 +14,8 @@ module dev::QiaraMarginV1{
     use dev::QiaraTokenTypesV1::{Self as TokensType};
     
     use dev::QiaraMathV1::{Self as QiaraMath};
+    use dev::QiaraGenesisV5::{Self as Genesis};
+
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -38,6 +40,10 @@ module dev::QiaraMarginV1{
         // shared_storage_name, token, chain, provider
         holdings: Table<String, Table<String,Map<String, Map<String, Credit>>>>,
         credit: Table<String, Integer>, // universal "credit" ($ value essentially), per user (shared_storage) | this is used for perpetual profits... and more in the future
+    }
+
+    struct StakeLock has key{
+        map: Map<String, u64>,
     }
 
     struct Integer has drop, key, store, copy {
@@ -73,7 +79,9 @@ module dev::QiaraMarginV1{
         if (!exists<Leverage>(@dev)) {
             move_to(admin, Leverage { total_lev_usd: 0, usd_weight: 0 });
         };
-
+        if (!exists<StakeLock>(@dev)) {
+            move_to(admin, StakeLock { map: map::new<String, u64>() });
+        };
         if (!exists<TokenHoldings>(@dev)) {
             move_to(admin,TokenHoldings {holdings: table::new<String, Table<String, Map<String, Map<String, Credit>>>>(), credit: table::new<String, Integer>()});
         };
@@ -146,6 +154,12 @@ module dev::QiaraMarginV1{
         TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
         balance.last_update = timestamp::now_seconds() / 3600;
+    }
+
+    public fun update_staked_time(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, cap: Permission) acquires StakeLock{
+        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+        let lock = find_stake_lock(&mut borrow_global_mut<StakeLock>(@dev).map,shared_storage_name);
+        *lock = (Genesis::return_epoch() as u64);
     }
 
     public fun update_interest_index(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, index: u256, cap: Permission) acquires TokenHoldings{
@@ -543,6 +557,13 @@ module dev::QiaraMarginV1{
         };
 
         map::borrow_mut(a, &provider)
+    }
+
+    fun find_stake_lock(map: &mut Map<String, u64>, shared_storage_name: String): &mut u64 {
+        if (!map::contains_key(map, &shared_storage_name)) {
+            map::upsert(map, shared_storage_name, 0);
+        };
+        return map::borrow_mut(map, &shared_storage_name)
     }
 
     fun find_credit(feature_table: &mut TokenHoldings,shared_storage_name: String): &mut Integer {
