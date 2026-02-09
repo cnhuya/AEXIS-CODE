@@ -145,7 +145,7 @@ module dev::QiaraEventV2 {
 
 // Internal
     fun append_consensus_type(data: vector<Data>, consensus_type: String): vector<Data> {
-        assert!(consensus_type == utf8(b"zk") || consensus_type == utf8(b"native") || consensus_type == utf8(b"native"), ERROR_INVALID_CONSENSUS_TYPE);
+        assert!(consensus_type == utf8(b"zk") || consensus_type == utf8(b"native") || consensus_type == utf8(b"none"), ERROR_INVALID_CONSENSUS_TYPE);
         let type = create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&consensus_type));
         let vect = vector[type];
         vector::append(&mut vect, data);
