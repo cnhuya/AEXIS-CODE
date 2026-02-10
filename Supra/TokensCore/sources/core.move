@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV5 {
+module dev::QiaraTokensCoreV6 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -14,16 +14,16 @@ module dev::QiaraTokensCoreV5 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV5::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV5::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensTiersV5::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV5::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV6::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV6::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensTiersV6::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV6::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
-    use dev::QiaraEventV14::{Self as Event};
-    use dev::QiaraStoragesV6::{Self as Storages};
+    use dev::QiaraEventV15::{Self as Event};
+    use dev::QiaraStoragesV7::{Self as Storages};
 
-    use dev::QiaraChainTypesV6::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV6::{Self as TokensType};
+    use dev::QiaraChainTypesV7::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV7::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
