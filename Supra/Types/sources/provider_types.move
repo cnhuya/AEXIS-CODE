@@ -1,4 +1,4 @@
-module dev::QiaraProviderTypesV4{
+module dev::QiaraProviderTypesV6{
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
@@ -27,24 +27,38 @@ module dev::QiaraProviderTypesV4{
 
 
     fun x_init(signer: &signer) acquires Providers{
-        register_new_provider(signer, utf8(b"Juplend"), utf8(b"Solana"));
-        register_new_provider(signer, utf8(b"Kamino"), utf8(b"Solana"));
-        register_new_provider(signer, utf8(b"Neptune"), utf8(b"Injective"));
+        register_new_provider(signer, utf8(b"Curvance"), utf8(b"Monad"));
+        register_new_provider(signer, utf8(b"Neverland"), utf8(b"Monad"));
+        register_new_provider(signer, utf8(b"Morpho"), utf8(b"Monad"));
+
+        register_new_provider(signer, utf8(b"Aave"), utf8(b"Ethereum"));
+        register_new_provider(signer, utf8(b"Morpho"), utf8(b"Ethereum"));
+
+        register_new_provider(signer, utf8(b"Aave"), utf8(b"Base"));
         register_new_provider(signer, utf8(b"Moonwell"), utf8(b"Base"));
         register_new_provider(signer, utf8(b"Morpho"), utf8(b"Base"));
+
         register_new_provider(signer, utf8(b"Suilend"), utf8(b"Sui"));
         register_new_provider(signer, utf8(b"Alphalend"), utf8(b"Sui"));
         register_new_provider(signer, utf8(b"Navi"), utf8(b"Sui"));
+      
         register_new_provider(signer, utf8(b"Supralend"), utf8(b"Supra"));
 
-        allow_tokens_for_provider(signer,  utf8(b"Juplend"), utf8(b"Solana"), vector[utf8(b"Solana")]);
-        allow_tokens_for_provider(signer,  utf8(b"Kamino"), utf8(b"Solana"), vector[utf8(b"Solana")]);
-        allow_tokens_for_provider(signer,  utf8(b"Neptune"), utf8(b"Injective"), vector[utf8(b"Injective")]);
-        allow_tokens_for_provider(signer,  utf8(b"Moonwell"), utf8(b"Base"), vector[utf8(b"USDC"),utf8(b"Ethereum") ,utf8(b"Virtuals")]);
-        allow_tokens_for_provider(signer,  utf8(b"Morpho"), utf8(b"Base"), vector[utf8(b"USDC"),utf8(b"Ethereum") ,utf8(b"Virtuals")]);
+        allow_tokens_for_provider(signer,  utf8(b"Curvance"), utf8(b"Monad"), vector[utf8(b"USDC"),utf8(b"Ethereum"),utf8(b"Monad"),utf8(b"USDT0"),utf8(b"Bitcoin"),utf8(b"AUSD"),utf8(b"earnAUSD")]);
+        allow_tokens_for_provider(signer,  utf8(b"Neverland"), utf8(b"Monad"), vector[utf8(b"USDC"),utf8(b"Ethereum"),utf8(b"Monad"),utf8(b"USDT0"),utf8(b"Bitcoin"),utf8(b"AUSD")]);
+        allow_tokens_for_provider(signer,  utf8(b"Morpho"), utf8(b"Monad"), vector[utf8(b"USDC"),utf8(b"Ethereum"),utf8(b"Monad"),utf8(b"USDT0"),utf8(b"AUSD")]);
+        
+        allow_tokens_for_provider(signer,  utf8(b"Aave"), utf8(b"Ethereum"), vector[utf8(b"USDC"),utf8(b"Ethereum")]);
+        allow_tokens_for_provider(signer,  utf8(b"Morpho"), utf8(b"Ethereum"), vector[utf8(b"USDC"),utf8(b"Ethereum"), utf8(b"USDT"), utf8(b"Bitcoin")]);
+    
+        allow_tokens_for_provider(signer,  utf8(b"Aave"), utf8(b"Base"), vector[utf8(b"USDC"),utf8(b"Ethereum")]);
+        allow_tokens_for_provider(signer,  utf8(b"Moonwell"), utf8(b"Base"), vector[utf8(b"USDC"),utf8(b"Ethereum"), utf8(b"Virtuals")]);
+        allow_tokens_for_provider(signer,  utf8(b"Morpho"), utf8(b"Base"), vector[utf8(b"USDC"),utf8(b"Ethereum"), utf8(b"Virtuals")]);
+
         allow_tokens_for_provider(signer,  utf8(b"Suilend"), utf8(b"Sui"), vector[utf8(b"USDC"),utf8(b"USDT"),utf8(b"Ethereum"),utf8(b"Bitcoin"),utf8(b"Sui"),utf8(b"Deepbook")]);
         allow_tokens_for_provider(signer,  utf8(b"Alphalend"), utf8(b"Sui"), vector[utf8(b"USDC"),utf8(b"USDT"),utf8(b"Ethereum"),utf8(b"Bitcoin"),utf8(b"Sui"),utf8(b"Deepbook")]);
         allow_tokens_for_provider(signer,  utf8(b"Navi"), utf8(b"Sui"), vector[utf8(b"USDC"),utf8(b"USDT"),utf8(b"Ethereum"),utf8(b"Bitcoin"),utf8(b"Sui"),utf8(b"Deepbook")]);
+      
         allow_tokens_for_provider(signer,  utf8(b"Supralend"), utf8(b"Supra"), vector[utf8(b"Supra"),utf8(b"Qiara")]);
     } 
 
