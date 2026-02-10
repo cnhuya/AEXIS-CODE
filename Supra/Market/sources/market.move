@@ -37,7 +37,7 @@ module dev::QiaraVaultsV5 {
     use dev::QiaraCapabilitiesV2::{Self as capabilities, Access as CapabilitiesAccess};
 
 
-    use dev::QiaraEventV10::{Self as Event};
+    use dev::QiaraEventV11::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
