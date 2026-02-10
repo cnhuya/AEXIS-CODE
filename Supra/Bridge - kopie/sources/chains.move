@@ -1,4 +1,4 @@
-module dev::QiaraBridgeV29{
+module dev::QiaraBridgeV32{
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
@@ -15,7 +15,7 @@ module dev::QiaraBridgeV29{
     use supra_framework::fungible_asset::{Self, Metadata, FungibleAsset};
     use supra_framework::object::{Self, Object};
     use supra_framework::primary_fungible_store;
-    use dev::QiaraEventV6::{Self as Event};
+    use dev::QiaraEventV8::{Self as Event};
     use dev::QiaraStorageV2::{Self as storage};
 
     use dev::QiaraTokensCoreV4::{Self as TokensCore, Access as TokensCoreAccess};
@@ -27,8 +27,8 @@ module dev::QiaraBridgeV29{
 
     use dev::QiaraMarginV6::{Self as Margin};
 
-    use dev::QiaraPayloadV29::{Self as Payload};
-    use dev::QiaraValidatorsV29::{Self as Validators, Access as ValidatorsAccess};
+    use dev::QiaraPayloadV32::{Self as Payload};
+    use dev::QiaraValidatorsV32::{Self as Validators, Access as ValidatorsAccess};
     /// Admin address constant
     const STORAGE: address = @dev;
 
