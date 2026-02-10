@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV4 {
+module dev::QiaraTokensCoreV5 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -14,16 +14,16 @@ module dev::QiaraTokensCoreV4 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV4::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensTiersV4::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV4::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV5::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV5::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensTiersV5::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV5::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
-    use dev::QiaraEventV12::{Self as Event};
-    use dev::QiaraStoragesV4::{Self as Storages};
+    use dev::QiaraEventV13::{Self as Event};
+    use dev::QiaraStoragesV6::{Self as Storages};
 
-    use dev::QiaraChainTypesV4::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV4::{Self as TokensType};
+    use dev::QiaraChainTypesV6::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV6::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
@@ -133,18 +133,21 @@ module dev::QiaraTokensCoreV4 {
         init_token(admin, utf8(b"Ethereum"), utf8(b"QETH"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ethereum.webp"), 1_438_269_983, 1, 120_698_129, 120_698_129, 120_698_129, 1);
         init_token(admin, utf8(b"Bitcoin"), utf8(b"QBTC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/bitcoin.webp"), 1_231_006_505, 0, 21_000_000, 19_941_253, 19_941_253, 1);
          //         tttta(1);
-        init_token(admin, utf8(b"Solana"), utf8(b"QSOL"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/solana.webp"), 1_584_316_800, 10, 614_655_961, 559_139_255, 614_655_961, 1);
+        init_token(admin, utf8(b"Monad"), utf8(b"QMON"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/monad.webp"), 1_584_316_800, 10, 614_655_961, 559_139_255, 614_655_961, 1);
         init_token(admin, utf8(b"Sui"), utf8(b"QSUI"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/sui.webp"), 1_683_062_400, 90, 10_000_000_000, 3_680_742_933, 10_000_000_000, 1);
    //     tttta(99);
         init_token(admin, utf8(b"Deepbook"), utf8(b"QDEEP"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/deepbook.webp"),  1_683_072_000, 491, 10_000_000_000, 4_368_147_611, 10_000_000_000, 1);
         //     tttta(2);
-        init_token(admin, utf8(b"Injective"), utf8(b"QINJ"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/injective.webp"), 1_636_416_000, 121, 100_000_000, 100_000_000, 100_000_000, 1);
-      //  tttta(147);
         init_token(admin, utf8(b"Virtuals"), utf8(b"QVIRTUALS"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/virtuals.webp"), 1_614_556_800, 524, 1_000_000_000, 656_082_020, 1_000_000_000, 1);
         init_token(admin, utf8(b"Supra"), utf8(b"QSUPRA"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/supra.webp"), 1_732_598_400, 500, 100_000_000_000, 21_000_700_000, 80_600_180_397, 1);
         init_token(admin, utf8(b"USDT"), utf8(b"QUSDT"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt.webp"), 0, 47, 185_977_352_465, 185_977_352_465, 185_977_352_465, 255);
         init_token(admin, utf8(b"USDC"), utf8(b"QUSDC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdc.webp"), 0, 47, 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);   
         init_token(admin, utf8(b"Qiara"), utf8(b"QIARA"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/qiara.webp"), 0, 0, 0, 0, 0, 1);   
+
+        init_token(admin, utf8(b"AUSD"), utf8(b"QAUSD"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ausd.webp"), 0, 47, 175_036_043, 175_036_043, 175_036_043, 255);
+        init_token(admin, utf8(b"earnAUSD"), utf8(b"QearnAUSD"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/earnAUSD.webp"), 0, 47, 0, 0, 0, 254);
+        init_token(admin, utf8(b"USDT0"), utf8(b"QUSDT0"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt0.webp"), 0, 47, 0, 0, 0, 255);
+
 
     }
 
@@ -152,13 +155,25 @@ module dev::QiaraTokensCoreV4 {
     public entry fun init_depo(signer: &signer) acquires ManagedFungibleAsset, Permissions{
         ma_drilla_lul(signer, utf8(b"Ethereum"), utf8(b"Base"));
         ma_drilla_lul(signer, utf8(b"Ethereum"), utf8(b"Sui"));
+        ma_drilla_lul(signer, utf8(b"Ethereum"), utf8(b"Monad"));
+        ma_drilla_lul(signer, utf8(b"Ethereum"), utf8(b"Ethereum"));
+    
+        ma_drilla_lul(signer, utf8(b"USDC"), utf8(b"Ethereum"));
+        ma_drilla_lul(signer, utf8(b"USDT"), utf8(b"Ethereum"));
+        ma_drilla_lul(signer, utf8(b"Virtuals"), utf8(b"Ethereum"));
       //  tttta(10101);
         ma_drilla_lul(signer, utf8(b"Sui"), utf8(b"Sui"));
         ma_drilla_lul(signer, utf8(b"Deepbook"), utf8(b"Sui"));
-        ma_drilla_lul(signer, utf8(b"Injective"), utf8(b"Injective"));
+        ma_drilla_lul(signer, utf8(b"Monad"), utf8(b"Monad"));
+        ma_drilla_lul(signer, utf8(b"USDC"), utf8(b"Monad"));
+        ma_drilla_lul(signer, utf8(b"USDT0"), utf8(b"Monad"));
+        ma_drilla_lul(signer, utf8(b"AUSD"), utf8(b"Monad"));
+        ma_drilla_lul(signer, utf8(b"earnAUSD"), utf8(b"Monad"));
+
       //  tttta(10101);
+        ma_drilla_lul(signer, utf8(b"Bitcoin"), utf8(b"Monad"));
+        ma_drilla_lul(signer, utf8(b"Bitcoin"), utf8(b"Ethereum"));
         ma_drilla_lul(signer, utf8(b"Bitcoin"), utf8(b"Sui"));
-        ma_drilla_lul(signer, utf8(b"Solana"), utf8(b"Solana"));
       //  tttta(10101);
         ma_drilla_lul(signer, utf8(b"Virtuals"), utf8(b"Base"));
         ma_drilla_lul(signer, utf8(b"Supra"), utf8(b"Supra"));
