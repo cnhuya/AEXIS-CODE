@@ -1,12 +1,12 @@
-module dev::QiaraPayloadV7 {
+module dev::QiaraPayloadV29 {
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
     use std::table;
     use aptos_std::from_bcs;
 
-    use dev::QiaraChainTypesV3::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV3::{Self as TokenTypes};
+    use dev::QiaraChainTypesV4::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV4::{Self as TokenTypes};
     
 
     const ERROR_PAYLOAD_LENGTH_MISMATCH_WITH_TYPES: u64 = 0;
@@ -59,20 +59,28 @@ module dev::QiaraPayloadV7 {
 
         return (from_bcs::to_string(shared_storage_name), from_bcs::to_string(pub_key_x), from_bcs::to_string(pub_key_y), from_bcs::to_bytes(pub_key))
     }
-    public fun prepare_finalize_bridge(type_names: vector<String>, payload: vector<vector<u8>>): (String, String, u64){
-     //   tttta(99);
+    public fun prepare_finalize_bridge(type_names: vector<String>, payload: vector<vector<u8>>): (vector<u8>, String,String,String,String, String, u64){
+        //tttta(99);
+        let (_, receiver) = find_payload_value(utf8(b"receiver"), type_names, payload);
+        let (_, validator_root) = find_payload_value(utf8(b"validator_root"), type_names, payload);
+        let (_, old_root) = find_payload_value(utf8(b"old_root"), type_names, payload);
+        let (_, new_root) = find_payload_value(utf8(b"new_root"), type_names, payload);
         let (_, symbol) = find_payload_value(utf8(b"symbol"), type_names, payload);
         let (_, chain) = find_payload_value(utf8(b"chain"), type_names, payload);
         let (_, amount) = find_payload_value(utf8(b"amount"), type_names, payload);
        //tttta(1);
-
-       let a = from_bcs::to_string(symbol);
+       let y = from_bcs::to_bytes(receiver);
+       let x = from_bcs::to_string(validator_root);
+       let a = from_bcs::to_string(old_root);
     //   tttta(4);
-       let b = from_bcs::to_string(chain);
+       let b = from_bcs::to_string(new_root);
+       let c = from_bcs::to_string(symbol);
+    //   tttta(4);
+       let d = from_bcs::to_string(chain);
             // tttta(0);
-       let c = from_bcs::to_u64(amount);
-           //         tttta(2);
-        return (a,b,c)
+       let e = from_bcs::to_u64(amount);
+               //     tttta(2);
+        return (y, x, a,b,c,d,e)
     }
 
 }

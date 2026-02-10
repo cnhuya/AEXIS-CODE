@@ -1,4 +1,4 @@
-module dev::QiaraValidatorsV7 {
+module dev::QiaraValidatorsV29 {
     use std::signer;
     use std::vector;
     use std::bcs;
@@ -8,9 +8,9 @@ module dev::QiaraValidatorsV7 {
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::string::{Self as String, String, utf8};
 
-    use dev::QiaraEventV2::{Self as Event};
+    use dev::QiaraEventV6::{Self as Event};
     use dev::QiaraSharedV1::{Self as TokensShared};
-    use dev::QiaraMarginV5::{Self as Margin};
+    use dev::QiaraMarginV6::{Self as Margin};
 
     use dev::QiaraGenesisV5::{Self as Genesis};
     // === ERRORS === //

@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraBridgeV7"
+    name = "QiaraBridgeV29"
     version = "2.1.1"
     authors = []
 
@@ -31,27 +31,27 @@
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraTypesV3]
+    [dependencies.QiaraTypesV4]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
 
-    [dependencies.QiaraTokensV3]
+    [dependencies.QiaraTokensV4]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/TokensCore'
 
-    [dependencies.QiaraMarginV5]
+    [dependencies.QiaraMarginV6]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
 
-    [dependencies.QiaraMarketV4]
+    [dependencies.QiaraMarketV5]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Market'
 
-    [dependencies.QiaraEventV2]
+    [dependencies.QiaraEventV6]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Event'
