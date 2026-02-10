@@ -1,12 +1,12 @@
-module dev::QiaraPayloadV36 {
+module dev::QiaraPayloadV38 {
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
     use std::table;
     use aptos_std::from_bcs;
 
-    use dev::QiaraChainTypesV4::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV4::{Self as TokenTypes};
+    use dev::QiaraChainTypesV6::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV6::{Self as TokenTypes};
     
 
     const ERROR_PAYLOAD_LENGTH_MISMATCH_WITH_TYPES: u64 = 0;
