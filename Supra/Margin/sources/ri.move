@@ -1,4 +1,4 @@
-module dev::QiaraRIV6{
+module dev::QiaraRIV7{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -6,8 +6,8 @@ module dev::QiaraRIV6{
 
     use dev::QiaraSharedV1::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV4::{Self as TokensType};
-    use dev::QiaraChainTypesV4::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV6::{Self as TokensType};
+    use dev::QiaraChainTypesV6::{Self as ChainTypes};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
