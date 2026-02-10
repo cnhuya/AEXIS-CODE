@@ -1,13 +1,13 @@
-module dev::QiaraTokenTypesV6 {
+module dev::QiaraTokenTypesV7 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::table::{Self, Table};
 
-    use dev::QiaraChainTypesV6::{Self as ChainTypes};
+    use dev::QiaraChainTypesV7::{Self as ChainTypes};
 
-    const TOKEN_PREFIX: vector<u8> = b"Qiara58 ";
+    const TOKEN_PREFIX: vector<u8> = b"Qiara59 ";
     const SYMBOL_PREFIX: vector<u8> = b"Q";
 
 // === ERRORS === //
@@ -19,14 +19,14 @@ module dev::QiaraTokenTypesV6 {
     const ERROR_TOKEN_ALREADY_REGISTERED: u64 = 6;
     const ERROR_TOKEN_ADDR_ALREADY_REGISTERED: u64 = 7;
     const ERROR_CHAIN_ALREADY_REGISTERED_FOR_THIS_TKN: u64 = 8;
+    const ERORR_ARGUMENT_LENGHT_MISSMATCH: u64 = 9;
 // === STRUCTS === //
 
-    struct Tokens has key{
-        // Token -> vector<Chains>
-        map: Map<String, vector<String>>,
-        // address -> token 
-        addr: Map<String, String>, // this is purely Quality Of Life, to easily get the token from the address, without the needs to create "complicated/"centralized" functions
-        // token -> nick name??
+    struct Tokens has key {
+        // Original: Token -> Chain -> Address
+        map: Map<String, Map<String, String>>,
+        // New: "ChainAddress" -> Token Name (Reverse Lookup)
+        reverse_map: Map<String, String>, 
         nick_names: Map<String, String>,
     }
 
@@ -35,47 +35,71 @@ module dev::QiaraTokenTypesV6 {
         assert!(signer::address_of(admin) == @dev, 1);
 
         if (!exists<Tokens>(@dev)) {
-            move_to(admin, Tokens { map: map::new<String, vector<String>>(), addr: map::new<String, String>(), nick_names: map::new<String, String>() });
+            move_to(admin, Tokens { map: map::new<String, Map<String, String>>(), reverse_map: map::new<String, String>(), nick_names: map::new<String, String>() });
         };
         x_init(admin);
     }
 
+    fun create_reverse_key(chain: String, addr: String): String {
+        string::append(&mut chain, addr);
+        chain
+    }
 
     fun tttta(er: u64){
         abort er
     }
 
 fun x_init(signer: &signer) acquires Tokens {
-    // 3 chains -> 3 addresses
-    register_token_with_chains(signer, utf8(b"Qiara58 Qiara"), utf8(b"Qiara"), vector[utf8(b"0x8C9621E38f74c59b0B784894f12C0CD5bE8a2f02")], vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Monad"), utf8(b"Ethereum"), utf8(b"Supra")]);
+    // Qiara Token: 1 Real Address, 4 Placeholders
+    register_token_with_chains(signer, utf8(b"Qiara59 Qiara"), utf8(b"Qiara"), 
+        vector[utf8(b"0x8C9621E38f74c59b0B784894f12C0CD5bE8a2f02"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
+        vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Monad"), utf8(b"Ethereum"), utf8(b"Supra")]
+    );
     
-    register_token_with_chains(signer, utf8(b"Qiara58 USDC"), utf8(b"USDC"), vector[], vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Supra"), utf8(b"Monad"), utf8(b"Ethereum")]);
+    // USDC: Moved real address to index 1 (Base), index 0 (Sui) is now 0x0
+    register_token_with_chains(signer, utf8(b"Qiara59 USDC"), utf8(b"USDC"), 
+        vector[utf8(b"0x0"), utf8(b"0x0D5322Af414db3bd855cC44424F8532859469957"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
+        vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Supra"), utf8(b"Monad"), utf8(b"Ethereum")]
+    );
     
-    register_token_with_chains(signer, utf8(b"Qiara58 USDT"), utf8(b"USDT"), vector[], vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Supra"), utf8(b"Ethereum")]);
+    // USDT: 4 chains -> 4 placeholders
+    register_token_with_chains(signer, utf8(b"Qiara59 USDT"), utf8(b"USDT"), 
+        vector[utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
+        vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Supra"), utf8(b"Ethereum")]
+    );
 
-    register_token_with_chains(signer, utf8(b"Qiara58 USDT0"), utf8(b"USDT0"), vector[], vector[utf8(b"Monad"), utf8(b"Supra")]);
-    register_token_with_chains(signer, utf8(b"Qiara58 AUSD"), utf8(b"AUSD"), vector[], vector[utf8(b"Monad"), utf8(b"Supra")]);
-    register_token_with_chains(signer, utf8(b"Qiara58 earnAUSD"), utf8(b"earnAUSD"), vector[], vector[utf8(b"Monad"), utf8(b"Supra")]);
+    // USDT0, AUSD, earnAUSD: 2 chains -> 2 placeholders
+    register_token_with_chains(signer, utf8(b"Qiara59 USDT0"), utf8(b"USDT0"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
+    register_token_with_chains(signer, utf8(b"Qiara59 AUSD"), utf8(b"AUSD"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
+    register_token_with_chains(signer, utf8(b"Qiara59 earnAUSD"), utf8(b"earnAUSD"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
 
-    register_token_with_chains(signer, utf8(b"Qiara58 Ethereum"), utf8(b"Ethereum"), vector[], vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Supra"), utf8(b"Monad"), utf8(b"Ethereum")]);
+    // Ethereum: 5 chains -> 5 placeholders
+    register_token_with_chains(signer, utf8(b"Qiara59 Ethereum"), utf8(b"Ethereum"), 
+        vector[utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
+        vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Supra"), utf8(b"Monad"), utf8(b"Ethereum")]
+    );
     
-    // 2 chains -> 2 addresses
-    register_token_with_chains(signer, utf8(b"Qiara58 Bitcoin"), utf8(b"Bitcoin"),vector[], vector[utf8(b"Sui"), utf8(b"Monad"), utf8(b"Ethereum"), utf8(b"Base"), utf8(b"Supra")]);
+    // Bitcoin: 5 chains -> 5 placeholders
+    register_token_with_chains(signer, utf8(b"Qiara59 Bitcoin"), utf8(b"Bitcoin"),
+        vector[utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
+        vector[utf8(b"Sui"), utf8(b"Monad"), utf8(b"Ethereum"), utf8(b"Base"), utf8(b"Supra")]
+    );
     
-    register_token_with_chains(signer, utf8(b"Qiara58 Monad"), utf8(b"Monad"), vector[], vector[utf8(b"Monad"), utf8(b"Supra")]);
+    // Monad: 2 chains -> 2 placeholders
+    register_token_with_chains(signer, utf8(b"Qiara59 Monad"), utf8(b"Monad"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
     
-    // 1 chain -> 1 address
-    register_token_with_chains(signer, utf8(b"Qiara58 Supra"), utf8(b"Supra"), vector[], vector[utf8(b"Supra")]);
-    //    tttta(0);
-    // 2 chains -> 2 addresses
+    // Supra: 1 chain -> 1 placeholder
+    register_token_with_chains(signer, utf8(b"Qiara59 Supra"), utf8(b"Supra"), vector[utf8(b"0x0")], vector[utf8(b"Supra")]);
     
-    register_token_with_chains(signer, utf8(b"Qiara58 Sui"), utf8(b"Sui"), vector[], vector[utf8(b"Sui"), utf8(b"Supra")]);
+    // Sui & Deepbook: 2 chains -> 2 placeholders
+    register_token_with_chains(signer, utf8(b"Qiara59 Sui"), utf8(b"Sui"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Sui"), utf8(b"Supra")]);
+    register_token_with_chains(signer, utf8(b"Qiara59 Deepbook"), utf8(b"Deepbook"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Sui"), utf8(b"Supra")]);
     
-    register_token_with_chains(signer, utf8(b"Qiara58 Deepbook"), utf8(b"Deepbook"), vector[], vector[utf8(b"Sui"), utf8(b"Supra")]);
- //        tttta(2);
-    register_token_with_chains(signer, utf8(b"Qiara58 Virtuals"), utf8(b"Virtuals"), vector[], vector[utf8(b"Base"), utf8(b"Ethereum"), utf8(b"Supra")]);
-
-    //     tttta(100);
+    // Virtuals: 3 chains -> 3 placeholders
+    register_token_with_chains(signer, utf8(b"Qiara59 Virtuals"), utf8(b"Virtuals"), 
+        vector[utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
+        vector[utf8(b"Base"), utf8(b"Ethereum"), utf8(b"Supra")]
+    );
 }
 
 // === FUNCTIONS === //
@@ -84,56 +108,66 @@ fun x_init(signer: &signer) acquires Tokens {
         let tokens = borrow_global_mut<Tokens>(@dev);
 
         let len_chains = vector::length(&chains);
-        while(len_chains > 0){
-            let chain = vector::borrow(&chains, len_chains-1);
-            ChainTypes::ensure_valid_chain_name(*chain);
-            len_chains=len_chains-1;
-        };
-
-        if (!map::contains_key(&tokens.map, &token)) {
-            map::upsert(&mut tokens.map, token, chains);
-        } else {
-            abort ERROR_TOKEN_ALREADY_REGISTERED
-        };
-
         let len_addr = vector::length(&token_address);
-        while(len_addr > 0){
-            let addr = vector::borrow(&token_address, len_addr-1);
-            if (!map::contains_key(&tokens.addr, addr)) {
-                map::upsert(&mut tokens.addr, *addr, nick_name);
-            } else {
-                abort ERROR_TOKEN_ADDR_ALREADY_REGISTERED
-            };
-            len_addr=len_addr-1;
+
+        assert!(len_chains == len_addr, ERORR_ARGUMENT_LENGHT_MISSMATCH);
+
+        // 1. Initialize the Token entry if it doesn't exist
+        if (!map::contains_key(&tokens.map, &token)) {
+            let inner_map = map::new<String, String>();
+            map::upsert(&mut tokens.map, token, inner_map);
         };
 
-        if (!map::contains_key(&tokens.nick_names, &token)) {
-            map::upsert(&mut tokens.nick_names, token, nick_name);
-        }  else {
-            abort ERROR_TOKEN_ALREADY_REGISTERED
+        let token_entry = map::borrow_mut(&mut tokens.map, &token);
+
+        // 2. Loop through and store both Forward and Reverse mappings
+        let i = 0;
+        while (i < len_chains) {
+            let chain = vector::borrow(&chains, i);
+            let addr = vector::borrow(&token_address, i);
+
+            // Chain validation
+            ChainTypes::ensure_valid_chain_name(*chain);
+
+            // Forward Mapping: Token -> Chain -> Address
+            map::upsert(token_entry, *chain, *addr);
+
+            // Reverse Mapping: (Chain + Address) -> Token Name
+            // Only index it if the address is not a placeholder (0x0)
+            if (*addr != utf8(b"0x0")) {
+                let rev_key = create_reverse_key(*chain, *addr);
+                map::upsert(&mut tokens.reverse_map, rev_key, token);
+            };
+
+            i = i + 1;
         };
+
+        // 3. Update Nickname
+        map::upsert(&mut tokens.nick_names, token, nick_name);
     }
 
     public entry fun add_token_chain(signer: &signer, token: String, nick_name: String, token_address: String, chain: String) acquires Tokens {
         let tokens = borrow_global_mut<Tokens>(@dev);
 
-
+        // 1. Standard Nested Map Update
         if (!map::contains_key(&tokens.map, &token)) {
-            let map = map::borrow_mut(&mut tokens.map, &token);
-          //  assert!(vector::contains(map, &chain), ERROR_CHAIN_ALREADY_REGISTERED_FOR_THIS_TKN);
-            vector::push_back(map, chain);
+            let inner_map = map::new<String, String>();
+            map::upsert(&mut tokens.map, token, inner_map);
         };
+        let token_inner_map = map::borrow_mut(&mut tokens.map, &token);
+        map::upsert(token_inner_map, chain, token_address);
 
-        if (!map::contains_key(&tokens.addr, &token_address)) {
-            map::upsert(&mut tokens.addr, token_address, nick_name);
-        } else {
-            abort ERROR_TOKEN_ADDR_ALREADY_REGISTERED
-        };
+        // 2. REVERSE SEARCH UPDATE
+        // Create a unique key using Chain + Address
+        let rev_key = create_reverse_key(chain, token_address);
+        map::upsert(&mut tokens.reverse_map, rev_key, token);
 
+        // 3. Nickname Update
+        map::upsert(&mut tokens.nick_names, token, nick_name);
     }
 
     #[view]
-    public fun return_all_tokens(): Map<String, vector<String>> acquires Tokens{
+    public fun return_all_tokens(): Map<String, Map<String, String>> acquires Tokens{
         borrow_global_mut<Tokens>(@dev).map
     }
 
@@ -162,18 +196,25 @@ fun x_init(signer: &signer) acquires Tokens {
         };
     }
 
+    // Define constants at the module level
+    
     #[view]
-    public fun return_name_from_address(addr: String): String acquires Tokens{
-        let tokens = borrow_global_mut<Tokens>(@dev);
-
-        if (!map::contains_key(&tokens.addr, &addr)) {
-            abort ERROR_INVALID_TOKEN
-        };
-
-        *map::borrow(&tokens.addr, &addr)
+    public fun get_token_name_from_address(chain: String, addr: String): String acquires Tokens {
+        let tokens = borrow_global<Tokens>(@dev);
+        let rev_key = create_reverse_key(chain, addr);
+        
+        assert!(map::contains_key(&tokens.reverse_map, &rev_key), 404); // Error if not found
+        convert_token_name_to_nickName(*map::borrow(&tokens.reverse_map, &rev_key))
     }
 
-    // Define constants at the module level
+    #[view]
+    public fun get_token_address_from_name(chain: String, name: String): String acquires Tokens {
+        name = convert_token_nickName_to_name(name);
+        let tokens = borrow_global<Tokens>(@dev);
+        let token_entry = map::borrow(&tokens.map, &name);
+        assert!(map::contains_key(token_entry, &chain), 404); // Error if not found
+        *map::borrow(token_entry, &chain)
+    }
 
     #[view]
     public fun convert_token_nickName_to_name(nick_name: String): String acquires Tokens{
