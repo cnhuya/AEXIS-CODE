@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV6{
+module dev::QiaraTokensOmnichainV7{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -61,7 +61,8 @@ module dev::QiaraTokensOmnichainV6{
     // i.e 0/1/2...(page) -> 0x...123 (user) -> Base/Sui/Solana (chains).. -> Ethereum (token) -> supply
     struct UserCrosschainBook has key{
         book: Table<u64,Map<vector<u8>, Map<String, Map<String, u256>>>>,
-        outflows: Table<u64,Map<vector<u8>, Map<String, Map<String, u256>>>>
+        outflows: Table<u64,Map<vector<u8>, Map<String, Map<String, u256>>>>,
+        nonce: Table<vector<u8>, u256>
     }
 
 
@@ -101,7 +102,7 @@ module dev::QiaraTokensOmnichainV6{
             move_to(admin, CrosschainBook { book: map::new<String,Map<String, u256>>() });
         };
         if (!exists<UserCrosschainBook>(@dev)) {
-            move_to(admin, UserCrosschainBook { book: table::new<u64, Map<vector<u8>, Map<String, Map<String, u256>>>>(), outflows: table::new<u64, Map<vector<u8>, Map<String, Map<String, u256>>>>() });
+            move_to(admin, UserCrosschainBook { nonce: table::new<vector<u8>, u256>(), book: table::new<u64, Map<vector<u8>, Map<String, Map<String, u256>>>>(), outflows: table::new<u64, Map<vector<u8>, Map<String, Map<String, u256>>>>() });
         };
     }
 
@@ -240,6 +241,8 @@ module dev::QiaraTokensOmnichainV6{
             };
         };
 
+        get_and_increment_nonce(book, address);
+
         // --- EMIT EVENTS AT THE VERY END ---
         if (isMint) {
             event::emit(MintEvent { address, token, chain, amount, time: timestamp::now_seconds() });
@@ -249,11 +252,32 @@ module dev::QiaraTokensOmnichainV6{
     }
 
 
+    public fun get_and_increment_nonce(registry: &mut UserCrosschainBook, user: vector<u8>): u256 {
+        if (!table::contains(&registry.nonce, user)) {
+            table::add(&mut registry.nonce, user, 1);
+            0
+        } else {
+            let nonce_ref = table::borrow_mut(&mut registry.nonce, user);
+            let current_nonce = *nonce_ref;
+            *nonce_ref = current_nonce + 1;
+            current_nonce
+        }
+    }
+
 // === VIEW FUNCTIONS === //
     
     #[view]
     public fun return_registry():  Map<String, vector<String>> acquires TokensChains {
         borrow_global<TokensChains>(@dev).book
+    }
+
+    #[view]
+    public fun return_user_nonces(user: vector<u8>): u256 acquires UserCrosschainBook {
+        let book = borrow_global<UserCrosschainBook>(@dev);
+        if (!table::contains(&book.nonce, user)) {
+           return 0
+        };
+        return *table::borrow(&book.nonce, user)
     }
 
     #[view]
