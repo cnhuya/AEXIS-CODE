@@ -2,6 +2,8 @@ module dev::QiaraNonceV2{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;
+    use std::bcs;
+    use supra_framework::event;
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN:u64 = 0;
@@ -23,6 +25,13 @@ module dev::QiaraNonceV2{
     struct Permissions has key {
     }
 
+    #[event]
+    struct NonceEvent has copy, drop, store {
+        addr: vector<u8>,
+        nonce: u256,
+    }
+
+    
     struct Nonces has key, store{
         table: Table<vector<u8>, u256>,
     }
@@ -38,6 +47,11 @@ module dev::QiaraNonceV2{
         };
     }
 
+    public entry fun test_increment(signer: &signer, addr: vector<u8>) acquires Nonces {
+        // REMOVE bcs::to_bytes here. Just pass 'addr' directly.
+        increment_nonce(addr, give_permission(&give_access(signer)));
+    }
+
     public fun increment_nonce( user: vector<u8>, perm: Permission) acquires Nonces {
         let nonces = borrow_global_mut<Nonces>(@dev);
         if (!table::contains(&nonces.table, user)) {
@@ -46,7 +60,12 @@ module dev::QiaraNonceV2{
             let nonce_ref = table::borrow_mut(&mut nonces.table, user);
             let current_nonce = *nonce_ref;
             *nonce_ref = current_nonce + 1;
-        }
+        };
+         event::emit(NonceEvent {
+            addr: user,
+            nonce: return_user_nonce(user),
+        });
+
     }
 
     #[view]
