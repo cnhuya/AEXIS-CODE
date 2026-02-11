@@ -21,7 +21,7 @@ module dev::QiaraTokensCoreV8 {
 
     use dev::QiaraNonceV2::{Self as Nonce, Access as NonceAccess};
 
-    use dev::QiaraEventV23::{Self as Event};
+    use dev::QiaraEventV24::{Self as Event};
     use dev::QiaraStoragesV9::{Self as Storages};
 
     use dev::QiaraChainTypesV9::{Self as ChainTypes};
