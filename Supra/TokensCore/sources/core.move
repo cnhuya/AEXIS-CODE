@@ -4,6 +4,7 @@ module dev::QiaraTokensCoreV2 {
     use std::vector;
     use std::bcs;
     use std::timestamp;
+    use aptos_std::from_bcs;
     use std::type_info::{Self, TypeInfo};
     use supra_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore};
     use supra_framework::dispatchable_fungible_asset;
@@ -471,7 +472,7 @@ module dev::QiaraTokensCoreV2 {
     }
     */
 // === CONSENSUS FUNCTIONS === //
-    public fun c_finalize_bridge(validator: &signer,  symbol: String, chain: String, amount: u64, perm: Permission) acquires Permissions, ManagedFungibleAsset{
+    public fun c_finalize_bridge(validator: &signer, symbol: String, chain: String, amount: u64, perm: Permission) acquires Permissions, ManagedFungibleAsset{
         ensure_safety(symbol, chain);
     
         let managed = authorized_borrow_refs(symbol);
@@ -486,7 +487,31 @@ module dev::QiaraTokensCoreV2 {
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"amount"), utf8(b"string"), bcs::to_bytes(&amount)),
         ];
-        Event::emit_bridge_event(utf8(b"Finalized Bridge"), data, utf8(b"none"));    
+        Event::emit_bridge_event(utf8(b"Finalized Bridge from Supra"), data, utf8(b"none"));    
+
+    }
+
+    public fun c_bridge_to_supra(validator: &signer, user: vector<u8>, symbol: String, chain: String, amount: u64, perm: Permission) acquires Permissions, ManagedFungibleAsset{
+        ensure_safety(symbol, chain);
+    
+
+        if(account::exists_at(from_bcs::to_address(user))){
+            mint_to(from_bcs::to_address(user), symbol, chain, amount, perm);
+            // the token supply change & user token supply change is already implemented in mint_to
+        } else {
+            TokensOmnichain::change_UserTokenSupply(symbol, chain, user, amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+            TokensOmnichain::change_TokenSupply(symbol, chain, amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
+        };
+
+    
+        let data = vector[
+            Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(validator))),
+            Event::create_data_struct(utf8(b"user"), utf8(b"vector<u8>"), bcs::to_bytes(&user)),
+            Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
+            Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
+            Event::create_data_struct(utf8(b"amount"), utf8(b"string"), bcs::to_bytes(&amount)),
+        ];
+        Event::emit_bridge_event(utf8(b"Finalized Bridge to Supra"), data, utf8(b"none"));    
 
     }
 
