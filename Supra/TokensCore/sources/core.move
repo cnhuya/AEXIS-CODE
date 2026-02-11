@@ -19,7 +19,7 @@ module dev::QiaraTokensCoreV7 {
     use dev::QiaraTokensTiersV7::{Self as TokensTiers};
     use dev::QiaraTokensQiaraV7::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
-    use dev::QiaraEventV18::{Self as Event};
+    use dev::QiaraEventV19::{Self as Event};
     use dev::QiaraStoragesV8::{Self as Storages};
 
     use dev::QiaraChainTypesV8::{Self as ChainTypes};
@@ -379,11 +379,13 @@ module dev::QiaraTokensCoreV7 {
         TokensOmnichain::change_UserTokenSupply(symbol, chain, bcs::to_bytes(&signer::address_of(user)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         TokensOmnichain::increment_UserOutflow(symbol, chain, bcs::to_bytes(&receiver), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         internal_deposit(Storages::return_lock_storage(symbol, chain), fa, chain,managed);
+        let nonce = TokensOmnichain::return_user_nonces(bcs::to_bytes(&signer::address_of(user)));
         let data = vector[
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(user))),
             Event::create_data_struct(utf8(b"receiver"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
+            Event::create_data_struct(utf8(b"nonce"), utf8(b"u256"), bcs::to_bytes(&nonce)),
             Event::create_data_struct(utf8(b"total_outflow"), utf8(b"u64"), bcs::to_bytes(&total_outflow)),
             Event::create_data_struct(utf8(b"additional_outflow"), utf8(b"u64"), bcs::to_bytes(&amount)),
         ];
