@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV1 {
+module dev::QiaraTokensCoreV2 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -14,18 +14,19 @@ module dev::QiaraTokensCoreV1 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV1::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV1::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensTiersV1::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV1::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV2::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV2::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensTiersV2::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV2::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
     use dev::QiaraNonceV1::{Self as Nonce, Access as NonceAccess};
 
     use dev::QiaraEventV1::{Self as Event};
-    use dev::QiaraStoragesV1::{Self as Storages};
+    use dev::QiaraStoragesV2::{Self as Storages};
 
-    use dev::QiaraChainTypesV1::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV1::{Self as TokensType};
+    use dev::QiaraChainTypesV2::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV2::{Self as TokensType};
+    use dev::QiaraProviderTypesV2::{Self as ProviderTypes};
 
     const ADMIN: address = @dev;
 
@@ -236,12 +237,12 @@ module dev::QiaraTokensCoreV1 {
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV1"),
+            string::utf8(b"QiaraTokensCoreV2"),
             string::utf8(b"c_deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV1"),
+            string::utf8(b"QiaraTokensCoreV2"),
             string::utf8(b"c_withdraw"),
         );
    
@@ -368,8 +369,9 @@ module dev::QiaraTokensCoreV1 {
         internal_deposit(to, fa, chain, managed);
     }
 
-    public entry fun request_bridge(user: &signer, symbol: String, chain: String, amount: u64, tokenTo: String, receiver: vector<u8>) acquires Permissions, ManagedFungibleAsset{
+    public entry fun request_bridge(user: &signer, symbol: String, chain: String, provider: String, amount: u64, tokenTo: String, receiver: vector<u8>) acquires Permissions, ManagedFungibleAsset{
         ensure_safety(symbol, chain);
+        ProviderTypes::ensure_valid_provider(symbol, chain);
         let managed = authorized_borrow_refs(symbol);
         let wallet = primary_fungible_store::primary_store(signer::address_of(user), get_metadata(symbol));
         let fa = internal_withdraw(wallet, amount, chain, managed);
@@ -388,6 +390,7 @@ module dev::QiaraTokensCoreV1 {
             Event::create_data_struct(utf8(b"receiver"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
+            Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
             Event::create_data_struct(utf8(b"nonce"), utf8(b"u256"), bcs::to_bytes(&nonce)),
             Event::create_data_struct(utf8(b"total_outflow"), utf8(b"u64"), bcs::to_bytes(&total_outflow)),
             Event::create_data_struct(utf8(b"additional_outflow"), utf8(b"u64"), bcs::to_bytes(&amount)),
@@ -407,8 +410,9 @@ module dev::QiaraTokensCoreV1 {
 
     // Function to pre-"burn" tokens when bridging out, but the transaction isnt yet validated so the tokens arent really burned yet.
     // Later implement function to claim locked tokens if the bridge tx fails
-    public fun p_request_bridge(validator: &signer, user: vector<u8>, symbol: String, chain: String, amount: u64, receiver: vector<u8>,perm: Permission) acquires Permissions{
+    public fun p_request_bridge(validator: &signer, user: vector<u8>, symbol: String, chain: String, provider: String, amount: u64, receiver: vector<u8>,perm: Permission) acquires Permissions{
         ensure_safety(symbol, chain);
+        ProviderTypes::ensure_valid_provider(symbol, chain);
         let legit_amount = (TokensOmnichain::return_address_balance_by_chain_for_token(user, chain, symbol) as u64);
         assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
         let total_outflow = (TokensOmnichain::return_address_outflow_by_chain_for_token(bcs::to_bytes(&user), chain, symbol) as u64);
@@ -422,6 +426,7 @@ module dev::QiaraTokensCoreV1 {
             Event::create_data_struct(utf8(b"receiver"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
+            Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
             Event::create_data_struct(utf8(b"nonce"), utf8(b"u256"), bcs::to_bytes(&nonce)),
             Event::create_data_struct(utf8(b"total_outflow"), utf8(b"u64"), bcs::to_bytes(&total_outflow)),
             Event::create_data_struct(utf8(b"additional_outflow"), utf8(b"u64"), bcs::to_bytes(&amount)),
