@@ -1,4 +1,4 @@
-module dev::QiaraTokensRatesV8 {
+module dev::QiaraTokensRatesV9 {
     use std::string::{Self as string, String, utf8};
     use std::type_info::{Self, TypeInfo};
     use std::signer;
@@ -8,9 +8,9 @@ module dev::QiaraTokensRatesV8 {
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use dev::QiaraMathV1::{Self as Math};
 
-    use dev::QiaraChainTypesV9::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV9::{Self as TokensType};
-    use dev::QiaraProviderTypesV9::{Self as ProviderTypes};
+    use dev::QiaraChainTypesV10::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV10::{Self as TokensType};
+    use dev::QiaraProviderTypesV10::{Self as ProviderTypes};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -120,7 +120,7 @@ module dev::QiaraTokensRatesV8 {
 
     public fun find_rate(x: &mut RateList, token: String, chain: String, provider: String): &mut Rate {
         ChainTypes::ensure_valid_chain_name(chain);
-        ProviderTypes::ensure_valid_provider(provider);
+        ProviderTypes::ensure_valid_provider(provider, chain);
         TokensType::ensure_token_supported_for_chain(TokensType::convert_token_nickName_to_name(token), chain);
         if (!table::contains(&x.rates, token)) {
             table::add(&mut x.rates, token, map::new<String,Map<String, Rate>>());
