@@ -603,7 +603,7 @@ module dev::QiaraVaultsV2 {
         // Request bridge
 
         withdraw(signer, shared_storage_owner, shared_storage_name, signer::address_of(signer), tokenFrom, chainFrom, providerFrom, amount);
-        TokensCore::request_bridge(signer, tokenFrom, chainFrom, amount, tokenTo, addressTo);
+        TokensCore::request_bridge(signer, tokenFrom, chainFrom, providerTo, amount, tokenTo, addressTo);
 
         // Then Web asks to send tx for Lifi Swap Aggregrator
 
