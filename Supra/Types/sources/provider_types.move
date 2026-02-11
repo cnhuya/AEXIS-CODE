@@ -159,6 +159,25 @@ fun x_init(signer: &signer) acquires Providers, ReverseProviders {
         data.vault_address
     }
 
+
+    public fun ensure_valid_provider(provider: String, chain: String) acquires Providers {
+        let providers_ref = borrow_global<Providers>(@dev);
+        
+        // 1. Check if the Provider exists in the table
+        if (!map::contains_key(&providers_ref.table, &provider)) {
+            abort ERROR_INVALID_PROVIDER
+        };
+
+        let chains_map = map::borrow(&providers_ref.table, &provider);
+
+        // 2. Check if that Provider is registered on the specific Chain
+        if (!map::contains_key(chains_map, &chain)) {
+            abort ERROR_INVALID_PROVIDER
+        };
+        
+        // Success: the provider/chain combo exists.
+    }
+
     #[view]
     public fun get_name_by_vault(vault_addr: String, chain: String): String acquires ReverseProviders {
         let rev_providers = borrow_global<ReverseProviders>(@dev);
