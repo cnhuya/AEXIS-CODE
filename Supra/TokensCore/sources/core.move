@@ -372,7 +372,7 @@ module dev::QiaraTokensCoreV2 {
 
     public entry fun request_bridge(user: &signer, symbol: String, chain: String, provider: String, amount: u64, tokenTo: String, receiver: vector<u8>) acquires Permissions, ManagedFungibleAsset{
         ensure_safety(symbol, chain);
-        ProviderTypes::ensure_valid_provider(symbol, chain);
+        ProviderTypes::ensure_valid_provider(provider, chain);
         let managed = authorized_borrow_refs(symbol);
         let wallet = primary_fungible_store::primary_store(signer::address_of(user), get_metadata(symbol));
         let fa = internal_withdraw(wallet, amount, chain, managed);
