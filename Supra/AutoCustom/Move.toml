@@ -1,5 +1,5 @@
 [package]
-name = "QiaraAutomationV1"
+name = "QiaraAutomationV2"
 version = "1.0.0"
 authors = []
 
@@ -18,9 +18,5 @@ git = "https://github.com/Entropy-Foundation/aptos-core.git"
 rev = "dev"
 subdir = "aptos-move/framework/aptos-stdlib"
 
-[dependencies.QiaraSharedV1]
-git = 'https://github.com/cnhuya/AEXIS-CODE.git'
-rev = 'main'
-subdir = 'Supra/Shared'
 
 [dev-dependencies]
