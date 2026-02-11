@@ -1,4 +1,4 @@
-module dev::QiaraNonceV1{
+module dev::QiaraNonceV2{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;
@@ -38,7 +38,7 @@ module dev::QiaraNonceV1{
         };
     }
 
-    public fun increment_nonce( user: vector<u8>) acquires Nonces {
+    public fun increment_nonce( user: vector<u8>, perm: Permission) acquires Nonces {
         let nonces = borrow_global_mut<Nonces>(@dev);
         if (!table::contains(&nonces.table, user)) {
             table::add(&mut nonces.table, user, 1);
