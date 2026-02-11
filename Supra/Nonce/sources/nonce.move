@@ -1,4 +1,4 @@
-module dev::QiaraNonceV2{
+module dev::QiaraNonceV1{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;
