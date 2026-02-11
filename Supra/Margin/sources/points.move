@@ -1,4 +1,4 @@
-module dev::QiaraPointsV8{
+module dev::QiaraPointsV9{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -6,8 +6,8 @@ module dev::QiaraPointsV8{
 
     use dev::QiaraSharedV1::{Self as TokensShared};
 
-    use dev::QiaraTokenTypesV7::{Self as TokensType};
-    use dev::QiaraChainTypesV7::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV8::{Self as TokensType};
+    use dev::QiaraChainTypesV8::{Self as ChainTypes};
 
     use dev::QiaraStorageV2::{Self as storage, Access as StorageAccess};
 
