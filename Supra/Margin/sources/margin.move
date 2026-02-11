@@ -1,4 +1,4 @@
-module dev::QiaraMarginV2{
+module dev::QiaraMarginV3{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -9,7 +9,6 @@ module dev::QiaraMarginV2{
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 
     use dev::QiaraTokensMetadataV2::{Self as TokensMetadata};
-    use dev::QiaraSharedV1::{Self as TokensShared};
 
     use dev::QiaraTokenTypesV2::{Self as TokensType};
     
@@ -40,12 +39,8 @@ module dev::QiaraMarginV2{
 // === STRUCTS === //
     struct TokenHoldings has key {
         // shared_storage_name, token, chain, provider
-        holdings: Table<String, Table<String,Map<String, Map<String, Credit>>>>,
-        credit: Table<String, Integer>, // universal "credit" ($ value essentially), per user (shared_storage) | this is used for perpetual profits... and more in the future
-    }
-
-    struct StakeLock has key{
-        map: Map<String, u64>,
+        holdings: Table<vector<u8>, Table<String,Map<String, Map<String, Credit>>>>,
+        credit: Table<vector<u8>, Integer>, // universal "credit" ($ value essentially), per user (shared_storage) | this is used for perpetual profits... and more in the future
     }
 
     struct Integer has drop, key, store, copy {
@@ -62,6 +57,7 @@ module dev::QiaraMarginV2{
         deposited: u256,
         borrowed: u256,
         staked: u256,
+        stake_lock: u64, // epoch
         rewards: u256,
         interest: u256,
         reward_index_snapshot: u256,
@@ -81,11 +77,8 @@ module dev::QiaraMarginV2{
         if (!exists<Leverage>(@dev)) {
             move_to(admin, Leverage { total_lev_usd: 0, usd_weight: 0 });
         };
-        if (!exists<StakeLock>(@dev)) {
-            move_to(admin, StakeLock { map: map::new<String, u64>() });
-        };
         if (!exists<TokenHoldings>(@dev)) {
-            move_to(admin,TokenHoldings {holdings: table::new<String, Table<String, Map<String, Map<String, Credit>>>>(), credit: table::new<String, Integer>()});
+            move_to(admin,TokenHoldings {holdings: table::new<vector<u8>, Table<String, Map<String, Map<String, Credit>>>>(), credit: table::new<vector<u8>, Integer>()});
         };
 
     }
@@ -107,18 +100,16 @@ module dev::QiaraMarginV2{
         abort(number);
     }
 
-    public fun add_locked_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun add_locked_fee(user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         {
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
             balance.locked_fee = balance.locked_fee + value;
         };
     }
 
-    public fun remove_locked_fee(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun remove_locked_fee(user: vector<u8>,token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         {
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
             if(value > balance.locked_fee){
                 balance.locked_fee = 0
             } else {
@@ -128,16 +119,14 @@ module dev::QiaraMarginV2{
     }
 
 
-    public fun add_credit(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
-        let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name);
+    public fun add_credit(user: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings{
+        let credit = find_credit(borrow_global_mut<TokenHoldings>(@dev),user);
         credit.value = credit.value + value;
     }
 
-    public fun remove_credit(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings {
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun remove_credit(user: vector<u8>, value: u256, cap: Permission) acquires TokenHoldings {
         let holdings = borrow_global_mut<TokenHoldings>(@dev);
-        let credit = find_credit(holdings, shared_storage_name);
+        let credit = find_credit(holdings, user);
 
         if (credit.isPositive) {
             if (value > credit.value) {
@@ -151,45 +140,28 @@ module dev::QiaraMarginV2{
         };
     }
 
-    // deprecated?
-    public fun update_time(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String, provider: String, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
-        balance.last_update = timestamp::now_seconds() / 3600;
-    }
-
-    public fun update_staked_time(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, cap: Permission) acquires StakeLock{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
-        let lock = find_stake_lock(&mut borrow_global_mut<StakeLock>(@dev).map,shared_storage_name);
-        *lock = (Genesis::return_epoch() as u64);
-    }
-
-    public fun update_interest_index(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, index: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+    public fun update_interest_index(user: vector<u8>, token: String, chain: String,provider: String, index: u256, cap: Permission) acquires TokenHoldings{
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
         balance.interest_index_snapshot = index;
         balance.last_update = timestamp::now_seconds();
     }
 
-    public fun update_reward_index(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, index: u256, cap: Permission) acquires TokenHoldings{
-        //TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+    public fun update_reward_index(user: vector<u8>, token: String, chain: String,provider: String, index: u256, cap: Permission) acquires TokenHoldings{
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
         balance.reward_index_snapshot = index;
         balance.last_update = timestamp::now_seconds();
     }
 
-    public fun add_deposit(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun add_deposit(user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         {
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
             balance.deposited = balance.deposited + value;
         };
     }
 
-    public fun remove_deposit(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun remove_deposit(user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         {
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
             if(value > balance.deposited){
                 balance.deposited = 0
             } else {
@@ -198,20 +170,16 @@ module dev::QiaraMarginV2{
         };
     }
 
-    public fun add_stake(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-      //  TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun add_stake(user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         {
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
             balance.staked = balance.staked + value;
+            balance.stake_lock = (Genesis::return_epoch() as u64);
         };
     }
 
-    public fun remove_stake(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: vector<String>, chain: vector<String>,provider: vector<String>, value: vector<u256>, cap: Permission) acquires StakeLock, TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun remove_stake(user: vector<u8>,  token: vector<String>, chain: vector<String>,provider: vector<String>, value: vector<u256>, cap: Permission) acquires TokenHoldings{
         assert!(vector::length(&token) == vector::length(&chain) && vector::length(&token) == vector::length(&provider) && vector::length(&token) == vector::length(&value), ERROR_ARGUMENT_LENGHT_MISSMATCH);
-
-        let lock = find_stake_lock(&mut borrow_global_mut<StakeLock>(@dev).map,shared_storage_name);
-        assert!(*lock+2 <= (Genesis::return_epoch() as u64), ERROR_STAKE_LOCKED);
 
         let len = vector::length(&token);
         while(len>0){
@@ -219,7 +187,9 @@ module dev::QiaraMarginV2{
             let chain = vector::borrow(&chain, len-1);
             let provider = vector::borrow(&provider, len-1);
             let value = vector::borrow(&value, len-1);
-            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, *token, *chain, *provider);
+            let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, *token, *chain, *provider);
+
+            assert!(balance.stake_lock+2 <= (Genesis::return_epoch() as u64), ERROR_STAKE_LOCKED);
 
             if(*value > balance.staked){
                 balance.staked = 0
@@ -230,18 +200,16 @@ module dev::QiaraMarginV2{
         };
     }
 
-    public fun add_borrow(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun add_borrow(user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         {
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
             balance.borrowed = balance.borrowed + value;
         };
     }
 
-    public fun remove_borrow(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun remove_borrow(user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         {
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
             if(value > balance.borrowed){
                 balance.borrowed = 0
             } else {
@@ -251,19 +219,16 @@ module dev::QiaraMarginV2{
     }
 
 
-    public fun add_interest(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun add_interest(user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         {
-           // tttta(14);
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
             balance.interest = balance.interest + value;
         }
     }
 
-    public fun remove_interest(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun remove_interest(user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         {
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
             if(value > balance.interest){
                 balance.interest = 0
             } else {
@@ -272,19 +237,16 @@ module dev::QiaraMarginV2{
         }
     }
 
-    public fun add_rewards(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun add_rewards(user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         {
-          //              tttta(84877);
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
             balance.rewards = balance.rewards + value;
         }
     }
 
-    public fun remove_rewards(owner: vector<u8>, shared_storage_name: String, sub_owner: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
-        TokensShared::assert_is_sub_owner(owner, shared_storage_name, sub_owner);
+    public fun remove_rewards(user: vector<u8>,token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
         {
-        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
             if(value > balance.rewards){
                 balance.rewards = 0
             } else {
@@ -296,7 +258,7 @@ module dev::QiaraMarginV2{
 // === PUBLIC VIEWS === //
 
     #[view]
-    public fun get_user_total_usd(shared_storage_name: String): (u256, u256, u256, u256, u256, u256, u256, u256, u256, u256, vector<Credit>) acquires TokenHoldings {
+    public fun get_user_total_usd(user: vector<u8>): (u256, u256, u256, u256, u256, u256, u256, u256, u256, u256, vector<Credit>) acquires TokenHoldings {
         let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
         let tokens = TokensType::return_full_nick_names_list();
 
@@ -317,7 +279,7 @@ module dev::QiaraMarginV2{
         while (i < len_tokens) {
             let token = *vector::borrow(&tokens, i);
 
-            if (!table::contains(&tokens_holdings.holdings, shared_storage_name)) {
+            if (!table::contains(&tokens_holdings.holdings, user)) {
                 i = i + 1;
                 continue;
             };
@@ -333,7 +295,7 @@ module dev::QiaraMarginV2{
             let vect_provider = vector::empty<String>();
 
             {
-                let user_holdings_ref = table::borrow(&tokens_holdings.holdings, shared_storage_name);
+                let user_holdings_ref = table::borrow(&tokens_holdings.holdings, user);
                 if (!table::contains(user_holdings_ref, token)) {
                     i = i + 1;
                     continue;
@@ -365,7 +327,7 @@ module dev::QiaraMarginV2{
                 let chain_copy = *vector::borrow(&vect_chain, j);
                 let provider_copy = *vector::borrow(&vect_provider, j);
                 
-                let uv_ref = find_balance(tokens_holdings, shared_storage_name, token, chain_copy, provider_copy);
+                let uv_ref = find_balance(tokens_holdings, user, token, chain_copy, provider_copy);
                 let uv = *uv_ref;
                 vector::push_back(&mut vect, uv);
 
@@ -400,7 +362,7 @@ module dev::QiaraMarginV2{
         };
 
         // Credit Processing (Calculated once outside token loop to avoid inflation)
-        let credit = find_credit(tokens_holdings, shared_storage_name);
+        let credit = find_credit(tokens_holdings, user);
         if (credit.isPositive) {
             total_available = total_available + credit.value;
             total_margin = total_margin + credit.value;
@@ -428,7 +390,7 @@ module dev::QiaraMarginV2{
     }
 
     #[view]
-    public fun get_user_total_staked_usd(shared_storage_name: String): u256 acquires TokenHoldings {
+    public fun get_user_total_staked_usd(user: vector<u8>): u256 acquires TokenHoldings {
         let tokens_holdings = borrow_global_mut<TokenHoldings>(@dev);
         let tokens = TokensType::return_full_nick_names_list();
         let total_staked_usd = 0u256;
@@ -439,7 +401,7 @@ module dev::QiaraMarginV2{
         while (i < len_tokens) {
             let token = *vector::borrow(&tokens, i);
 
-            if (!table::contains(&tokens_holdings.holdings, shared_storage_name)) {
+            if (!table::contains(&tokens_holdings.holdings, user)) {
                 i = i + 1;
                 continue;
             };
@@ -454,7 +416,7 @@ module dev::QiaraMarginV2{
             let vect_provider = vector::empty<String>();
 
             {
-                let user_holdings_ref = table::borrow(&tokens_holdings.holdings, shared_storage_name);
+                let user_holdings_ref = table::borrow(&tokens_holdings.holdings, user);
                 if (!table::contains(user_holdings_ref, token)) {
                     i = i + 1;
                     continue;
@@ -486,7 +448,7 @@ module dev::QiaraMarginV2{
                 let chain_copy = *vector::borrow(&vect_chain, j);
                 let provider_copy = *vector::borrow(&vect_provider, j);
                 
-                let uv = *find_balance(tokens_holdings, shared_storage_name, token, chain_copy, provider_copy);
+                let uv = *find_balance(tokens_holdings, user, token, chain_copy, provider_copy);
 
                 if (denom > 0) {
                     let current_staked_usd: u256;
@@ -507,44 +469,38 @@ module dev::QiaraMarginV2{
     }
 
     #[view]
-    public fun get_user_balance(shared_storage_name: String, token: String, chain: String , provider: String,): Credit acquires TokenHoldings {
-        return *find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider)
+    public fun get_user_balance(user: vector<u8>, token: String, chain: String , provider: String,): Credit acquires TokenHoldings {
+        return *find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider)
     }
 
     #[view]
-    public fun get_user_raw_balance(shared_storage_name: String, token: String, chain: String, provider: String): (u256, u256,u256, u256, u256, u256, u256, u256, u64) acquires TokenHoldings {
-        let balance  = *find_balance(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name, token, chain, provider);
+    public fun get_user_raw_balance(user: vector<u8>, token: String, chain: String, provider: String): (u256, u256,u256, u256, u256, u256, u256, u256, u64) acquires TokenHoldings {
+        let balance  = *find_balance(borrow_global_mut<TokenHoldings>(@dev),user, token, chain, provider);
         return (balance.deposited, balance.borrowed, balance.staked, balance.rewards, balance.reward_index_snapshot, balance.interest, balance.interest_index_snapshot, balance.locked_fee, balance.last_update)
     }
 
     #[view]
-    public fun get_user_balances(shared_storage_name: String, token: String): Map<String, Map<String, Credit>> acquires TokenHoldings {
+    public fun get_user_balances(user: vector<u8>, token: String): Map<String, Map<String, Credit>> acquires TokenHoldings {
         let th = borrow_global<TokenHoldings>(@dev);
-        let inner = table::borrow(&th.holdings, shared_storage_name);
+        let inner = table::borrow(&th.holdings, user);
         *table::borrow(inner, token)
     }
 
     #[view]
-    public fun get_user_credit(shared_storage_name: String,): (u256, bool) acquires TokenHoldings {
-        let credit = *find_credit(borrow_global_mut<TokenHoldings>(@dev),shared_storage_name);
+    public fun get_user_credit(user: vector<u8>): (u256, bool) acquires TokenHoldings {
+        let credit = *find_credit(borrow_global_mut<TokenHoldings>(@dev),user);
         return (credit.value, credit.isPositive)
     }
 
-    #[view]
-    public fun get_user_stake_lock(shared_storage_name: String,): u64 acquires StakeLock {
-        let lock = *find_stake_lock(&mut borrow_global_mut<StakeLock>(@dev).map,shared_storage_name);
-        return lock
-    }
-
 // === MUT RETURNS === //
-    fun find_balance(feature_table: &mut TokenHoldings,shared_storage_name: String,token: String,chain: String, provider: String,): &mut Credit {
+    fun find_balance(feature_table: &mut TokenHoldings,user: vector<u8>,token: String,chain: String, provider: String,): &mut Credit {
         {
-            if (!table::contains(&feature_table.holdings, shared_storage_name)) {
-                table::add(&mut feature_table.holdings,shared_storage_name,table::new<String, Map<String, Map<String, Credit>>>(),);
+            if (!table::contains(&feature_table.holdings, user)) {
+                table::add(&mut feature_table.holdings,user,table::new<String, Map<String, Map<String, Credit>>>(),);
             };
         };
 
-        let user_holdings = table::borrow_mut(&mut feature_table.holdings, shared_storage_name);
+        let user_holdings = table::borrow_mut(&mut feature_table.holdings, user);
 
         {
             if (!table::contains(user_holdings, token)) {
@@ -564,6 +520,7 @@ module dev::QiaraMarginV2{
             deposited: 0,
             borrowed: 0,
             staked: 0,
+            stake_lock: 0,
             rewards: 0,
             interest: 0,
             reward_index_snapshot: 0,
@@ -579,29 +536,23 @@ module dev::QiaraMarginV2{
         map::borrow_mut(a, &provider)
     }
 
-    fun find_stake_lock(map: &mut Map<String, u64>, shared_storage_name: String): &mut u64 {
-        if (!map::contains_key(map, &shared_storage_name)) {
-            map::upsert(map, shared_storage_name, 0);
-        };
-        return map::borrow_mut(map, &shared_storage_name)
-    }
 
-    fun find_credit(feature_table: &mut TokenHoldings,shared_storage_name: String): &mut Integer {
+    fun find_credit(feature_table: &mut TokenHoldings,user: vector<u8>): &mut Integer {
         {
-            if (!table::contains(&feature_table.credit, shared_storage_name)) {
-                table::add(&mut feature_table.credit, shared_storage_name, Integer { value: 0, isPositive: true });
+            if (!table::contains(&feature_table.credit, user)) {
+                table::add(&mut feature_table.credit, user, Integer { value: 0, isPositive: true });
             };
         };
 
-        return table::borrow_mut(&mut feature_table.credit, shared_storage_name)
+        return table::borrow_mut(&mut feature_table.credit, user)
     }
 
 
 
 // === HELPERS === //
 
-    public fun get_utilization_ratio(shared_storage_name: String): u256 acquires TokenHoldings{
-        let (_, marginUSD, _, borrowUSD, _, _, _, _, _, _,_,) = get_user_total_usd(shared_storage_name);
+    public fun get_utilization_ratio(user: vector<u8>): u256 acquires TokenHoldings{
+        let (_, marginUSD, _, borrowUSD, _, _, _, _, _, _,_,) = get_user_total_usd(user);
         if (marginUSD == 0) {
             0
         } else {
