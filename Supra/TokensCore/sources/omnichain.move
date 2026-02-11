@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV7{
+module dev::QiaraTokensOmnichainV8{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -11,6 +11,8 @@ module dev::QiaraTokensOmnichainV7{
     use supra_framework::primary_fungible_store;
     use supra_framework::object::{Self, Object};
     use supra_framework::event;
+
+    use dev::QiaraNonceV2::{Self as Nonce, Access as NonceAccess};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
@@ -36,6 +38,11 @@ module dev::QiaraTokensOmnichainV7{
     }
 
 // === STRUCTS === //
+
+    struct Permissions has key {
+        nonce: NonceAccess,
+    }
+
 
     // For Pagination purposes
     struct AddressCounter has key {
@@ -103,6 +110,9 @@ module dev::QiaraTokensOmnichainV7{
         };
         if (!exists<UserCrosschainBook>(@dev)) {
             move_to(admin, UserCrosschainBook { nonce: table::new<vector<u8>, u256>(), book: table::new<u64, Map<vector<u8>, Map<String, Map<String, u256>>>>(), outflows: table::new<u64, Map<vector<u8>, Map<String, Map<String, u256>>>>() });
+        };
+        if (!exists<Permissions>(@dev)) {
+            move_to(admin, Permissions { nonce: Nonce::give_access(admin)});
         };
     }
 
@@ -199,7 +209,7 @@ module dev::QiaraTokensOmnichainV7{
         };
     }
 
-    public fun increment_UserOutflow(token: String, chain: String, address: vector<u8>, amount: u64, isMint: bool, _perm: Permission) acquires AddressCounter, AddressDatabase, UserCrosschainBook {
+    public fun increment_UserOutflow(token: String, chain: String, address: vector<u8>, amount: u64, isMint: bool, _perm: Permission) acquires Permissions, AddressCounter, AddressDatabase, UserCrosschainBook {
         let book = borrow_global_mut<UserCrosschainBook>(@dev);
         let addressCounter_ref = borrow_global_mut<AddressCounter>(@dev);
         let addressDatabase_ref = borrow_global_mut<AddressDatabase>(@dev);
@@ -241,7 +251,7 @@ module dev::QiaraTokensOmnichainV7{
             };
         };
 
-        get_and_increment_nonce(book, address);
+        Nonce::increment_nonce(address, Nonce::give_permission(&borrow_global<Permissions>(@dev).nonce));
 
         // --- EMIT EVENTS AT THE VERY END ---
         if (isMint) {
@@ -252,32 +262,11 @@ module dev::QiaraTokensOmnichainV7{
     }
 
 
-    public fun get_and_increment_nonce(registry: &mut UserCrosschainBook, user: vector<u8>): u256 {
-        if (!table::contains(&registry.nonce, user)) {
-            table::add(&mut registry.nonce, user, 1);
-            0
-        } else {
-            let nonce_ref = table::borrow_mut(&mut registry.nonce, user);
-            let current_nonce = *nonce_ref;
-            *nonce_ref = current_nonce + 1;
-            current_nonce
-        }
-    }
-
 // === VIEW FUNCTIONS === //
     
     #[view]
     public fun return_registry():  Map<String, vector<String>> acquires TokensChains {
         borrow_global<TokensChains>(@dev).book
-    }
-
-    #[view]
-    public fun return_user_nonces(user: vector<u8>): u256 acquires UserCrosschainBook {
-        let book = borrow_global<UserCrosschainBook>(@dev);
-        if (!table::contains(&book.nonce, user)) {
-           return 0
-        };
-        return *table::borrow(&book.nonce, user)
     }
 
     #[view]

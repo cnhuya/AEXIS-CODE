@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV7 {
+module dev::QiaraTokensCoreV8 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -14,16 +14,18 @@ module dev::QiaraTokensCoreV7 {
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV7::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV7::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensTiersV7::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV7::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV8::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV8::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensTiersV8::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV8::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
-    use dev::QiaraEventV20::{Self as Event};
-    use dev::QiaraStoragesV8::{Self as Storages};
+    use dev::QiaraNonceV2::{Self as Nonce, Access as NonceAccess};
 
-    use dev::QiaraChainTypesV8::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV8::{Self as TokensType};
+    use dev::QiaraEventV21::{Self as Event};
+    use dev::QiaraStoragesV9::{Self as Storages};
+
+    use dev::QiaraChainTypesV9::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV9::{Self as TokensType};
 
     const ADMIN: address = @dev;
 
@@ -372,7 +374,7 @@ module dev::QiaraTokensCoreV7 {
         let wallet = primary_fungible_store::primary_store(signer::address_of(user), get_metadata(symbol));
         let fa = internal_withdraw(wallet, amount, chain, managed);
 
-        let nonce = TokensOmnichain::return_user_nonces(bcs::to_bytes(&signer::address_of(user)));
+        let nonce = Nonce::return_user_nonce(bcs::to_bytes(&signer::address_of(user)));
 
         let legit_amount = (TokensOmnichain::return_address_balance_by_chain_for_token(bcs::to_bytes(&signer::address_of(user)), chain, symbol) as u64);
         assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
@@ -411,7 +413,7 @@ module dev::QiaraTokensCoreV7 {
         assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
         let total_outflow = (TokensOmnichain::return_address_outflow_by_chain_for_token(bcs::to_bytes(&user), chain, symbol) as u64);
        
-        let nonce = TokensOmnichain::return_user_nonces(bcs::to_bytes(&user));
+        let nonce = Nonce::return_user_nonce(bcs::to_bytes(&user));
         TokensOmnichain::change_UserTokenSupply(symbol, chain, user, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         TokensOmnichain::increment_UserOutflow(symbol, chain, bcs::to_bytes(&receiver), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
 
