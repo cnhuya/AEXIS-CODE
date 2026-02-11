@@ -1,4 +1,4 @@
-module dev::QiaraStorageV2 {
+module dev::QiaraStorageV1 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::signer;
     use std::vector;
@@ -202,8 +202,8 @@ module dev::QiaraStorageV2 {
 
     public entry fun more7(admin: &signer) acquires ConstantDatabase{
         assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
-        change_constant(admin, utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"), bc::to_bytes(&3), &give_permission(&give_access(admin))); // 5
-        change_constant(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"), bc::to_bytes(&3), &give_permission(&give_access(admin))); // 3
+        change_constant(admin, utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"), bc::to_bytes(&3u8), &give_permission(&give_access(admin))); // 5
+        change_constant(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"), bc::to_bytes(&3u8), &give_permission(&give_access(admin))); // 3
     }
 
 
@@ -435,7 +435,7 @@ module dev::QiaraStorageV2 {
     public fun expect_address(data: vector<u8>): address {
         from_bcs::to_address(data)
     }
- #[view]
+ #[view] 
     public fun expect_bytes(data: vector<u8>): vector<u8> {
         from_bcs::to_bytes(data)
     }
