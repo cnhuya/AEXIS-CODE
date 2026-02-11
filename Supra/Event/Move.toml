@@ -1,10 +1,10 @@
 [package]
-name = "QiaraEventV26"
+name = "QiaraEventV1"
 version = "1.0.0"
 authors = []
 
 [addresses]
-dev = "0x2ac776b09a5a0d55b03be6328ac874bb8897b3978c3b4dc0905622fbef629833"
+dev = "0xb5a924dde82fd1e3dd0d1c99e863ccce2732a0e0e80c338f8eb3a4cd7ae5aed4"
 supra_framework = "0x1"
 std = "0x1"
 aptos_std = "0x1"
