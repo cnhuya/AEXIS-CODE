@@ -1,4 +1,4 @@
-module multi_asset_vault::multi_asset_vault {
+module QiaraMultiAssetVaultV1::QiaraMultiAssetVaultV1 {
     use sui::coin::{Self, Coin};
     use sui::balance::{Self, Balance};
     use sui::object::{Self, UID, ID};

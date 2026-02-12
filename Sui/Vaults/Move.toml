@@ -1,11 +1,11 @@
 [package]
 name = "QiaraMultiAssetVaultV1"
-published-at = "0x1783ea094a4a028779872a7fa2c65a6eaf5e89fe451bcc116033b145fc496cab"
+published-at = "0x5599731e2cc55ab0f559edbf225a8631cea1c5a447a1f58be4502230678b65e6"
 edition = "2024.beta"
 
 [addresses]
 std = "0x1"
-multi_asset_vault = "0x1783ea094a4a028779872a7fa2c65a6eaf5e89fe451bcc116033b145fc496cab"
+QiaraMultiAssetVaultV1 = "0x5599731e2cc55ab0f559edbf225a8631cea1c5a447a1f58be4502230678b65e6"
 
 [dependencies.QiaraVariablesV1]
 git = 'https://github.com/cnhuya/AEXIS-CODE.git'
