@@ -7,6 +7,7 @@ module QiaraMultiAssetVaultV1::QiaraMultiAssetVaultV1 {
     use sui::dynamic_field as df;
     use std::string::{Self, String};
     use std::type_name::{Self, TypeName};
+    use sui::table::{Self, Table};
 
     use QiaraVariablesV1::QiaraVariablesV1::{Self as vars}; 
 
@@ -20,10 +21,17 @@ module QiaraMultiAssetVaultV1::QiaraMultiAssetVaultV1 {
 
 // --- Objects ---
 
+    public struct VaultInfo has store, copy, drop {
+        vault_id: ID,
+        admin_cap_id: ID,
+    }
+
     public struct GlobalConfig has key {
         id: UID,
-        admin_address: address, // The person allowed to set the delegator (you)
-        delegator_address: Option<address>
+        admin_address: address,
+        delegator_address: Option<address>,
+        // New: Table to track all vaults by name
+        vaults: Table<String, VaultInfo> 
     }
 
     public struct AdminCap has key, store { 
@@ -54,6 +62,7 @@ module QiaraMultiAssetVaultV1::QiaraMultiAssetVaultV1 {
             id: object::new(ctx),
             admin_address: tx_context::sender(ctx), // You are the initial admin
             delegator_address: option::none(),     // Starts as 0x0 (None)
+            vaults: table::new<String, VaultInfo>(ctx)
         };
         transfer::share_object(config);
     }

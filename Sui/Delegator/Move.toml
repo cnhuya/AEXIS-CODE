@@ -1,0 +1,15 @@
+[package]
+name = "QiaraDelegatorV1"
+published-at = "0x5e0032fa171f058a89ed137f6bfae3333ede3d8d8f8ee387f91ed251e813ef3b"
+edition = "2024.beta"
+
+[addresses]
+std = "0x1"
+QiaraDelegatorV1 = "0x5e0032fa171f058a89ed137f6bfae3333ede3d8d8f8ee387f91ed251e813ef3b"
+QiaraExtractorV1 = "0x5e0032fa171f058a89ed137f6bfae3333ede3d8d8f8ee387f91ed251e813ef3b"
+
+
+[dependencies.QiaraMultiAssetVaultV1]
+git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+rev = 'main'
+subdir = 'Sui/Vaults'
