@@ -4,5 +4,4 @@ published-at = "0x7c839d68fd9a038a02a0b6d4897ec55ef93f336cd24e04c2e395b0de696f60
 edition = "2024.beta"
 
 [addresses]
-QiaraVariablesV1 = "0x7c839d68fd9a038a02a0b6d4897ec55ef93f336cd24e04c2e395b0de696f6096"
 std = "0x1"
