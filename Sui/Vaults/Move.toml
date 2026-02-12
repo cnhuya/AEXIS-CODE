@@ -1,0 +1,26 @@
+[package]
+name = "QiaraMultiAssetVaultV1"
+edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
+# license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
+# authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
+
+[addresses]
+dev = "0x515bbfb8778044ab8fa5393f89844e5e27454445c7c65a915e6028df402d5082"
+std = "0x1"
+QiaraVariablesV1 = "0xe321ca0d762586204dc0a5a61eb8a07228db245fc9df4fb1896bd91e9e98fd15"
+[dev-dependencies]
+# The dev-dependencies section allows overriding dependencies for `--test` and
+# `--dev` modes. You can introduce test-only dependencies here.
+# Local = { local = "../path/to/dev-build" }
+
+
+[dependencies.QiaraVariablesV1]
+git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+rev = 'main'
+subdir = 'Sui/Variables'
+
+[dev-addresses]
+# The dev-addresses section allows overwriting named addresses for the `--test`
+# and `--dev` modes.
+# alice = "0xB0B"
+
