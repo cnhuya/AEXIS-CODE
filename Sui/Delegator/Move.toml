@@ -1,12 +1,12 @@
 [package]
 name = "QiaraDelegatorV1"
-published-at = "0x5e0032fa171f058a89ed137f6bfae3333ede3d8d8f8ee387f91ed251e813ef3b"
+published-at = "0xfa4985eec4732d4b8965244a85f6b6b72433a96d4c95668ed676635eca60676b"
 edition = "2024.beta"
 
 [addresses]
 std = "0x1"
-QiaraDelegatorV1 = "0x5e0032fa171f058a89ed137f6bfae3333ede3d8d8f8ee387f91ed251e813ef3b"
-QiaraExtractorV1 = "0x5e0032fa171f058a89ed137f6bfae3333ede3d8d8f8ee387f91ed251e813ef3b"
+QiaraDelegatorV1 = "0xfa4985eec4732d4b8965244a85f6b6b72433a96d4c95668ed676635eca60676b"
+QiaraExtractorV1 = "0xfa4985eec4732d4b8965244a85f6b6b72433a96d4c95668ed676635eca60676b"
 
 
 [dependencies.QiaraMultiAssetVaultV1]
