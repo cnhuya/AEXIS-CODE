@@ -1,6 +1,6 @@
-module 0x0::QiaraVariablesReadV1 {
+module QiaraVariablesReadV1::QiaraVariablesReadV1 {
     use std::string::String;
-    use 0x0::QiaraVariablesV1::{AdminCap, FriendCap, Registry};
+    use QiaraVariablesV1::QiaraVariablesV1::{AdminCap, FriendCap, Registry};
     use sui::bcs;
 
     // --- Getters ---
