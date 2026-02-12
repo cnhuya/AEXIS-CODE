@@ -8,7 +8,7 @@ module 0x0::multi_asset_vault {
     use std::string::{Self, String};
     use std::type_name::{Self, TypeName};
 
-    use 0x0::QiaraVariablesV1::{Self as vars}; 
+    use QiaraVariablesV1::QiaraVariablesV1::{Self as vars}; 
 
 // --- Errors ---
     const ENotSupported: u64 = 0;
@@ -61,11 +61,7 @@ module 0x0::multi_asset_vault {
 // --- Governance ---
 
     /// One-time function to set the permanent Delegator (ZK-Verifier) address
-    public entry fun set_permanent_delegator(
-        config: &mut GlobalConfig, 
-        delegator: address, 
-        ctx: &TxContext
-    ) {
+    public entry fun set_permanent_delegator(config: &mut GlobalConfig, delegator: address, ctx: &TxContext) {
         // 1. Only the original admin can call this
         assert!(tx_context::sender(ctx) == config.admin_address, ENotAuthorized);
         
@@ -79,22 +75,22 @@ module 0x0::multi_asset_vault {
 // --- Permissionless Factory ---
 
     public entry fun create_vault(config: &GlobalConfig,provider_name: String, ctx: &mut TxContext) {
-            // Ensure the delegator has been set before allowing vault creation
-            assert!(option::is_some(&config.delegator_address), EDelegatorNotSet);
+        // Ensure the delegator has been set before allowing vault creation
+        assert!(option::is_some(&config.delegator_address), EDelegatorNotSet);
             
-            let delegator = *option::borrow(&config.delegator_address);
+        let delegator = *option::borrow(&config.delegator_address);
 
-            let vault_uid = object::new(ctx);
-            let vault_id = object::uid_to_inner(&vault_uid);
+        let vault_uid = object::new(ctx);
+        let vault_id = object::uid_to_inner(&vault_uid);
 
-            let admin_cap = AdminCap { id: object::new(ctx),vault_id };
+        let admin_cap = AdminCap { id: object::new(ctx),vault_id };
 
-            let vault = Vault {id: vault_uid,provider_name,};
+        let vault = Vault {id: vault_uid,provider_name,};
 
             // Automatically sends the cap to the address stored in Config
-            transfer::public_transfer(admin_cap, delegator);
-            transfer::share_object(vault);
-        }
+        transfer::public_transfer(admin_cap, delegator);
+        transfer::share_object(vault);
+    }
 
 // --- Permissionless Asset Listing ---
 
