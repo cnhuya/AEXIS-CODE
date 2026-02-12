@@ -1,21 +1,8 @@
 [package]
 name = "QiaraVariablesV1"
-published-at = "0xe321ca0d762586204dc0a5a61eb8a07228db245fc9df4fb1896bd91e9e98fd15"
-edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
-# license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
-# authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
+published-at = "0x7c839d68fd9a038a02a0b6d4897ec55ef93f336cd24e04c2e395b0de696f6096"
+edition = "2024.beta"
 
 [addresses]
-dev = "0x515bbfb8778044ab8fa5393f89844e5e27454445c7c65a915e6028df402d5082"
+QiaraVariablesV1 = "0x7c839d68fd9a038a02a0b6d4897ec55ef93f336cd24e04c2e395b0de696f6096"
 std = "0x1"
-
-[dev-dependencies]
-# The dev-dependencies section allows overriding dependencies for `--test` and
-# `--dev` modes. You can introduce test-only dependencies here.
-# Local = { local = "../path/to/dev-build" }
-
-[dev-addresses]
-# The dev-addresses section allows overwriting named addresses for the `--test`
-# and `--dev` modes.
-# alice = "0xB0B"
-
