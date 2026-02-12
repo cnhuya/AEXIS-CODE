@@ -1,4 +1,4 @@
-module 0x0::multi_asset_vault {
+module multi_asset_vault::multi_asset_vault {
     use sui::coin::{Self, Coin};
     use sui::balance::{Self, Balance};
     use sui::object::{Self, UID, ID};
