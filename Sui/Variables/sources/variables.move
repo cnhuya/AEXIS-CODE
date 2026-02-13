@@ -1,4 +1,4 @@
-module QiaraVariablesV1::QiaraVariablesV1 {
+module QiaraVariablesReadV1::QiaraVariablesV1 {
     use std::string::String;
     use sui::table::{Self, Table};
     use sui::vec_map::{Self, VecMap};
