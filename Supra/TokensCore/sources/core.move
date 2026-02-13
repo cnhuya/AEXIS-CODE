@@ -22,7 +22,7 @@ module dev::QiaraTokensCoreV2 {
 
     use dev::QiaraNonceV1::{Self as Nonce, Access as NonceAccess};
 
-    use dev::QiaraEventV3::{Self as Event};
+    use dev::QiaraEventV5::{Self as Event};
     use dev::QiaraStoragesV2::{Self as Storages};
 
     use dev::QiaraChainTypesV2::{Self as ChainTypes};
@@ -495,9 +495,11 @@ module dev::QiaraTokensCoreV2 {
         ensure_safety(symbol, chain);
     
 
-        if(account::exists_at(from_bcs::to_address(user))){
-            mint_to(from_bcs::to_address(user), symbol, chain, amount, perm);
-            // the token supply change & user token supply change is already implemented in mint_to
+        if(vector::length(&user) == 33){
+             if(account::exists_at(from_bcs::to_address(user))){
+                 mint_to(from_bcs::to_address(user), symbol, chain, amount, perm);
+                 // the token supply change & user token supply change is already implemented in mint_to
+             };
         } else {
             TokensOmnichain::change_UserTokenSupply(symbol, chain, user, amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
             TokensOmnichain::change_TokenSupply(symbol, chain, amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
