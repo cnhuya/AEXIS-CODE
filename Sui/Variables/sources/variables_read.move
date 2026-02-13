@@ -1,8 +1,7 @@
 module QiaraVariablesReadV1::QiaraVariablesReadV1 {
-    use std::string::String;
     use QiaraVariablesV1::QiaraVariablesV1::{AdminCap, FriendCap, Registry};
     use sui::bcs;
-
+    use std::string::{Self, String};
     // --- Getters ---
     public fun get_variable_to_u8(registry: &Registry, header: String, name: String): u8 {
         let mut data = QiaraVariablesV1::QiaraVariablesV1::get_variable(registry, header, name);
@@ -38,5 +37,10 @@ module QiaraVariablesReadV1::QiaraVariablesReadV1 {
         let mut data = QiaraVariablesV1::QiaraVariablesV1::get_variable(registry, header, name);
         let mut bytes = bcs::new(data);
         bcs::peel_vec_u8(&mut bytes)
+    }
+
+    public fun get_variable_as_string(registry: &Registry, header: String, name: String): String {
+        let bytes = get_variable_to_vecu8(registry, header, name);
+        string::utf8(bytes)
     }
 }
