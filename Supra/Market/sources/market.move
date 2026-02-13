@@ -36,7 +36,7 @@ module dev::QiaraVaultsV3 {
     use dev::QiaraCapabilitiesV1::{Self as capabilities, Access as CapabilitiesAccess};
 
 
-    use dev::QiaraEventV3::{Self as Event};
+    use dev::QiaraEventV5::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -183,25 +183,30 @@ module dev::QiaraVaultsV3 {
 // === CONSENSUS INTERFACE === //
     /// Deposit on behalf of `recipient`
     /// No need for recipient to have signed anything.
+    /// 
+    /// 
+    
     public fun c_bridge_deposit(validator: &signer, sender: vector<u8>, token: String, chain: String, provider: String, amount: u64, lend_rate: u64, permission: Permission) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         TokensOmnichain::change_UserTokenSupply(token, chain, sender, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain)); 
         let amount_u256 = (amount as u256)*1000000000000000000;
 
         let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
-        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
         
+        let (_, fee) = TokensMetadata::impact(token, amount_u256/1000000000000000000, provider_vault.total_deposited/1000000000000000000, true, utf8(b"spot"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
+        fee = assert_minimal_fee(fee);
         let amount_u256_taxed = amount_u256-fee;
-        Margin::update_reward_index(sender, token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
+         if(amount_u256_taxed == 0) { return };
 
         TokensRates::update_rate(token, chain, provider, lend_rate, TokensRates::give_permission(&borrow_global<Permissions>(@dev).tokens_rates));
-        Margin::add_deposit(sender, token, chain, provider, amount_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-
-
+        
         let fa = TokensCore::mint(token, chain, amount, TokensCore::give_permission(&borrow_global<Permissions>(@dev).tokens_core)); 
         TokensCore::deposit(provider_vault.balance, fa, chain);
-
         provider_vault.total_deposited = provider_vault.total_deposited + amount_u256;
+        provider_vault.total_accumulated_rewards = provider_vault.total_accumulated_rewards + fee/5;
+
+        Margin::update_reward_index(sender, token, chain, provider, provider_vault.total_accumulated_rewards, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
+        Margin::add_deposit(sender, token, chain, provider, amount_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
 
         let (user_borrow_interest, user_lend_rewards, staked_rewards, user_points) = new_accrue(provider_vault, sender, token, chain, provider);
 
