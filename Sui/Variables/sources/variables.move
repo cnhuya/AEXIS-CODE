@@ -12,6 +12,7 @@ module QiaraVariablesV1::QiaraVariablesV1 {
     //friend cap: 0x4bc25726825bc6dbaa8a15492c07eb510cc1cd18c8d5834347627fb9aef6a5d8
     // --- Errors ---
     const ERegistryLocked: u64 = 0;
+    const EVariableNotFound: u64 = 1;
 
     // --- Structs ---
     public struct AdminCap has key, store { id: UID }
@@ -80,6 +81,9 @@ module QiaraVariablesV1::QiaraVariablesV1 {
     // --- Getters ---
     public fun get_variable(registry: &Registry, header: String, name: String): vector<u8> {
         let map = table::borrow(&registry.data, header);
+        if(!vec_map::contains(map, &name)) {
+            abort EVariableNotFound
+        };
         *vec_map::get(map, &name)
     }
 }
