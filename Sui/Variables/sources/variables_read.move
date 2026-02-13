@@ -1,4 +1,4 @@
-module QiaraVariablesReadV1::QiaraVariablesReadV1 {
+module 0x0::QiaraVariablesReadV1 {
     use QiaraVariablesV1::QiaraVariablesV1::{AdminCap, FriendCap, Registry};
     use sui::bcs;
     use std::string::{Self, String};

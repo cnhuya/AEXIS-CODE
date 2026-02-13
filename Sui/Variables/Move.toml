@@ -1,10 +1,10 @@
 [package]
 name = "QiaraVariablesV1"
-published-at = "0x7eb0fe967bfd67453b01ebed53ecb866d18da59b4b4dc679b4ea99860a5e63ec"
+published-at = "0xd30d2f4a1382998024d55c320e6f1af9c86c4cdef58293e9658b3a60c357b339"
 edition = "2024.beta"
 
 [addresses]
 std = "0x1"
-QiaraVariablesV1 = "0x7eb0fe967bfd67453b01ebed53ecb866d18da59b4b4dc679b4ea99860a5e63ec"
-QIARA_ZKV1 = "0x7eb0fe967bfd67453b01ebed53ecb866d18da59b4b4dc679b4ea99860a5e63ec"
-QiaraVariablesReadV1 = "0x7eb0fe967bfd67453b01ebed53ecb866d18da59b4b4dc679b4ea99860a5e63ec"
+QiaraVariablesV1 = "0xd30d2f4a1382998024d55c320e6f1af9c86c4cdef58293e9658b3a60c357b339"
+QIARA_ZKV1 = "0xd30d2f4a1382998024d55c320e6f1af9c86c4cdef58293e9658b3a60c357b339"
+QiaraVariablesReadV1 = "0xd30d2f4a1382998024d55c320e6f1af9c86c4cdef58293e9658b3a60c357b339"
