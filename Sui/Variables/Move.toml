@@ -1,6 +1,6 @@
 [package]
 name = "QiaraVariablesV1"
-#published-at = "0x57c4c6affee05e7431188c1fa6b349f580600f72049b23cf1c867fc7d176046a"
+published-at = "0x57c4c6affee05e7431188c1fa6b349f580600f72049b23cf1c867fc7d176046a"
 edition = "2024.beta"
 
 [addresses]
