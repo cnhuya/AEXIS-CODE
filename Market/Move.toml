@@ -1,0 +1,64 @@
+    [package]
+    name = "QiaraMarketV3"
+    version = "2.1.1"
+    authors = []
+
+    [addresses]
+    dev = "0xb5a924dde82fd1e3dd0d1c99e863ccce2732a0e0e80c338f8eb3a4cd7ae5aed4"
+    supra_framework = "0x1"
+    std = "0x1"
+    aptos_std = "0x1"
+    Extensions = "0x1"
+    [dev-addresses]
+
+    [dependencies.SupraFramework]
+    git = "https://github.com/Entropy-Foundation/aptos-core.git"
+    rev = "dev"
+    subdir = "aptos-move/framework/supra-framework"
+
+    [dependencies.core]
+    git = "https://github.com/Entropy-Foundation/dora-interface.git"
+    rev = "master"
+    subdir = "supra/testnet/core"
+
+    [dependencies.AptosStdlib]
+    git = "https://github.com/Entropy-Foundation/aptos-core.git"
+    rev = "dev"
+    subdir = "aptos-move/framework/aptos-stdlib"
+
+    [dependencies.QiaraStorageV1]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Storage'
+
+    [dependencies.QiaraMarginV3]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Margin'
+
+    [dependencies.QiaraMathV1]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Math'
+
+    [dependencies.QiaraTokensV2]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/TokensCore'
+
+    [dependencies.QiaraTypesV2]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Types'
+
+    [dependencies.QiaraAutomationV2]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/AutoCustom'
+
+    [dependencies.QiaraEventV6]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Event'
+
+    [dev-dependencies]
