@@ -1,0 +1,14 @@
+[package]
+name = "Qiara_Bluefin_Interface"
+#published-at = "0xed5b659a8746c2486864980b995d738a978495b17987406cb120b1d20678d01d"
+edition = "2024.beta"
+
+[addresses]
+std = "0x1"
+Qiara = ""
+Qiara_Bluefin_Interface = "0x0"
+#Qiara_Bluefin_Interface = "0xed5b659a8746c2486864980b995d738a978495b17987406cb120b1d20678d01d"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
+Qiara = { git = "https://github.com/cnhuya/AEXIS-CODE.git", subdir = "Sui/Qiara", rev = "main" }

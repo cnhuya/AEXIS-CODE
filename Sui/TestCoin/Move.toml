@@ -1,0 +1,7 @@
+[package]
+name = "QiaraUSDC"
+#published-at = "0xfa4985eec4732d4b8965244a85f6b6b72433a96d4c95668ed676635eca60676b"
+edition = "2024.beta"
+
+[addresses]
+std = "0x1"
