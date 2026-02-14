@@ -1,4 +1,4 @@
-module 0x0::QiaraExtractorV1 {
+module Qiara::QiaraExtractorV1 {
     use std::vector;
     use sui::address;
 

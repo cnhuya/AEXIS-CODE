@@ -1,4 +1,4 @@
-module 0x0::QiaraDelegatorV1 {
+module Qiara::QiaraDelegatorV1 {
     use sui::object::{Self, UID};
     use sui::transfer;
     use sui::tx_context::TxContext;
@@ -10,8 +10,8 @@ module 0x0::QiaraDelegatorV1 {
     use std::string::{Self, String};
     use std::vector;
     use sui::dynamic_field as df;
-    use 0x0::QiaraExtractorV1::{Self as extractor};
-    use 0x0::QiaraVariablesV1::{Self as vars}; 
+    use Qiara::QiaraExtractorV1::{Self as extractor};
+    use Qiara::QiaraVariablesV1::{Self as vars}; 
     // Your VK here (keep as is for now)
     const FULL_VK: vector<u8> = x"e2f26dbea299f5223b646cb1fb33eadb059d9407559d7441dfd902e3a79a4d2dabb73dc17fbc13021e2471e0c08bd67d8401f52b73d6d07483794cad4778180e0c06f33bbc4c79a9cadef253a68084d382f17788f885c9afd176f7cb2f036789edf692d95cbdde46ddda5ef7d422436779445c5e66006a42761e1f12efde0018c212f3aeb785e49712e7a9353349aaf1255dfb31b7bf60723a480d9293938e1994104443cceed95af052872c157b48f9d628a58e1667d2975b6ea5f55a02ef196c70b1444a02c610e80735c26eb85ff36cfef258a65e8f265644a1809cff6f850f000000000000007bf13c3a8822c871dd9f1520465b97f508b34629ceba127b4406145da3ffcb2ebde442946eabfbe91818c321ff80288ef8e2dfa9cf0362a7a68c74b49facc40cbc18eb1a0f87ed60c222cfdc0e97cb7b8f61447c40b2fc58b6427851d888b5a8de6516d12f9a36165e93fc156a3418bb0c8f198510d25b07f686e1ad5d99fa17566296b7e8ef3d2f003e3757a444bb39bd96f5bd91ae0bf1eb58facd09c8468ae9f1fd35b79f3f79ae6f89b917ab5f973d262cb7dfd9fc48f0df275092684002c855fdc3e09ef5adcfde47633f889f576821ed36e55daa973a46a5a87e75000bea72a254220de1fd0de3efd64ad28b3700c939a47c0836a81cb3b3d72dd1d481fe0d9a9fc9d6c11609b94fa64f6b86d1ae1044def9711fbc5c51a7c1128a760dc7c0d800c903bc1e539bab7be24480fa4643e1cdb73b22883fa7fd46e59c2005a385a89c2dd6db5b2135a91063bfc458bb8a4f831193ca7021eae96f89ca6c25ab00f4aa06ff908b9ddc1d518fa6007c0237f26506dcbba6b78b420d9dd1eb8646bd9b28365078579e468f0a219e71d7c68b54f3bae5c22a12c872d996835b156a2aa0c0d3b716eb9b9dfc867a2cb345849f9b2278bb65904aad09e5fb4f3188fbb7f4bd90010edb0f6e161efaf9df6b938f7b0c624ec2515501e94d41db0f2a";
     

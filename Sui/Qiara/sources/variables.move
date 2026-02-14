@@ -1,9 +1,9 @@
-module 0x0::QiaraVariablesV1 {
+module Qiara::QiaraVariablesV1 {
     use std::string::{Self, String};
     use sui::table::{Self, Table};
     use sui::vec_map::{Self, VecMap};
     use sui::tx_context::{Self, TxContext};
-    use 0x0::QIARA_ZKV1::{Self as zk};
+    use Qiara::QIARA_ZKV1::{Self as zk};
     use sui::bcs;
 
     //upgrade cap: 0x5b8ff41622419fe9b90637bae670f61467a4700059e2ffd42b05a59aac49e77c
