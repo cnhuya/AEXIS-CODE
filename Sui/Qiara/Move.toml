@@ -1,12 +1,12 @@
 [package]
-name = "QiaraPackage"
-published-at = "0x7eb6490f34fcd5a2ce873f7a8ba8019df69ac100b163f5d453e3724385e1fdbe"
+name = "Qiara"
+published-at = "0xf787281a8d0ac8b283e72b8f57797d94628a3350e8fc0f5f068280de68bd2b25"
 edition = "2024.beta"
 
 [addresses]
 std = "0x1"
 #Qiara = "0x0"
-Qiara = "0x7eb6490f34fcd5a2ce873f7a8ba8019df69ac100b163f5d453e3724385e1fdbe"
+Qiara = "0xf787281a8d0ac8b283e72b8f57797d94628a3350e8fc0f5f068280de68bd2b25"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
