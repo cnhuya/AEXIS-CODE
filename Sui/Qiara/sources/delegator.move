@@ -130,19 +130,38 @@ module Qiara::QiaraDelegatorV1 {
 
     }
 
-
+    /// Adds funds to the vault. 
+    /// If the token hasn't been deposited before, it initializes the reserve.
     public fun increase_reserve<T>(vault: &mut Vault, coin: Coin<T>) {
         let reserve_key = ReserveKey<T> {};
-        let reserve = df::borrow_mut<ReserveKey<T>, Balance<T>>(&mut vault.id, reserve_key);
-        balance::join(reserve, coin::into_balance(coin));
+        let coin_balance = coin::into_balance(coin);
+
+        if (!df::exists_(&vault.id, reserve_key)) {
+            // Initialize the reserve field if it doesn't exist
+            df::add(&mut vault.id, reserve_key, coin_balance);
+        } else {
+            // Borrow existing and join
+            let reserve = df::borrow_mut<ReserveKey<T>, Balance<T>>(&mut vault.id, reserve_key);
+            balance::join(reserve, coin_balance);
+        }
     }
 
-
+    /// Removes funds from the vault.
+    /// Added an assertion to ensure the reserve actually exists and has enough funds.
     public fun decrease_reserve<T>(vault: &mut Vault, amount: u64): Balance<T> {
-        // Note: You should add an authorization check here 
-        // to ensure only valid providers can call this!
         let reserve_key = ReserveKey<T> {};
+        
+        // 1. Critical Check: Does the reserve even exist?
+        // If we don't check this, df::borrow_mut will abort with code 1.
+        assert!(df::exists_(&vault.id, reserve_key), ENotSupported);
+
         let reserve = df::borrow_mut<ReserveKey<T>, Balance<T>>(&mut vault.id, reserve_key);
+        
+        // 2. Critical Check: Is there enough in the reserve?
+        // balance::split will abort automatically if amount > balance, 
+        // but a custom error is clearer for debugging.
+        assert!(balance::value(reserve) >= amount, EInsufficientPermission);
+
         balance::split(reserve, amount)
     }
 
