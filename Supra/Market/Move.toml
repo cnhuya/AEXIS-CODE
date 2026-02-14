@@ -56,7 +56,7 @@
     rev = 'main'
     subdir = 'Supra/AutoCustom'
 
-    [dependencies.QiaraEventV8]
+    [dependencies.QiaraEventV9]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Event'
