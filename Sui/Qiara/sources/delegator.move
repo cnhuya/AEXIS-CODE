@@ -1,5 +1,7 @@
 module Qiara::QiaraDelegatorV1 {
-    use sui::object::{Self, UID};
+    use sui::coin::{Self, Coin};
+    use sui::balance::{Self, Balance};
+    use sui::object::{Self, UID, ID};
     use sui::transfer;
     use sui::tx_context::TxContext;
     use sui::groth16;
@@ -22,6 +24,8 @@ module Qiara::QiaraDelegatorV1 {
     const EWrongProviderProvided: u64 = 4;
     const EProviderAlreadyExists: u64 = 5;
     const EUnsupportedProviderName: u64 = 6;
+    const EInsufficientPermission: u64 = 7;
+    const ENotSupported: u64 = 8;
 
 
     // Events
@@ -34,7 +38,6 @@ module Qiara::QiaraDelegatorV1 {
     public struct SupportedTokenKey has copy, drop, store {
         token_type: TypeName
     }
-
 
     public struct VaultInfo has store, copy, drop {
         provider_name: String,
@@ -51,6 +54,8 @@ module Qiara::QiaraDelegatorV1 {
         id: UID,
         provider_name: String,
     }
+
+    public struct ReserveKey<phantom T> has copy, drop, store {}
 
     public struct Nullifiers has key, store {
         id: UID,
@@ -125,6 +130,22 @@ module Qiara::QiaraDelegatorV1 {
 
     }
 
+
+    public fun increase_reserve<T>(vault: &mut Vault, coin: Coin<T>) {
+        let reserve_key = ReserveKey<T> {};
+        let reserve = df::borrow_mut<ReserveKey<T>, Balance<T>>(&mut vault.id, reserve_key);
+        balance::join(reserve, coin::into_balance(coin));
+    }
+
+
+    public fun decrease_reserve<T>(vault: &mut Vault, amount: u64): Balance<T> {
+        // Note: You should add an authorization check here 
+        // to ensure only valid providers can call this!
+        let reserve_key = ReserveKey<T> {};
+        let reserve = df::borrow_mut<ReserveKey<T>, Balance<T>>(&mut vault.id, reserve_key);
+        balance::split(reserve, amount)
+    }
+
     public fun verifyZK<T>(config: &ProviderManager, nullifiers: &mut Nullifiers, public_inputs: vector<u8>,proof_points: vector<u8>): (address, u64) {
         let curve = groth16::bn254();
         // 1. Sanity Check
@@ -157,4 +178,13 @@ module Qiara::QiaraDelegatorV1 {
         // 6. Grant withdrawal permission
         return (user, amount)
     }
+
+
+    public fun borrow_id(vault: &Vault): &UID {
+        &vault.id
+    }
+    public fun borrow_id_mut(vault: &mut Vault): &mut UID {
+        &mut vault.id
+    }
+
 }
