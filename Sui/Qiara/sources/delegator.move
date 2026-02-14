@@ -5,10 +5,10 @@ module Qiara::QiaraDelegatorV1 {
     use sui::transfer;
     use sui::tx_context::TxContext;
     use sui::groth16;
-    use std::bcs;
     use std::type_name::{Self, TypeName};
     use sui::table::{Self, Table};
     use sui::event;
+    use sui::bcs;
     use std::string::{Self, String};
     use std::vector;
     use sui::dynamic_field as df;
@@ -165,14 +165,21 @@ module Qiara::QiaraDelegatorV1 {
         balance::split(reserve, amount)
     }
 
-    public fun verifyZK<T>(config: &ProviderManager, nullifiers: &mut Nullifiers, public_inputs: vector<u8>,proof_points: vector<u8>): (address, u64) {
+    public fun verifyZK<T>(config: &ProviderManager, nullifiers: &mut Nullifiers, public_inputs_bcs: vector<u8>,proof_points_bcs: vector<u8>): (address, u64) {
         let curve = groth16::bn254();
         // 1. Sanity Check
         assert!(vector::length(&FULL_VK) > 0, 100);
-
+        //assert!(vector::length(&public_inputs) == 448, 777);
         let pvk = groth16::prepare_verifying_key(&curve, &FULL_VK);
 
         // 2. Verify the proof
+
+        let mut public_inputs_peeler = bcs::new(public_inputs_bcs);
+        let mut proof_points_peeler = bcs::new(proof_points_bcs);
+
+        let public_inputs = bcs::peel_vec_u8(&mut public_inputs_peeler);
+        let proof_points = bcs::peel_vec_u8(&mut proof_points_peeler);
+
         let public_inputs_struct = groth16::public_proof_inputs_from_bytes(public_inputs);
         let proof_points_struct = groth16::proof_points_from_bytes(proof_points);
 
