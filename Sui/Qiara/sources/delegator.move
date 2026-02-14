@@ -186,5 +186,9 @@ module Qiara::QiaraDelegatorV1 {
     public fun borrow_id_mut(vault: &mut Vault): &mut UID {
         &mut vault.id
     }
+    public fun is_token_supported<T>(vault: &Vault): bool {
+        let token_type = type_name::get<T>();
+        df::exists_(&vault.id, SupportedTokenKey { token_type })
+    }
 
 }
