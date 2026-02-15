@@ -1,4 +1,4 @@
-module Qiara::QIARA_ZKV1 {
+module 0x0::QIARA_ZKV1 {
     use sui::object::{Self, UID};
     use sui::transfer;
     use sui::tx_context::TxContext;
