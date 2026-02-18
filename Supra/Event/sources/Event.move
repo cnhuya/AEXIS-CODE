@@ -73,6 +73,11 @@ module dev::QiaraEventV18 {
         name: String,
         aux: vector<Data>,
     }
+    #[event]
+    struct LeavesChange has copy, drop, store {
+        type: String,
+        aux: vector<u256>,
+    }
 
 // === INIT === //
     fun init_module(admin: &signer) {
@@ -170,6 +175,12 @@ module dev::QiaraEventV18 {
         vector::push_back(&mut data, Data {name: utf8(b"identifier"), type: utf8(b"vector<u8>"), value: identifier_value});
          event::emit(CrosschainEvent {
             name: type,
+            aux: data,
+        });
+    }
+    public fun emit_leaves_event(type: String, data: vector<u256>) {
+         event::emit(LeavesChange {
+            type: type,
             aux: data,
         });
     }
