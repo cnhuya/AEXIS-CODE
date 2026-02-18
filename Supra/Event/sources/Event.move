@@ -74,6 +74,11 @@ module dev::QiaraEventV18 {
         aux: vector<Data>,
     }
     #[event]
+    struct ValidationEvent has copy, drop, store {
+        name: String,
+        aux: vector<Data>,
+    }
+    #[event]
     struct LeavesChange has copy, drop, store {
         type: String,
         aux: vector<u256>,
@@ -174,6 +179,17 @@ module dev::QiaraEventV18 {
         let identifier_value = create_identifier(&data);
         vector::push_back(&mut data, Data {name: utf8(b"identifier"), type: utf8(b"vector<u8>"), value: identifier_value});
          event::emit(CrosschainEvent {
+            name: type,
+            aux: data,
+        });
+    }
+    public fun emit_validation_event(type: String, data: vector<Data>, consensus_type: String) {
+         data = append_consensus_type(data, consensus_type);
+        let time_now = timestamp::now_seconds();
+        vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&time_now)});
+        let identifier_value = create_identifier(&data);
+        vector::push_back(&mut data, Data {name: utf8(b"identifier"), type: utf8(b"vector<u8>"), value: identifier_value});
+         event::emit(ValidationEvent {
             name: type,
             aux: data,
         });
