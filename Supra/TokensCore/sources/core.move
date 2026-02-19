@@ -389,6 +389,7 @@ module dev::QiaraTokensCoreV2 {
         internal_deposit(Storages::return_lock_storage(symbol, chain), fa, chain,managed);
 
         let data = vector[
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"address"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(user))),
             Event::create_data_struct(utf8(b"addr"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
@@ -399,7 +400,7 @@ module dev::QiaraTokensCoreV2 {
             Event::create_data_struct(utf8(b"additional_outflow"), utf8(b"u64"), bcs::to_bytes(&amount)),
             
         ];
-        Event::emit_consensus_event(utf8(b"Request Bridge"), data, utf8(b"zk"));
+        Event::emit_consensus_event(utf8(b"Request Bridge"), data);
 
     
     }
@@ -427,6 +428,7 @@ module dev::QiaraTokensCoreV2 {
 
 
         let data = vector[
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"address"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
             Event::create_data_struct(utf8(b"addr"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
@@ -436,7 +438,7 @@ module dev::QiaraTokensCoreV2 {
             Event::create_data_struct(utf8(b"total_outflow"), utf8(b"u64"), bcs::to_bytes(&total_outflow)),
             Event::create_data_struct(utf8(b"additional_outflow"), utf8(b"u64"), bcs::to_bytes(&amount)),
         ];
-        Event::emit_consensus_event(utf8(b"Request Bridge"), data, utf8(b"zk"));
+        Event::emit_consensus_event(utf8(b"Request Bridge"), data);
 
     }
 
@@ -491,7 +493,7 @@ module dev::QiaraTokensCoreV2 {
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"amount"), utf8(b"string"), bcs::to_bytes(&amount)),
         ];
-        Event::emit_bridge_event(utf8(b"Finalized Bridge from Supra"), data, utf8(b"none"));    
+        Event::emit_bridge_event(utf8(b"Finalized Bridge from Supra"), data);    
 
     }
 
@@ -517,7 +519,7 @@ module dev::QiaraTokensCoreV2 {
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"amount"), utf8(b"string"), bcs::to_bytes(&amount)),
         ];
-        Event::emit_bridge_event(utf8(b"Finalized Bridge to Supra"), data, utf8(b"none"));    
+        Event::emit_bridge_event(utf8(b"Finalized Bridge to Supra"), data);    
 
     }
 
@@ -531,7 +533,7 @@ module dev::QiaraTokensCoreV2 {
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"amount"), utf8(b"string"), bcs::to_bytes(&amount)),
         ];
-        Event::emit_bridge_event(utf8(b"Finalized Failed Bridge"), data, utf8(b"none"));   
+        Event::emit_bridge_event(utf8(b"Finalized Failed Bridge"), data);   
 
         if(!account::exists_at(user)){
             TokensOmnichain::change_UserTokenSupply(symbol, chain, bcs::to_bytes(&user), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
