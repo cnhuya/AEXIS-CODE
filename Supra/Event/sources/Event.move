@@ -89,6 +89,15 @@ module dev::QiaraEventV22 {
         assert!(signer::address_of(admin) == @dev, 1);
     }
 
+    public fun create_identifier(addr: vector<u8>, type: vector<u8>, event_type: vector<u8>, nonce: vector<u8>): vector<u8> {
+        let vect = vector::empty<u8>();
+        vector::append(&mut vect, addr);
+        vector::append(&mut vect, type);
+        vector::append(&mut vect, event_type);
+        vector::append(&mut vect, nonce);
+        hash::sha3_256(vect)
+    }
+
 
 // Pubic
     public fun create_data_struct(name: String, type: String, value: vector<u8>): Data {
