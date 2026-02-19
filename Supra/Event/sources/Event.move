@@ -1,4 +1,4 @@
-module dev::QiaraEventV22 {
+module dev::QiaraEventV23 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -89,15 +89,33 @@ module dev::QiaraEventV22 {
         assert!(signer::address_of(admin) == @dev, 1);
     }
 
-    public fun create_identifier(addr: vector<u8>, type: vector<u8>, event_type: vector<u8>, nonce: vector<u8>): vector<u8> {
+    public fun create_identifier(data: vector<Data>): vector<u8> {
+        let addr = extract_value(&data, utf8(b"addr"));
+        let type = extract_value(&data, utf8(b"type"));
+        let event_type = extract_value(&data, utf8(b"event_type"));
+        let nonce = extract_value(&data, utf8(b"nonce"));
+
         let vect = vector::empty<u8>();
         vector::append(&mut vect, addr);
         vector::append(&mut vect, type);
         vector::append(&mut vect, event_type);
         vector::append(&mut vect, nonce);
-        hash::sha3_256(vect)
+        bcs::to_bytes(&hash::sha3_256(vect))
     }
 
+
+    fun extract_value(data: &vector<Data>, name: String): vector<u8> {
+        let i = 0;
+        let len = vector::length(data);
+        while (i < len) {
+            let d = vector::borrow(data, i);
+            if (&d.name == &name) {
+                return d.value
+            };
+            i = i + 1;
+        };
+        abort 404 // Or return an empty vector
+    }
 
 // Pubic
     public fun create_data_struct(name: String, type: String, value: vector<u8>): Data {
@@ -106,7 +124,8 @@ module dev::QiaraEventV22 {
 
     public fun emit_market_event(type: String, data: vector<Data>, consensus_type: String) { 
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
-        
+        let indentifier = create_identifier(data);
+        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), indentifier));
         event::emit(MarketEvent {
             name: type,
             aux: data,
@@ -115,14 +134,17 @@ module dev::QiaraEventV22 {
     }
     public fun emit_points_event(type: String, data: vector<Data>, consensus_type: String) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
-         
+        let indentifier = create_identifier(data);
+        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), indentifier));
          event::emit(PointsEvent {
             name: type,
             aux: data,
         });
     }
     public fun emit_governance_event(type: String, data: vector<Data>, consensus_type: String) {
-        vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
+        vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});  
+        let indentifier = create_identifier(data);
+        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), indentifier)); 
          event::emit(GovernanceEvent {
             name: type,
             aux: data,
@@ -130,6 +152,8 @@ module dev::QiaraEventV22 {
     }
     public fun emit_perps_event(type: String, data: vector<Data>, consensus_type: String) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
+        let indentifier = create_identifier(data);
+        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), indentifier));
          event::emit(PerpsEvent {
             name: type,
             aux: data,
@@ -137,6 +161,8 @@ module dev::QiaraEventV22 {
     }
     public fun emit_staking_event(type: String, data: vector<Data>, consensus_type: String) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
+        let indentifier = create_identifier(data);
+        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), indentifier));
          event::emit(StakingEvent {
             name: type,
             aux: data,
@@ -144,6 +170,8 @@ module dev::QiaraEventV22 {
     }
     public fun emit_bridge_event(type: String, data: vector<Data>, consensus_type: String) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
+        let indentifier = create_identifier(data);
+        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), indentifier));
          event::emit(BridgeEvent {
             name: type,
             aux: data,
@@ -152,6 +180,8 @@ module dev::QiaraEventV22 {
     public fun emit_consensus_event(type: String, data: vector<Data>, consensus_type: String) {
          data = append_consensus_type(data, consensus_type);
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
+        let indentifier = create_identifier(data);
+        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), indentifier));
          event::emit(ConsensusEvent {
             name: type,
             aux: data,
@@ -160,6 +190,8 @@ module dev::QiaraEventV22 {
     public fun emit_crosschain_event(type: String, data: vector<Data>, consensus_type: String) {
          data = append_consensus_type(data, consensus_type);
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
+        let indentifier = create_identifier(data);
+        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), indentifier));
          event::emit(CrosschainEvent {
             name: type,
             aux: data,
@@ -168,6 +200,8 @@ module dev::QiaraEventV22 {
     public fun emit_validation_event(type: String, data: vector<Data>, consensus_type: String) {
          data = append_consensus_type(data, consensus_type);
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
+        let indentifier = create_identifier(data);
+        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), indentifier));
          event::emit(ValidationEvent {
             name: type,
             aux: data,
