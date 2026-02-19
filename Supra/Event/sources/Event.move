@@ -1,4 +1,4 @@
-module dev::QiaraEventV31 {
+module dev::QiaraEventV32 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -93,6 +93,14 @@ module dev::QiaraEventV31 {
         assert!(signer::address_of(admin) == @dev, 1);
     }
 
+
+    public fun create_identifier(address: vector<u8>, nonce: vector<u8>, consensus_type: vector<u8>): vector<u8> {
+        let vect = vector::empty<u8>();
+        vector::append(&mut vect, addr);
+        vector::append(&mut vect, consensus_type);
+        vector::append(&mut vect, nonce);
+        bcs::to_bytes(&hash::sha3_256(vect))
+    }
 
 // Pubic
     public fun create_data_struct(name: String, type: String, value: vector<u8>): Data {
