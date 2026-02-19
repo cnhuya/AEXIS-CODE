@@ -3,6 +3,7 @@ module dev::QiaraTokensCoreV2 {
     use std::option;
     use std::vector;
     use std::bcs;
+    use std::hash;
     use std::timestamp;
     use aptos_std::from_bcs;
     use std::type_info::{Self, TypeInfo};
@@ -22,7 +23,7 @@ module dev::QiaraTokensCoreV2 {
 
     use dev::QiaraNonceV1::{Self as Nonce, Access as NonceAccess};
 
-    use dev::QiaraEventV21::{Self as Event};
+    use dev::QiaraEventV22::{Self as Event};
     use dev::QiaraStoragesV2::{Self as Storages};
 
     use dev::QiaraChainTypesV2::{Self as ChainTypes};
@@ -386,15 +387,19 @@ module dev::QiaraTokensCoreV2 {
         TokensOmnichain::change_UserTokenSupply(symbol, chain, bcs::to_bytes(&signer::address_of(user)), amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         TokensOmnichain::increment_UserOutflow(symbol, chain, bcs::to_bytes(&receiver), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         internal_deposit(Storages::return_lock_storage(symbol, chain), fa, chain,managed);
+
+        let indentifier = Event::create_identifier(bcs::to_bytes(&addr), bcs::to_bytes(&utf8(b"zk")), bcs::to_bytes(&utf8(b"Request Bridge")), bcs::to_bytes(&nonce));
         let data = vector[
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(user))),
             Event::create_data_struct(utf8(b"addr"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
+            Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), indentifier),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
             Event::create_data_struct(utf8(b"nonce"), utf8(b"u256"), bcs::to_bytes(&nonce)),
             Event::create_data_struct(utf8(b"total_outflow"), utf8(b"u64"), bcs::to_bytes(&total_outflow)),
             Event::create_data_struct(utf8(b"additional_outflow"), utf8(b"u64"), bcs::to_bytes(&amount)),
+            
         ];
         Event::emit_consensus_event(utf8(b"Request Bridge"), data, utf8(b"zk"));
 
