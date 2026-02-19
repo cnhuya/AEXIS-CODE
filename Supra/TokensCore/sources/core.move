@@ -23,7 +23,7 @@ module dev::QiaraTokensCoreV2 {
 
     use dev::QiaraNonceV1::{Self as Nonce, Access as NonceAccess};
 
-    use dev::QiaraEventV29::{Self as Event};
+    use dev::QiaraEventV30::{Self as Event};
     use dev::QiaraStoragesV2::{Self as Storages};
 
     use dev::QiaraChainTypesV2::{Self as ChainTypes};
@@ -389,7 +389,7 @@ module dev::QiaraTokensCoreV2 {
         internal_deposit(Storages::return_lock_storage(symbol, chain), fa, chain,managed);
 
         let data = vector[
-            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"adstringdress"), bcs::to_bytes(&utf8(b"zk"))),
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(user))),
             Event::create_data_struct(utf8(b"addr"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
