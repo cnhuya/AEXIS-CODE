@@ -1,4 +1,4 @@
-module dev::QiaraEventV24 {
+module dev::QiaraEventV25 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -79,6 +79,10 @@ module dev::QiaraEventV24 {
         aux: vector<Data>,
     }
     #[event]
+    struct ConsensusVoteEvent has copy, drop, store {
+        aux: vector<Data>,
+    }
+    #[event]
     struct LeavesChange has copy, drop, store {
         type: String,
         aux: vector<u256>,
@@ -91,7 +95,7 @@ module dev::QiaraEventV24 {
 
     public fun create_identifier(data: vector<Data>): vector<u8> {
         let addr = extract_value(&data, utf8(b"addr"));
-        let event_type = extract_value(&data, utf8(b"event_type"));
+        let event_type = extract_value(&data, utf8(b"consensus_type"));
         let nonce = extract_value(&data, utf8(b"nonce"));
 
         let vect = vector::empty<u8>();
@@ -208,6 +212,12 @@ module dev::QiaraEventV24 {
         vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
          event::emit(ValidationEvent {
             name: type,
+            aux: data,
+        });
+    }
+    public fun emit_consensus_vote_event(data: vector<Data>) {
+        vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
+         event::emit(ConsensusVoteEvent {
             aux: data,
         });
     }
