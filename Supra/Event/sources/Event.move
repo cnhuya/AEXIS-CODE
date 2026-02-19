@@ -95,12 +95,12 @@ module dev::QiaraEventV26 {
 
     public fun create_identifier(data: vector<Data>): vector<u8> {
         let addr = extract_value(&data, utf8(b"addr"));
-        let event_type = extract_value(&data, utf8(b"consensus_type"));
+        let consensus_type = extract_value(&data, utf8(b"consensus_type"));
         let nonce = extract_value(&data, utf8(b"nonce"));
 
         let vect = vector::empty<u8>();
         vector::append(&mut vect, addr);
-        vector::append(&mut vect, event_type);
+        vector::append(&mut vect, consensus_type);
         vector::append(&mut vect, nonce);
         bcs::to_bytes(&hash::sha3_256(vect))
     }
@@ -216,6 +216,12 @@ module dev::QiaraEventV26 {
         });
     }
     public fun emit_consensus_vote_event(data: vector<Data>) {
+        vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
+         event::emit(ConsensusVoteEvent {
+            aux: data,
+        });
+    }
+    public fun emit_consensus_register_event(data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
          event::emit(ConsensusVoteEvent {
             aux: data,
