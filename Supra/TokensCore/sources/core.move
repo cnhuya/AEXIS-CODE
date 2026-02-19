@@ -388,7 +388,7 @@ module dev::QiaraTokensCoreV2 {
         TokensOmnichain::increment_UserOutflow(symbol, chain, bcs::to_bytes(&receiver), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         internal_deposit(Storages::return_lock_storage(symbol, chain), fa, chain,managed);
 
-        let indentifier = Event::create_identifier(bcs::to_bytes(&addr), bcs::to_bytes(&utf8(b"zk")), bcs::to_bytes(&utf8(b"Request Bridge")), bcs::to_bytes(&nonce));
+        let indentifier = Event::create_identifier(bcs::to_bytes(&receiver), bcs::to_bytes(&utf8(b"zk")), bcs::to_bytes(&utf8(b"Request Bridge")), bcs::to_bytes(&nonce));
         let data = vector[
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(user))),
             Event::create_data_struct(utf8(b"addr"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
