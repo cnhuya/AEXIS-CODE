@@ -377,7 +377,7 @@ module dev::QiaraTokensCoreV2 {
         let wallet = primary_fungible_store::primary_store(signer::address_of(user), get_metadata(symbol));
         let fa = internal_withdraw(wallet, amount, chain, managed);
 
-        let nonce = Nonce::return_user_nonce(bcs::to_bytes(&signer::address_of(user)));
+        let nonce = Nonce::return_user_nonce(bcs::to_bytes(&receiver));
 
         let legit_amount = (TokensOmnichain::return_address_balance_by_chain_for_token(bcs::to_bytes(&signer::address_of(user)), chain, symbol) as u64);
         assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
@@ -388,7 +388,7 @@ module dev::QiaraTokensCoreV2 {
         internal_deposit(Storages::return_lock_storage(symbol, chain), fa, chain,managed);
         let data = vector[
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(user))),
-            Event::create_data_struct(utf8(b"receiver"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
+            Event::create_data_struct(utf8(b"addr"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
@@ -418,13 +418,13 @@ module dev::QiaraTokensCoreV2 {
         assert!(legit_amount >= amount, ERROR_SUFFICIENT_BALANCE);
         let total_outflow = (TokensOmnichain::return_address_outflow_by_chain_for_token(bcs::to_bytes(&user), chain, symbol) as u64);
        
-        let nonce = Nonce::return_user_nonce(bcs::to_bytes(&user));
+        let nonce = Nonce::return_user_nonce(bcs::to_bytes(&receiver));
         TokensOmnichain::change_UserTokenSupply(symbol, chain, user, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         TokensOmnichain::increment_UserOutflow(symbol, chain, bcs::to_bytes(&receiver), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
 
         let data = vector[
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
-            Event::create_data_struct(utf8(b"receiver"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
+            Event::create_data_struct(utf8(b"addr"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
