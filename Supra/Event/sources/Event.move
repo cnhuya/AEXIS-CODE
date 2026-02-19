@@ -95,12 +95,12 @@ module dev::QiaraEventV27 {
 
     public fun create_identifier(data: vector<Data>): vector<u8> {
         let addr = extract_value(&data, utf8(b"addr"));
-        let consensus_type = extract_value(&data, utf8(b"consensus_type"));
+    //    let consensus_type = extract_value(&data, utf8(b"consensus_type"));
         let nonce = extract_value(&data, utf8(b"nonce"));
 
         let vect = vector::empty<u8>();
         vector::append(&mut vect, addr);
-        vector::append(&mut vect, consensus_type);
+      //  vector::append(&mut vect, consensus_type);
         vector::append(&mut vect, nonce);
         bcs::to_bytes(&hash::sha3_256(vect))
     }
