@@ -1,4 +1,4 @@
-module dev::QiaraEventV23 {
+module dev::QiaraEventV24 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -91,13 +91,11 @@ module dev::QiaraEventV23 {
 
     public fun create_identifier(data: vector<Data>): vector<u8> {
         let addr = extract_value(&data, utf8(b"addr"));
-        let type = extract_value(&data, utf8(b"type"));
         let event_type = extract_value(&data, utf8(b"event_type"));
         let nonce = extract_value(&data, utf8(b"nonce"));
 
         let vect = vector::empty<u8>();
         vector::append(&mut vect, addr);
-        vector::append(&mut vect, type);
         vector::append(&mut vect, event_type);
         vector::append(&mut vect, nonce);
         bcs::to_bytes(&hash::sha3_256(vect))
@@ -168,6 +166,12 @@ module dev::QiaraEventV23 {
             aux: data,
         });
     }
+
+       // let addr = extract_value(&data, utf8(b"addr"));
+       // let type = extract_value(&data, utf8(b"type"));
+       // let event_type = extract_value(&data, utf8(b"event_type"));
+       // let nonce = extract_value(&data, utf8(b"nonce"));
+
     public fun emit_bridge_event(type: String, data: vector<Data>, consensus_type: String) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
         let identifier = create_identifier(data);
