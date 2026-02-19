@@ -94,7 +94,7 @@ module dev::QiaraEventV32 {
     }
 
 
-    public fun create_identifier(address: vector<u8>, nonce: vector<u8>, consensus_type: vector<u8>): vector<u8> {
+    public fun create_identifier(addr: vector<u8>, nonce: vector<u8>, consensus_type: vector<u8>): vector<u8> {
         let vect = vector::empty<u8>();
         vector::append(&mut vect, addr);
         vector::append(&mut vect, consensus_type);
