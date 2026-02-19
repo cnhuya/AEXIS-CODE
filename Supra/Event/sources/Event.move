@@ -1,4 +1,4 @@
-module dev::QiaraEventV21 {
+module dev::QiaraEventV22 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -87,6 +87,18 @@ module dev::QiaraEventV21 {
 // === INIT === //
     fun init_module(admin: &signer) {
         assert!(signer::address_of(admin) == @dev, 1);
+    }
+
+
+    fun find_data(name: String, data: vector<Data>): vector<u8> {
+        let len = vector::length(&data);
+        while len > 0 {
+            let d = vector::borrow(&data, len - 1);
+            if (d.name == name) {
+                d.value
+            };
+            len = len - 1;
+        }
     }
 
 // Pubic
