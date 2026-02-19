@@ -90,17 +90,6 @@ module dev::QiaraEventV22 {
     }
 
 
-    fun find_data(name: String, data: vector<Data>): vector<u8> {
-        let len = vector::length(&data);
-        while len > 0 {
-            let d = vector::borrow(&data, len - 1);
-            if (d.name == name) {
-                d.value
-            };
-            len = len - 1;
-        }
-    }
-
 // Pubic
     public fun create_data_struct(name: String, type: String, value: vector<u8>): Data {
         Data {name: name,type: type,value: value}
