@@ -23,7 +23,7 @@ module dev::QiaraTokensCoreV2 {
 
     use dev::QiaraNonceV1::{Self as Nonce, Access as NonceAccess};
 
-    use dev::QiaraEventV23::{Self as Event};
+    use dev::QiaraEventV24::{Self as Event};
     use dev::QiaraStoragesV2::{Self as Storages};
 
     use dev::QiaraChainTypesV2::{Self as ChainTypes};
@@ -424,6 +424,7 @@ module dev::QiaraTokensCoreV2 {
         let nonce = Nonce::return_user_nonce(bcs::to_bytes(&receiver));
         TokensOmnichain::change_UserTokenSupply(symbol, chain, user, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         TokensOmnichain::increment_UserOutflow(symbol, chain, bcs::to_bytes(&receiver), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+
 
         let data = vector[
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
