@@ -23,7 +23,7 @@ module dev::QiaraTokensCoreV2 {
 
     use dev::QiaraNonceV1::{Self as Nonce, Access as NonceAccess};
 
-    use dev::QiaraEventV31::{Self as Event};
+    use dev::QiaraEventV32::{Self as Event};
     use dev::QiaraStoragesV2::{Self as Storages};
 
     use dev::QiaraChainTypesV2::{Self as ChainTypes};
@@ -413,6 +413,7 @@ module dev::QiaraTokensCoreV2 {
 
     }
 
+
     // Function to pre-"burn" tokens when bridging out, but the transaction isnt yet validated so the tokens arent really burned yet.
     // Later implement function to claim locked tokens if the bridge tx fails
     public fun p_request_bridge(validator: &signer, user: vector<u8>, symbol: String, chain: String, provider: String, amount: u64, receiver: vector<u8>,perm: Permission) acquires Permissions{
@@ -426,7 +427,7 @@ module dev::QiaraTokensCoreV2 {
         TokensOmnichain::change_UserTokenSupply(symbol, chain, user, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         TokensOmnichain::increment_UserOutflow(symbol, chain, bcs::to_bytes(&receiver), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
 
-
+        let identifier = Event::create_identifier(bcs::to_bytes(&receiver), bcs::to_bytes(&nonce), bcs::to_bytes(&utf8(b"zk")));
         let data = vector[
             Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
@@ -437,6 +438,7 @@ module dev::QiaraTokensCoreV2 {
             Event::create_data_struct(utf8(b"nonce"), utf8(b"u256"), bcs::to_bytes(&nonce)),
             Event::create_data_struct(utf8(b"total_outflow"), utf8(b"u64"), bcs::to_bytes(&total_outflow)),
             Event::create_data_struct(utf8(b"additional_outflow"), utf8(b"u64"), bcs::to_bytes(&amount)),
+            Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
         ];
         Event::emit_consensus_event(utf8(b"Request Bridge"), data);
 
