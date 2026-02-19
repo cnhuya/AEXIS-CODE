@@ -1,4 +1,4 @@
-module dev::QiaraEventV30 {
+module dev::QiaraEventV31 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -93,31 +93,6 @@ module dev::QiaraEventV30 {
         assert!(signer::address_of(admin) == @dev, 1);
     }
 
-    public fun create_identifier(data: vector<Data>): vector<u8> {
-        let addr = extract_value(&data, utf8(b"addr"));
-    //    let consensus_type = extract_value(&data, utf8(b"consensus_type"));
-        let nonce = extract_value(&data, utf8(b"nonce"));
-
-        let vect = vector::empty<u8>();
-        vector::append(&mut vect, addr);
-      //  vector::append(&mut vect, consensus_type);
-        vector::append(&mut vect, nonce);
-        bcs::to_bytes(&hash::sha3_256(vect))
-    }
-
-
-    fun extract_value(data: &vector<Data>, name: String): vector<u8> {
-        let i = 0;
-        let len = vector::length(data);
-        while (i < len) {
-            let d = vector::borrow(data, i);
-            if (&d.name == &name) {
-                return d.value
-            };
-            i = i + 1;
-        };
-        abort 404 // Or return an empty vector
-    }
 
 // Pubic
     public fun create_data_struct(name: String, type: String, value: vector<u8>): Data {
@@ -126,8 +101,8 @@ module dev::QiaraEventV30 {
 
     public fun emit_market_event(type: String, data: vector<Data>) { 
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
-        let identifier = create_identifier(data);
-        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
+       // let identifier = create_identifier(data);
+       // vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
         event::emit(MarketEvent {
             name: type,
             aux: data,
@@ -136,8 +111,8 @@ module dev::QiaraEventV30 {
     }
     public fun emit_points_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
-        let identifier = create_identifier(data);
-        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
+       // let identifier = create_identifier(data);
+       // vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
          event::emit(PointsEvent {
             name: type,
             aux: data,
@@ -145,8 +120,8 @@ module dev::QiaraEventV30 {
     }
     public fun emit_governance_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});  
-        let identifier = create_identifier(data);
-        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier)); 
+       // let identifier = create_identifier(data);
+       // vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier)); 
          event::emit(GovernanceEvent {
             name: type,
             aux: data,
@@ -154,8 +129,8 @@ module dev::QiaraEventV30 {
     }
     public fun emit_perps_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
-        let identifier = create_identifier(data);
-        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
+       // let identifier = create_identifier(data);
+        //vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
          event::emit(PerpsEvent {
             name: type,
             aux: data,
@@ -163,8 +138,8 @@ module dev::QiaraEventV30 {
     }
     public fun emit_staking_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
-        let identifier = create_identifier(data);
-        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
+      //  let identifier = create_identifier(data);
+       // vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
          event::emit(StakingEvent {
             name: type,
             aux: data,
@@ -172,8 +147,8 @@ module dev::QiaraEventV30 {
     }
     public fun emit_bridge_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
-        let identifier = create_identifier(data);
-        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
+       // let identifier = create_identifier(data);
+       // vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
          event::emit(BridgeEvent {
             name: type,
             aux: data,
@@ -181,8 +156,8 @@ module dev::QiaraEventV30 {
     }
     public fun emit_consensus_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
-        let identifier = create_identifier(data);
-        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
+      //  let identifier = create_identifier(data);
+        //vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
          event::emit(ConsensusEvent {
             name: type,
             aux: data,
@@ -190,8 +165,8 @@ module dev::QiaraEventV30 {
     }
     public fun emit_crosschain_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
-        let identifier = create_identifier(data);
-        vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
+       // let identifier = create_identifier(data);
+       // vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
          event::emit(CrosschainEvent {
             name: type,
             aux: data,
