@@ -1,4 +1,4 @@
-module dev::QiaraEventV27 {
+module dev::QiaraEventV28 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -124,8 +124,7 @@ module dev::QiaraEventV27 {
         Data {name: name,type: type,value: value}
     }
 
-    public fun emit_market_event(type: String, data: vector<Data>, consensus_type: String) { 
-        append_consensus_type(&mut data, consensus_type);
+    public fun emit_market_event(type: String, data: vector<Data>) { 
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
         let identifier = create_identifier(data);
         vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
@@ -135,8 +134,7 @@ module dev::QiaraEventV27 {
         });
 
     }
-    public fun emit_points_event(type: String, data: vector<Data>, consensus_type: String) {
-        append_consensus_type(&mut data, consensus_type);
+    public fun emit_points_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
         let identifier = create_identifier(data);
         vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
@@ -145,8 +143,7 @@ module dev::QiaraEventV27 {
             aux: data,
         });
     }
-    public fun emit_governance_event(type: String, data: vector<Data>, consensus_type: String) {
-        append_consensus_type(&mut data, consensus_type);
+    public fun emit_governance_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});  
         let identifier = create_identifier(data);
         vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier)); 
@@ -155,8 +152,7 @@ module dev::QiaraEventV27 {
             aux: data,
         });
     }
-    public fun emit_perps_event(type: String, data: vector<Data>, consensus_type: String) {
-        append_consensus_type(&mut data, consensus_type);
+    public fun emit_perps_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
         let identifier = create_identifier(data);
         vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
@@ -165,8 +161,7 @@ module dev::QiaraEventV27 {
             aux: data,
         });
     }
-    public fun emit_staking_event(type: String, data: vector<Data>, consensus_type: String) {
-        append_consensus_type(&mut data, consensus_type);
+    public fun emit_staking_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
         let identifier = create_identifier(data);
         vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
@@ -175,8 +170,7 @@ module dev::QiaraEventV27 {
             aux: data,
         });
     }
-    public fun emit_bridge_event(type: String, data: vector<Data>, consensus_type: String) {
-        append_consensus_type(&mut data, consensus_type);
+    public fun emit_bridge_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
         let identifier = create_identifier(data);
         vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
@@ -185,8 +179,7 @@ module dev::QiaraEventV27 {
             aux: data,
         });
     }
-    public fun emit_consensus_event(type: String, data: vector<Data>, consensus_type: String) {
-        append_consensus_type(&mut data, consensus_type);
+    public fun emit_consensus_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
         let identifier = create_identifier(data);
         vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
@@ -195,8 +188,7 @@ module dev::QiaraEventV27 {
             aux: data,
         });
     }
-    public fun emit_crosschain_event(type: String, data: vector<Data>, consensus_type: String) {
-        append_consensus_type(&mut data, consensus_type);
+    public fun emit_crosschain_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});
         let identifier = create_identifier(data);
         vector::push_back(&mut data, create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier));
@@ -205,8 +197,7 @@ module dev::QiaraEventV27 {
             aux: data,
         });
     }
-    public fun emit_validation_event(type: String, data: vector<Data>, consensus_type: String) {
-        append_consensus_type(&mut data, consensus_type);
+    public fun emit_validation_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
          event::emit(ValidationEvent {
             name: type,
@@ -232,18 +223,5 @@ module dev::QiaraEventV27 {
         });
     }
 
-// Internal
-// THIS IS RIGHT: It modifies the actual vector in place
-    fun append_consensus_type(data: &mut vector<Data>, consensus_type: String) {
-        assert!(
-            consensus_type == utf8(b"zk") || 
-            consensus_type == utf8(b"native") || 
-            consensus_type == utf8(b"none") || 
-            consensus_type == utf8(b"proof"), 
-            ERROR_INVALID_CONSENSUS_TYPE
-        );
-        let type_struct = create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&consensus_type));
-        vector::push_back(data, type_struct);
-    }
 
 }
