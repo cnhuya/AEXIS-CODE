@@ -377,27 +377,79 @@ module dev::QiaraTokensOmnichainV2{
         return *map::borrow(users, &address)
     }
     #[view]
-    public fun return_address_outflow_by_chain_for_token(address: vector<u8>, chain:String, token:String,): u256 acquires UserCrosschainBook, AddressDatabase {
+    public fun return_address_outflow_by_chain_for_token(address: vector<u8>, chain:String, token:String): u256 acquires UserCrosschainBook, AddressDatabase {
         let book = borrow_global<UserCrosschainBook>(@dev);
         let addressDatabase_ref = borrow_global<AddressDatabase>(@dev);
-
+        abort 100;
         if (!table::contains(&addressDatabase_ref.table_outflow, address)) {
-            return 0 //abort ERROR_ADDRESS_NOT_INITIALIZED
+            abort 101
         };
         let user_pagination = table::borrow(&addressDatabase_ref.table_outflow, address);
 
         let users = table::borrow(&book.outflows, *user_pagination);
         if(!map::contains_key(users, &address)) {
-            return 0 // abort ERROR_ADDRESS_NOT_INITIALIZED
+            abort 102
         };
 
         let user_book = map::borrow(users, &address);
         if(!map::contains_key(user_book, &chain)) {
-             return 0 //abort ERROR_TOKEN_ON_CHAIN_IN_ADDRESS_NOT_INITIALIZED 
+            abort 103
         };
         let map = map::borrow(user_book, &chain);
         if(!map::contains_key(map, &token)) {
-             return 0 //abort ERROR_TOKEN_IN_ADDRESS_NOT_INITIALIZED
+            abort 104
+        };
+        return *map::borrow(map, &token)
+
+    }
+
+    #[view]
+    public fun accq(address: vector<u8>, chain:String, token:String): u256 acquires UserCrosschainBook, AddressDatabase {
+        let book = borrow_global<UserCrosschainBook>(@dev);
+        let addressDatabase_ref = borrow_global<AddressDatabase>(@dev);
+        if (!table::contains(&addressDatabase_ref.table_outflow, address)) {
+            return 0
+        };
+        let user_pagination = table::borrow(&addressDatabase_ref.table_outflow, address);
+
+        let users = table::borrow(&book.outflows, *user_pagination);
+        if(!map::contains_key(users, &address)) {
+            return 0
+        };
+
+        let user_book = map::borrow(users, &address);
+        if(!map::contains_key(user_book, &chain)) {
+            return 0
+        };
+        let map = map::borrow(user_book, &chain);
+        if(!map::contains_key(map, &token)) {
+            return 0
+        };
+        return *map::borrow(map, &token)
+
+    }
+
+    #[view]
+    public fun return_specified_outflow_path(address: vector<u8>, chain:String, token:String): u256 acquires UserCrosschainBook, AddressDatabase {
+        let book = borrow_global<UserCrosschainBook>(@dev);
+        let addressDatabase_ref = borrow_global<AddressDatabase>(@dev);
+        if (!table::contains(&addressDatabase_ref.table_outflow, address)) {
+            return 0
+        };
+        let user_pagination = table::borrow(&addressDatabase_ref.table_outflow, address);
+
+        let users = table::borrow(&book.outflows, *user_pagination);
+        if(!map::contains_key(users, &address)) {
+            return 0
+        };
+
+        let user_book = map::borrow(users, &address);
+        if(!map::contains_key(user_book, &chain)) {
+            return 0
+        };
+        let map = map::borrow(user_book, &chain);
+        if(!map::contains_key(map, &token)) {
+            return 0
         };
         return *map::borrow(map, &token)
 
