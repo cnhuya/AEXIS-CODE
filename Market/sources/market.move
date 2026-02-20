@@ -36,7 +36,7 @@ module dev::QiaraVaultsV3 {
     use dev::QiaraCapabilitiesV1::{Self as capabilities, Access as CapabilitiesAccess};
 
 
-    use dev::QiaraEventV21::{Self as Event};
+    use dev::QiaraEventV38::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -212,6 +212,7 @@ module dev::QiaraVaultsV3 {
 
         let data = vector[
             // Items from the event top-level fields
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"validator"), utf8(b"vector<u8>"), bcs::to_bytes(&signer::address_of(validator))),
             Event::create_data_struct(utf8(b"recipient"), utf8(b"vector<u8>"), bcs::to_bytes(&sender)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
@@ -229,7 +230,7 @@ module dev::QiaraVaultsV3 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
         };
 
-        Event::emit_market_event(utf8(b"Bridge Deposit"), data, utf8(b"zk"));
+        Event::emit_market_event(utf8(b"Bridge Deposit"), data);
     }
 
     // Recipient needs to be address here, in case permissioneless user wants to withdraw to existing Supra wallet.
@@ -260,6 +261,7 @@ module dev::QiaraVaultsV3 {
 
         let data = vector[
             // Items from the event top-level fields
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"validator"), utf8(b"vector<u8>"), bcs::to_bytes(&signer::address_of(validator))),
             Event::create_data_struct(utf8(b"recipient"), utf8(b"vector<u8>"), bcs::to_bytes(&sender)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
@@ -278,7 +280,7 @@ module dev::QiaraVaultsV3 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
         };
 
-        Event::emit_market_event(utf8(b"Bridge Withdraw"),data, utf8(b"zk"));
+        Event::emit_market_event(utf8(b"Bridge Withdraw"),data);
     }
 
     // Recipient needs to be address here, in case permissioneless user wants to borrow to existing Supra wallet.
@@ -310,6 +312,7 @@ module dev::QiaraVaultsV3 {
         let (user_borrow_interest, user_lend_rewards,staked_rewards, user_points) = new_accrue(provider_vault, sender, token, chain, provider);
         let data = vector[
             // Items from the event top-level fields
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"validator"), utf8(b"vector<u8>"), bcs::to_bytes(&signer::address_of(validator))),
             Event::create_data_struct(utf8(b"sender"), utf8(b"vector<u8>"), bcs::to_bytes(&sender)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
@@ -328,7 +331,7 @@ module dev::QiaraVaultsV3 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
         };
 
-        Event::emit_market_event(utf8(b"Bridge Borrow"),data, utf8(b"zk"));
+        Event::emit_market_event(utf8(b"Bridge Borrow"),data);
     }
 
     public fun c_bridge_repay(validator: &signer, sender: vector<u8>,token: String, chain: String, provider: String, amount: u64, lend_rate: u64, permission: Permission) acquires GlobalVault, Permissions {
@@ -353,6 +356,7 @@ module dev::QiaraVaultsV3 {
         let (user_borrow_interest, user_lend_rewards, staked_rewards,user_points) = new_accrue(provider_vault, sender, token, chain, provider);
         let data = vector[
             // Items from the event top-level fields
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"validator"), utf8(b"vector<u8>"), bcs::to_bytes(&signer::address_of(validator))),
             Event::create_data_struct(utf8(b"sender"), utf8(b"vector<u8>"), bcs::to_bytes(&sender)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
@@ -370,7 +374,7 @@ module dev::QiaraVaultsV3 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
         };
 
-        Event::emit_market_event(utf8(b"Bridge Repay"),data, utf8(b"zk"));
+        Event::emit_market_event(utf8(b"Bridge Repay"),data);
 
     }
 
@@ -469,6 +473,7 @@ module dev::QiaraVaultsV3 {
         let (user_borrow_interest, user_lend_rewards, staked_rewards, user_points) = new_accrue(provider_vault, sender, token, chain, provider);
         let data = vector[
             // Items from the event top-level fields
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"validator"), utf8(b"vector<u8>"), bcs::to_bytes(&signer::address_of(validator))),
             Event::create_data_struct(utf8(b"sender"), utf8(b"vector<u8>"), bcs::to_bytes(&sender)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
@@ -494,7 +499,7 @@ module dev::QiaraVaultsV3 {
           
             assert!(provider_vault.total_deposited >= (reward as u256), ERROR_NOT_ENOUGH_LIQUIDITY);
             provider_vault.total_deposited = provider_vault.total_deposited - (reward as u256);
-            Event::emit_market_event(utf8(b"Bridge Claim Rewards"), data, utf8(b"zk"));
+            Event::emit_market_event(utf8(b"Bridge Claim Rewards"), data);
         } else{
             let interest = (interest_amount - reward_amount);
             Event::create_data_struct(utf8(b"amount"), utf8(b"u256"), bcs::to_bytes(&interest));
@@ -508,7 +513,7 @@ module dev::QiaraVaultsV3 {
             TokensCore::deposit(provider_vault.balance, fa, chain);
 
             provider_vault.total_deposited = provider_vault.total_deposited + (interest as u256);
-            Event::emit_market_event(utf8(b"Bridge Pay Interest"), data, utf8(b"zk"));
+            Event::emit_market_event(utf8(b"Bridge Pay Interest"), data);
         };
         Margin::remove_interest(sender, token, chain, provider, (reward_amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         Margin::remove_rewards(sender, token, chain, provider, (interest_amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
@@ -542,7 +547,7 @@ module dev::QiaraVaultsV3 {
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
             Event::create_data_struct(utf8(b"amount"), utf8(b"u256"), bcs::to_bytes(&amount_u256_taxed)),
         ];
-        Event::emit_market_event(utf8(b"Stake"), data, utf8(b"none"));
+        Event::emit_market_event(utf8(b"Stake"), data);
     }
 
     public entry fun unstake(signer: &signer, token: vector<String>, chain: vector<String>, provider: vector<String>, amount: vector<u64>) acquires GlobalVault, Permissions {
@@ -578,7 +583,7 @@ module dev::QiaraVaultsV3 {
             Event::create_data_struct(utf8(b"provider"), utf8(b"vector<String>"), bcs::to_bytes(&provider)),
             Event::create_data_struct(utf8(b"amount"), utf8(b"vector<u256>"), bcs::to_bytes(&vect_amnt)),
         ];
-        Event::emit_market_event(utf8(b"Unstake"), data, utf8(b"none"));
+        Event::emit_market_event(utf8(b"Unstake"), data);
     }
 
     public entry fun swap(signer: &signer, tokenFrom: String, chainFrom: String, providerFrom:String, amount: u64, tokenTo: String, chainTo:String, providerTo:String, addressTo: vector<u8>) acquires GlobalVault, Permissions {
@@ -612,7 +617,7 @@ module dev::QiaraVaultsV3 {
         ];
 
 
-        Event::emit_market_event(utf8(b"Swap Request"), data, utf8(b"none"));
+        Event::emit_market_event(utf8(b"Swap Request"), data);
 
     }
 
@@ -675,7 +680,7 @@ module dev::QiaraVaultsV3 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
         };
 
-        Event::emit_market_event(utf8(b"Deposit"), data, utf8(b"none"));
+        Event::emit_market_event(utf8(b"Deposit"), data);
     }
 
     public entry fun withdraw(signer: &signer, to: address, token: String, chain: String, provider: String, amount: u64) acquires GlobalVault, Permissions {
@@ -722,7 +727,7 @@ module dev::QiaraVaultsV3 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
         };
 
-        Event::emit_market_event(utf8(b"Withdraw"), data, utf8(b"none"));
+        Event::emit_market_event(utf8(b"Withdraw"), data);
     }
 
     public entry fun borrow(signer: &signer, to: address, token: String, chain: String, provider: String, amount: u64) acquires GlobalVault, Permissions {
@@ -767,7 +772,7 @@ module dev::QiaraVaultsV3 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
         };
 
-        Event::emit_market_event(utf8(b"Borrow"), data, utf8(b"none"));
+        Event::emit_market_event(utf8(b"Borrow"), data);
     }
 
     public entry fun repay(signer: &signer, token: String, chain: String, provider: String, amount: u64) acquires GlobalVault, Permissions {
@@ -800,7 +805,7 @@ module dev::QiaraVaultsV3 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)));
         };
 
-        Event::emit_market_event(utf8(b"Repay"), data, utf8(b"none"));
+        Event::emit_market_event(utf8(b"Repay"), data);
     }
 
     public entry fun claim_rewards(signer: &signer, token: String, chain: String, provider: String) acquires GlobalVault, Permissions {
@@ -834,7 +839,7 @@ module dev::QiaraVaultsV3 {
             assert!(provider_vault.total_deposited >= (reward as u256), ERROR_NOT_ENOUGH_LIQUIDITY);
             provider_vault.total_deposited = provider_vault.total_deposited - (reward as u256);
             TokensCore::deposit(primary_fungible_store::ensure_primary_store_exists(signer::address_of(signer),TokensCore::get_metadata(token)), fa, chain);
-            Event::emit_market_event(utf8(b"Claim Rewards"), data, utf8(b"none"));
+            Event::emit_market_event(utf8(b"Claim Rewards"), data);
         } else{
             let interest = (interest_amount - reward_amount);
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"amount"), utf8(b"u256"), bcs::to_bytes(&interest)));
@@ -845,7 +850,7 @@ module dev::QiaraVaultsV3 {
 
             TokensCore::deposit(provider_vault.balance, fa, chain);
             provider_vault.total_deposited = provider_vault.total_deposited + (interest as u256);
-            Event::emit_market_event(utf8(b"Pay Interest"), data, utf8(b"none"));
+            Event::emit_market_event(utf8(b"Pay Interest"), data);
         };
         Margin::remove_interest(bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, (reward_amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         Margin::remove_rewards( bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, (interest_amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
