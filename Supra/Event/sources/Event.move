@@ -1,4 +1,4 @@
-module dev::QiaraEventV55 {
+module dev::QiaraEventV56 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -83,9 +83,8 @@ module dev::QiaraEventV55 {
         aux: vector<Data>,
     }
     #[event]
-    struct LeavesChange has copy, drop, store {
-        type: String,
-        aux: vector<u256>,
+    struct ProofEvent has copy, drop, store {
+        aux: vector<Data>,
     }
 
 // === INIT === //
@@ -199,9 +198,8 @@ module dev::QiaraEventV55 {
             aux: data,
         });
     }
-    public fun emit_leaves_event(type: String, data: vector<u256>) {
-         event::emit(LeavesChange {
-            type: type,
+    public fun emit_proof_event(data: vector<Data>) {
+         event::emit(ProofEvent {
             aux: data,
         });
     }
