@@ -1,4 +1,4 @@
-module dev::QiaraEventV46 {
+module dev::QiaraEventV47 {
     use std::vector;
     use std::signer;
     use std::bcs;
