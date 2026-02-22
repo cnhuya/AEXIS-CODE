@@ -88,21 +88,23 @@ module Qiara::QiaraExtractorV1 {
     fun reconstruct_address(low: vector<u8>, high: vector<u8>): address {
         let mut addr_bytes = vector::empty<u8>();
         
-        // Step 1: Get the 16 data bytes from the High Field Element (Indices 16-31)
+        // 1. Take the LAST 16 bytes from the High chunk (Indices 16-31)
+        // This provides: 92f36ea3a8dafe4a50b88414491397db
         let mut i = 16;
         while (i < 32) {
             vector::push_back(&mut addr_bytes, *vector::borrow(&high, i));
             i = i + 1;
         };
 
-        // Step 2: Get the 16 data bytes from the Low Field Element (Indices 16-31)
+        // 2. Take the LAST 16 bytes from the Low chunk (Indices 16-31)
+        // This provides: bd00495e4faa8b8c7067dcc5a9436dc1
         let mut j = 16;
         while (j < 32) {
             vector::push_back(&mut addr_bytes, *vector::borrow(&low, j));
             j = j + 1;
         };
 
-        // Now addr_bytes is exactly 32 bytes: [High_16_bytes] + [Low_16_bytes]
+        // Total 32 bytes: 0x92f36ea3a8dafe4a50b88414491397dbbd00495e4faa8b8c7067dcc5a9436dc1
         address::from_bytes(addr_bytes)
     }
 
