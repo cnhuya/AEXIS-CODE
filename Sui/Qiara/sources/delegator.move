@@ -68,7 +68,7 @@ module Qiara::QiaraDelegatorV1 {
 
     public struct ProviderManager has key {
         id: UID,
-        vaults: Table<String, VaultInfo> 
+        vaults: Table<String, VaultInfo>
     }
 
     fun init(ctx: &mut TxContext) {
@@ -78,6 +78,7 @@ module Qiara::QiaraDelegatorV1 {
         let manager = ProviderManager { id: object::new(ctx), vaults: table::new(ctx) };
         transfer::share_object(manager);
     }
+
 
     public entry fun create_vault(config: &mut ProviderManager, registry: &vars::Registry, provider_name: String, ctx: &mut TxContext) {
         
