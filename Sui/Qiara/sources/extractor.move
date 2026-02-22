@@ -15,7 +15,6 @@ module Qiara::QiaraExtractorV1 {
     public struct UnpackedTx has drop {
         chain_id: u64,
         amount: u64,
-        index: u256,
         nonce: u64
     }
 
@@ -29,10 +28,6 @@ module Qiara::QiaraExtractorV1 {
         let packed_bytes = extract_chunk(inputs, 7);
         unpack_slot_8(bytes_to_u256(packed_bytes)).amount
     }
-    public fun extract_index(inputs: &vector<u8>): u256 {
-        let packed_bytes = extract_chunk(inputs, 7);
-        unpack_slot_8(bytes_to_u256(packed_bytes)).index
-    }
     public fun extract_nonce(inputs: &vector<u8>): u64 {
         let packed_bytes = extract_chunk(inputs, 7);
         unpack_slot_8(bytes_to_u256(packed_bytes)).nonce
@@ -40,7 +35,8 @@ module Qiara::QiaraExtractorV1 {
 
     /// Reconstructs the User Address from signals 3 and 4
     public fun extract_user_address(inputs: &vector<u8>): address {
-        let low_bytes = extract_chunk(inputs, 3);
+        // Assuming chunk 4 is High (first 16 bytes) and chunk 3 is Low (last 16 bytes)
+        let low_bytes = extract_chunk(inputs, 3); 
         let high_bytes = extract_chunk(inputs, 4);
         reconstruct_address(low_bytes, high_bytes)
     }
@@ -85,23 +81,28 @@ module Qiara::QiaraExtractorV1 {
         UnpackedTx {
             chain_id: ((packed_data) & 0xFFFFFFFF) as u64,
             amount:   ((packed_data >> 32) & 0xFFFFFFFFFFFFFFFF) as u64,
-            index:     (packed_data >> 96) & 0xFFFFFFFFFFFFFFFF,
-            nonce:    ((packed_data >> 160) & 0xFFFFFFFFFFFFFFFF) as u64,
+            nonce:    ((packed_data >> 96) & 0xFFFFFFFFFFFFFFFF) as u64,
         }
     }
 
     fun reconstruct_address(low: vector<u8>, high: vector<u8>): address {
         let mut addr_bytes = vector::empty<u8>();
-        let mut i = 0;
-        // Pad first 12 bytes for Sui (32-byte) address format
-        while (i < 12) { vector::push_back(&mut addr_bytes, 0); i = i + 1; };
         
-        // Take 4 bytes from High (index 28-31) and 16 bytes from Low (index 16-31)
-        let mut j = 28;
-        while (j < 32) { vector::push_back(&mut addr_bytes, *vector::borrow(&high, j)); j = j + 1; };
-        let mut k = 16;
-        while (k < 32) { vector::push_back(&mut addr_bytes, *vector::borrow(&low, k)); k = k + 1; };
+        // Step 1: Get the 16 data bytes from the High Field Element (Indices 16-31)
+        let mut i = 16;
+        while (i < 32) {
+            vector::push_back(&mut addr_bytes, *vector::borrow(&high, i));
+            i = i + 1;
+        };
 
+        // Step 2: Get the 16 data bytes from the Low Field Element (Indices 16-31)
+        let mut j = 16;
+        while (j < 32) {
+            vector::push_back(&mut addr_bytes, *vector::borrow(&low, j));
+            j = j + 1;
+        };
+
+        // Now addr_bytes is exactly 32 bytes: [High_16_bytes] + [Low_16_bytes]
         address::from_bytes(addr_bytes)
     }
 
