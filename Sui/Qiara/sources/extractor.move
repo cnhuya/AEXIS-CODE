@@ -33,13 +33,15 @@ module Qiara::QiaraExtractorV1 {
         unpack_slot_8(bytes_to_u256(packed_bytes)).nonce
     }
 
-    /// Reconstructs the User Address from signals 3 and 4
+    /// Reconstructs the User Address from signals 3 and 4 (indices 3 and 4 in the inputs array)
     public fun extract_user_address(inputs: &vector<u8>): address {
-        // Assuming chunk 4 is High (first 16 bytes) and chunk 3 is Low (last 16 bytes)
-        let low_bytes = extract_chunk(inputs, 3); 
-        let high_bytes = extract_chunk(inputs, 4);
-        reconstruct_address(low_bytes, high_bytes)
+        // Get the raw u256 values from the inputs
+        let low_u256 = bytes_to_u256(extract_chunk(inputs, 3));  // index 3 (4th element) - should be the second half
+        let high_u256 = bytes_to_u256(extract_chunk(inputs, 4)); // index 4 (5th element) - should be the first half
+        
+        reconstruct_address(high_u256, low_u256) // Note: high first, then low
     }
+
 
     /// Extracts human-readable Storage ID (index 5)
     public fun extract_token(inputs: &vector<u8>): String {
@@ -85,26 +87,31 @@ module Qiara::QiaraExtractorV1 {
         }
     }
 
-    fun reconstruct_address(low: vector<u8>, high: vector<u8>): address {
+    fun reconstruct_address(high: u256, low: u256): address {
         let mut addr_bytes = vector::empty<u8>();
         
-        // 1. Take the LAST 16 bytes from the High chunk (Indices 16-31)
-        // This provides: 92f36ea3a8dafe4a50b88414491397db
-        let mut i = 16;
-        while (i < 32) {
-            vector::push_back(&mut addr_bytes, *vector::borrow(&high, i));
+        // Convert high part (first 16 bytes) to bytes
+        let mut temp_high = high;
+        let mut i = 0;
+        while (i < 16) {
+            // Extract the highest byte (most significant) first
+            let byte = ((temp_high >> 120) & 0xFF) as u8; // 120 = 15 * 8
+            vector::push_back(&mut addr_bytes, byte);
+            temp_high = temp_high << 8;
             i = i + 1;
         };
-
-        // 2. Take the LAST 16 bytes from the Low chunk (Indices 16-31)
-        // This provides: bd00495e4faa8b8c7067dcc5a9436dc1
-        let mut j = 16;
-        while (j < 32) {
-            vector::push_back(&mut addr_bytes, *vector::borrow(&low, j));
+        
+        // Convert low part (last 16 bytes) to bytes
+        let mut temp_low = low;
+        let mut j = 0;
+        while (j < 16) {
+            let byte = ((temp_low >> 120) & 0xFF) as u8;
+            vector::push_back(&mut addr_bytes, byte);
+            temp_low = temp_low << 8;
             j = j + 1;
         };
-
-        // Total 32 bytes: 0x92f36ea3a8dafe4a50b88414491397dbbd00495e4faa8b8c7067dcc5a9436dc1
+        
+        // Now addr_bytes should be 32 bytes: [16 bytes from high] + [16 bytes from low]
         address::from_bytes(addr_bytes)
     }
 
