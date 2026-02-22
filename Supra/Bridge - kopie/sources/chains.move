@@ -1,4 +1,4 @@
-module dev::QiaraBridgeV38{
+module dev::QiaraBridgeV65{
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
@@ -15,20 +15,19 @@ module dev::QiaraBridgeV38{
     use supra_framework::fungible_asset::{Self, Metadata, FungibleAsset};
     use supra_framework::object::{Self, Object};
     use supra_framework::primary_fungible_store;
-    use dev::QiaraEventV14::{Self as Event};
-    use dev::QiaraStorageV2::{Self as storage};
+    use dev::QiaraEventV59::{Self as Event};
+    use dev::QiaraStorageV1::{Self as storage};
 
-    use dev::QiaraTokensCoreV5::{Self as TokensCore, Access as TokensCoreAccess};
-    use dev::QiaraTokensOmnichainV5::{Self as TokensOmnichain};
-    use dev::QiaraTokensValidatorsV5::{Self as TokensValidators};
-    use dev::QiaraSharedV1::{Self as TokensShared};
+    use dev::QiaraTokensCoreV2::{Self as TokensCore, Access as TokensCoreAccess};
+    use dev::QiaraTokensOmnichainV2::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensValidatorsV2::{Self as TokensValidators};
     
-    use dev::QiaraVaultsV6::{Self as Market, Access as MarketAccess};
+    use dev::QiaraVaultsV3::{Self as Market, Access as MarketAccess};
 
-    use dev::QiaraMarginV7::{Self as Margin};
+    use dev::QiaraMarginV3::{Self as Margin};
 
-    use dev::QiaraPayloadV38::{Self as Payload};
-    use dev::QiaraValidatorsV38::{Self as Validators, Access as ValidatorsAccess};
+    use dev::QiaraPayloadV65::{Self as Payload};
+    use dev::QiaraValidatorsV65::{Self as Validators, Access as ValidatorsAccess};
     /// Admin address constant
     const STORAGE: address = @dev;
 
@@ -48,6 +47,8 @@ module dev::QiaraBridgeV38{
     const ERROR_NOT_ENOUGH_VOTING_POWER: u64 = 12;
     const ERROR_INVALID_VOTING_POWER: u64 = 13;
     const ERROR_INVALID_TYPE: u64 = 14;
+    const ERROR_NULLIFIER_USED: u64 = 15;
+    const ERROR_PROOF_NOT_FOUND: u64 = 16;
 
 
 // === ACCESS === //
@@ -68,6 +69,7 @@ module dev::QiaraBridgeV38{
     struct Permissions has key, store, drop {
         market: MarketAccess,
         tokens_core: TokensCoreAccess,
+        tokens_omnichain: TokensOmnichainAccess,
         validators: ValidatorsAccess,
     }
 
@@ -91,25 +93,24 @@ module dev::QiaraBridgeV38{
    /// <message> <validators, weight>
    /// <message> <validator adress, validator weight, <weight>>
    
-    struct TxCount has key {
-        count:u256,
-    }
-   
 // === Pending Struct Methology === //
     struct Pending has key {
-        main: Table<u256, MainVotes>,
-        zk: Table<u256, ZkVotes>,
+        main: Table<vector<u8>, MainVotes>,
+        zk: Table<vector<u8>, ZkVotes>,
+        proof: Table<vector<u8>, ProofVotes>,
     }
 
     struct Validated has key {
-        main: Table<u256, MainVotes>,
-        zk: Table<u256, ZkVotes>,
+        main: Table<vector<u8>, MainVotes>,
+        zk: Table<vector<u8>, ZkVotes>,
+        proof: Table<vector<u8>, ProofVotes>,
     }
 
     struct Vote has key, copy, store, drop {
         weight: u128,
         signature: vector<u8>,
     }
+
 
     struct ZkVote has key, copy, store, drop {
         weight: u128,
@@ -118,35 +119,43 @@ module dev::QiaraBridgeV38{
         s: String,
         pub_key_x: String,
         pub_key_y: String,
-     //   index: u16,
     }
-
+    struct ProofVotes has key, copy, store, drop {
+        votes: Map<address, u128>,
+        rv: vector<address>, // rewarded validators
+        proof: vector<u256>,
+        inputs: vector<u256>,
+        total_weight: u128,
+        time: u64,   
+    }
     struct MainVotes has key, copy, store, drop {
         votes: Map<address, Vote>,
         rv: vector<address>, // rewarded validators
+        data_types: vector<String>,
+        data: vector<vector<u8>>,
         total_weight: u128,
         time: u64,   
     }
     struct ZkVotes has key, copy, store, drop {
         votes: Map<address, ZkVote>,
         rv: vector<address>, // rewarded validators
+        data_types: vector<String>,
+        data: vector<vector<u8>>,
         total_weight: u128,
         time: u64,   
     }
 
+
 // === INIT === //
     fun init_module(admin: &signer) {
         if (!exists<Permissions>(@dev)) {
-            move_to(admin, Permissions {market: Market::give_access(admin), tokens_core: TokensCore::give_access(admin), validators: Validators::give_access(admin)});
-        };
-        if (!exists<TxCount>(@dev)) {
-            move_to(admin, TxCount {count: 0});
+            move_to(admin, Permissions {market: Market::give_access(admin), tokens_core: TokensCore::give_access(admin), tokens_omnichain: TokensOmnichain::give_access(admin), validators: Validators::give_access(admin)});
         };
         if (!exists<Pending>(@dev)) {
-            move_to(admin, Pending {main: table::new<u256, MainVotes>(), zk: table::new<u256, ZkVotes>()});
+            move_to(admin, Pending {main: table::new<vector<u8>, MainVotes>(), zk: table::new<vector<u8>, ZkVotes>(), proof: table::new<vector<u8>, ProofVotes>()});
         };
         if (!exists<Validated>(@dev)) {
-            move_to(admin, Validated {main: table::new<u256, MainVotes>(), zk: table::new<u256, ZkVotes>()});
+            move_to(admin, Validated {main: table::new<vector<u8>, MainVotes>(), zk: table::new<vector<u8>, ZkVotes>(), proof: table::new<vector<u8>, ProofVotes>()});
         };
     }
 
@@ -154,28 +163,67 @@ module dev::QiaraBridgeV38{
         abort error
     }
 
+    fun unpack_payload(payload: vector<vector<u8>>): vector<u8> {
+        let len = vector::length(&payload);
+        let xv = vector::empty<u8>();
+        while(len>0){
+            let _v = vector::borrow(&payload, len-1);
+            len=len-1;
+            vector::append(&mut xv, *_v);
+        };
+        return xv
+    }
+
 // === FUNCTIONS === //
-    public entry fun register_event(validator: &signer, shared_storage_name: String, type_names: vector<String>, payload: vector<vector<u8>>) acquires TxCount, Pending, Validated, Permissions {
-        TokensShared::assert_is_owner(bcs::to_bytes(&signer::address_of(validator)), shared_storage_name);
-        //tttta(1);
+
+
+    public entry fun register_proof_event(validator: &signer, identifier: vector<u8>, proof: vector<u256>, inputs: vector<u256>) acquires Pending, Validated {
+        let pending = borrow_global_mut<Pending>(STORAGE);
+        let validated = borrow_global_mut<Validated>(STORAGE);
+
+        assert!(table::contains(&validated.zk, identifier), ERROR_PROOF_NOT_FOUND);
+
+            handle_proof_event(
+                validator,
+                (signer::address_of(validator)),
+                &mut pending.proof,
+                &mut validated.proof,
+                identifier,
+                proof,
+                inputs,
+
+            );
+
+
+    }
+
+
+//0x1a00000000000000000000000000000000000000000000000000000000000000
+//0x1a00000000000000000000000000000000000000000000000000000000000000
+
+    public entry fun register_event(validator: &signer, type_names: vector<String>, payload: vector<vector<u8>>) acquires Pending, Validated, Permissions {
         Payload::ensure_valid_payload(type_names, payload);
+
+        //assert!(Validators::is_valid_signer(validator), ERROR_INVALID_SIGNER);
+
         //tttta(97);
-        let (_, type) = Payload::find_payload_value(utf8(b"type"), type_names, payload);
+        let identifier = Payload::create_identifier(type_names, payload);
+        //let (_, identifier) = Payload::find_payload_value(utf8(b"identifier"), type_names, payload);
+        let (_, type) = Payload::find_payload_value(utf8(b"consensus_type"), type_names, payload);
         let (_, event_type) = Payload::find_payload_value(utf8(b"event_type"), type_names, payload);
-        let (pub_key_x, pub_key_y, pubkey, _, _) = Validators::return_validator_raw(shared_storage_name);
+        let (pub_key_x, pub_key_y, pubkey, _, _) = Validators::return_validator_raw(bcs::to_bytes(&signer::address_of(validator)));
 
 
         let pending = borrow_global_mut<Pending>(STORAGE);
         let validated = borrow_global_mut<Validated>(STORAGE);
-        let tx_count = borrow_global_mut<TxCount>(STORAGE);
 
-        
+
         // Store event in both pending and chain storage
-        if(from_bcs::to_string(type) == utf8(b"main")){
+        if(from_bcs::to_string(type) == utf8(b"native")){
             let (_, message) = Payload::find_payload_value(utf8(b"message"), type_names, payload);
             let (_, _signature) = Payload::find_payload_value(utf8(b"signature"), type_names, payload);
             let pubkey_struct = Crypto::new_unvalidated_public_key_from_bytes(pubkey);
-            let signature = Crypto::new_signature_from_bytes(from_bcs::to_bytes(_signature));
+            let signature = Crypto::new_signature_from_bytes(_signature);
             let verified = Crypto::signature_verify_strict(&signature, &pubkey_struct, message);
             assert!(verified, ERROR_INVALID_SIGNATURE);
 
@@ -184,11 +232,10 @@ module dev::QiaraBridgeV38{
                 (signer::address_of(validator)),
                 &mut pending.main,
                 &mut validated.main,
-                tx_count.count,
+                identifier,
                 type_names,
                 payload,
                 _signature,
-                shared_storage_name,
                 from_bcs::to_string(event_type)
             );
         } else if (from_bcs::to_string(type) == utf8(b"zk")){
@@ -197,14 +244,16 @@ module dev::QiaraBridgeV38{
                 (signer::address_of(validator)),
                 &mut pending.zk,
                 &mut validated.zk,
-                tx_count.count,
+                identifier,
                 type_names,
                 payload,
                 build_zkVote_from_payload(pub_key_x, pub_key_y, type_names, payload),
-                shared_storage_name,
                 from_bcs::to_string(event_type)
 
             );
+
+        
+            
         } else if (from_bcs::to_string(type) == utf8(b"none")){
             return
         } else {
@@ -247,133 +296,256 @@ module dev::QiaraBridgeV38{
         };
         return (false, 0)
     }
+    fun check_validator_validation_proof(validator: address, map: Map<address, u128>): (bool, u128){
+        if(map::contains_key(&map, &validator)){
+            let v = map::borrow(&map, &validator);
+            return (true, *v)
+        };
+        return (false, 0)
+    }
 
 
+    fun handle_proof_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, ProofVotes>, validated_table: &mut table::Table<vector<u8>, ProofVotes>, identifier: vector<u8>,proof: vector<u256>, inputs: vector<u256>) {
+        // 1. Load configuration constants
 
+        let quorum = (storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT"))) as u128);
+        let min_unique = (storage::expect_u8(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"))) as u64);
+        let max_rewarded = (storage::expect_u8(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"))) as u64);
 
-    fun handle_main_event(signer: &signer, validator: address, pending_table: &mut table::Table<u256, MainVotes>, validated_table: &mut table::Table<u256, MainVotes>, index: u256, type_names: vector<String>, payload: vector<vector<u8>>, signature: vector<u8>, shared_storage_name: String, event_type: String ) acquires Permissions {
-        let quorum = storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT")));
-        // Already validated?
-        if (table::contains(validated_table, index)) {
+        // 2. Already validated?
+        if (table::contains(validated_table, identifier)) {
             abort(ERROR_DUPLICATE_EVENT);
         };
-        let (_, _, _, _, _, _, _, _, vote_weight, _, _) = Margin::get_user_total_usd(shared_storage_name);
-        //assert!(vote_weight > (storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTING_POWER"))) as u256), ERROR_NOT_ENOUGH_VOTING_POWER);
-        // Update pending validators
-        let vote_count = if (table::contains(pending_table, index)) {
-            let votes = table::borrow_mut(pending_table, index);
-            let (did_validate, existing_weight) = check_validator_validation(validator, votes.votes);
 
-            // If validator did not validate this tx yet, add them
+        // Calculate voting power (Weight)
+        let (_, _, _, _, _, _, _, _, vote_weight_u256, _, _) = Margin::get_user_total_usd(bcs::to_bytes(&signer::address_of(signer)));
+        let vote_weight = (vote_weight_u256 as u128);
+
+        // 3. Update or Create the Pending state
+        if (table::contains(pending_table, identifier)) {
+            let votes = table::borrow_mut(pending_table, identifier);
+            let (did_validate, _) = check_validator_validation_proof(validator, votes.votes);
+
             if (!did_validate) {
-                let vote = Vote { signature: signature, weight: (vote_weight as u128) };
-                map::add(&mut votes.votes, validator, vote);
-                // Update total weight
-                votes.total_weight = votes.total_weight + (vote_weight as u128);
+                // Update mapping and total weight
+                map::add(&mut votes.votes, validator, vote_weight);
+                votes.total_weight = votes.total_weight + vote_weight;
                 
+                // Manage Reward Pool (Fastest validators get the spots)
+                if (vector::length(&votes.rv) < max_rewarded) {
+                    if (!vector::contains(&votes.rv, &validator)) {
+                        vector::push_back(&mut votes.rv, validator);
+                    };
+                };
+
+                // Emit Vote Event
                 let data = vector[
                     Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
-                    Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
-                    Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
+                    Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"Proofs"))),
                     Event::create_data_struct(utf8(b"vote_weight"), utf8(b"u128"), bcs::to_bytes(&vote_weight)),
-                    Event::create_data_struct(utf8(b"index"), utf8(b"vector<u8>"), bcs::to_bytes(&index)),
-                    Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
-                    Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
+                    Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
                 ];
-                Event::emit_bridge_event(utf8(b"Vote Event"), data, utf8(b"none"));
-
-                // Return updated total weight
-                votes.total_weight
-
-
-            } else {
-                votes.total_weight
-            }
+                Event::emit_consensus_vote_event(data);
+            };
         } else {
             // First vote for this message
-            let validator_vote = Vote {signature: signature, weight: (vote_weight as u128)};
             let vect = vector[validator];
-            let map = map::new<address, Vote>();
-            map::add(&mut map, validator, validator_vote);
-            let votes = MainVotes {votes: map, rv: vect, total_weight: (vote_weight as u128), time: timestamp::now_seconds()};
-            table::add(pending_table, copy index, votes);
-            index = index + 1;
+            let vote_map = map::new<address, u128>();
+            map::add(&mut vote_map, validator, vote_weight);
+            
+            let new_votes = ProofVotes {
+                votes: vote_map, 
+                rv: vect, 
+                proof: proof,
+                inputs: inputs,
+                total_weight: vote_weight, 
+                time: timestamp::now_seconds()
+            };
+            table::add(pending_table, identifier, new_votes);
 
+            // Emit Register Event
             let data = vector[
                 Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
-                Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
-                Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
+                Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"Proofs"))),
                 Event::create_data_struct(utf8(b"vote_weight"), utf8(b"u128"), bcs::to_bytes(&vote_weight)),
-                Event::create_data_struct(utf8(b"index"), utf8(b"vector<u8>"), bcs::to_bytes(&index)),
-                Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
-                Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
+                Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
             ];
-            Event::emit_bridge_event(utf8(b"Register Event"), data, utf8(b"none"));
-
-            1 
+            Event::emit_consensus_register_event(data);
         };
 
-        // Promote to validated
-        if (vote_count >= (quorum as u128)) {
-            // Defensive: ensure key exists before remove
-            assert!(table::contains(pending_table, index), ERROR_NOT_FOUND);
-            let votes_from_pending = table::remove(pending_table, index);
+        // 4. Consensus Check & Promotion
+        let ready_to_finalize = {
+            let votes_ref = table::borrow(pending_table, identifier);
+            let unique_count = (vector::length(&map::keys(&votes_ref.votes)) as u64);
+            (votes_ref.total_weight >= quorum && unique_count >= min_unique)
+        };
 
-            //let enough_validators = ensure_unique_validators(map::keys(&votes_from_pending.votes));
-            //if (!enough_validators) {
-            //    return  // Not enough validators yet
-            //};
+        if (ready_to_finalize) {
+            // Atomic Move from Pending to Validated
+            let votes_from_pending = table::remove(pending_table, identifier);
+            table::add(validated_table, identifier, votes_from_pending);
 
-
-            if (table::contains(validated_table, index)) {
-                abort(ERROR_DUPLICATE_EVENT);
-            };
-            table::add(validated_table, index, votes_from_pending);
-
-            assert!(exists<Permissions>(@dev), ERROR_CAPS_NOT_PUBLISHED);
-            let cap = borrow_global<Permissions>(@dev);
-            if(event_type == utf8(b"Deposit")){
-              //  let coins = CoinDeployer::extract_to<E>(signer, _coin_cap, user_addr, amount);
-            //    Vaults::bridge_deposit<E,T,X>(signer, &cap.vault_access, _user_cap, user_addr, amount, coins, lend_rate, borrow_rate);
-            } else if(event_type == utf8(b"Request Unlock")){
-            //   Vaults::request_unlock<E>(signer, user_addr, amount, &_user_cap);
-            } else if(event_type == utf8(b"Unlock")){
-            //   Vaults::unlock<E>(signer, user_addr, amount, &_user_cap);
-            }  else{
-                abort(ERROR_INVALID_MESSAGE);
-            };
-
+    
+            // Emit Validated Event
             let data = vector[
                 Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
-                Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
-                Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
-                Event::create_data_struct(utf8(b"index"), utf8(b"u128"), bcs::to_bytes(&index)),
-                Event::create_data_struct(utf8(b"total_weight"), utf8(b"u128"), bcs::to_bytes(&vote_count)),
-                Event::create_data_struct(utf8(b"quorum"), utf8(b"vector<u8>"), bcs::to_bytes(&quorum)),
-                Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
-                Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
+                Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
+                Event::create_data_struct(utf8(b"proofs"), utf8(b"vector<u256>"), bcs::to_bytes(&proof)),
+                Event::create_data_struct(utf8(b"inputs"), utf8(b"vector<u256>"), bcs::to_bytes(&inputs)),
+                Event::create_data_struct(utf8(b"total_weight"), utf8(b"u128"), bcs::to_bytes(&quorum)),
             ];
-            Event::emit_bridge_event(utf8(b"Validated Event"), data, utf8(b"none"));
-            };
+            Event::emit_proof_event(data);
+
+            // Emit Validated Event
+            let data = vector[
+                Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+                Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"Proofs"))),
+                Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
+                Event::create_data_struct(utf8(b"total_weight"), utf8(b"u128"), bcs::to_bytes(&quorum)),
+            ];
+            Event::emit_validation_event(utf8(b"Validated Event"), data);
+        };
     }
-    fun handle_zk_event(signer: &signer, validator: address, pending_table: &mut table::Table<u256, ZkVotes>, validated_table: &mut table::Table<u256, ZkVotes>, index: u256, type_names: vector<String>, payload: vector<vector<u8>>, zk_vote: ZkVote, shared_storage_name: String, event_type: String ) acquires Permissions {
+    fun handle_main_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, MainVotes>, validated_table: &mut table::Table<vector<u8>, MainVotes>, identifier: vector<u8>, type_names: vector<String>, payload: vector<vector<u8>>,signature: vector<u8>,  event_type: String ) acquires Permissions {
         // 1. Load configuration constants
         let quorum = (storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT"))) as u128);
         let min_unique = (storage::expect_u8(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"))) as u64);
         let max_rewarded = (storage::expect_u8(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"))) as u64);
 
         // 2. Already validated?
-        if (table::contains(validated_table, index)) {
+        if (table::contains(validated_table, identifier)) {
             abort(ERROR_DUPLICATE_EVENT);
         };
 
         // Calculate voting power (Weight)
-        let (_, _, _, _, _, _, _, _, vote_weight_u256, _, _) = Margin::get_user_total_usd(shared_storage_name);
+        let (_, _, _, _, _, _, _, _, vote_weight_u256, _, _) = Margin::get_user_total_usd(bcs::to_bytes(&signer::address_of(signer)));
         let vote_weight = (vote_weight_u256 as u128);
+        Validators::take_snapshot(signer);
 
         // 3. Update or Create the Pending state
-        if (table::contains(pending_table, index)) {
-            let votes = table::borrow_mut(pending_table, index);
+        if (table::contains(pending_table, identifier)) {
+            let votes = table::borrow_mut(pending_table, identifier);
+            let (did_validate, _) = check_validator_validation(validator, votes.votes);
+
+            if (!did_validate) {
+                // Update mapping and total weight
+                let vote = Vote { signature: signature, weight: vote_weight };
+                map::add(&mut votes.votes, validator, vote);
+                votes.total_weight = votes.total_weight + vote_weight;
+                
+                // Manage Reward Pool (Fastest validators get the spots)
+                if (vector::length(&votes.rv) < max_rewarded) {
+                    if (!vector::contains(&votes.rv, &validator)) {
+                        vector::push_back(&mut votes.rv, validator);
+                    };
+                };
+
+                // Emit Vote Event
+                let data = vector[
+                    Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+                    Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
+                    Event::create_data_struct(utf8(b"vote_weight"), utf8(b"u128"), bcs::to_bytes(&vote_weight)),
+                    Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
+                    Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
+                    Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
+                ];
+                Event::emit_consensus_vote_event(data);
+            };
+        } else {
+            // First vote for this message
+            let validator_vote = Vote { signature: signature, weight: vote_weight };
+            let vect = vector[validator];
+            let vote_map = map::new<address, Vote>();
+            map::add(&mut vote_map, validator, validator_vote);
+            
+            let new_votes = MainVotes {
+                votes: vote_map, 
+                rv: vect, 
+                data_types: type_names,
+                data: payload,
+                total_weight: vote_weight, 
+                time: timestamp::now_seconds()
+            };
+            table::add(pending_table, identifier, new_votes);
+
+            // Emit Register Event
+            let data = vector[
+                Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+                Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
+                Event::create_data_struct(utf8(b"vote_weight"), utf8(b"u128"), bcs::to_bytes(&vote_weight)),
+                Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
+                Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
+                Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
+            ];
+            Event::emit_consensus_register_event(data);
+        };
+
+        // 4. Consensus Check & Promotion
+        let ready_to_finalize = {
+            let votes_ref = table::borrow(pending_table, identifier);
+            let unique_count = (vector::length(&map::keys(&votes_ref.votes)) as u64);
+            (votes_ref.total_weight >= quorum && unique_count >= min_unique)
+        };
+
+        if (ready_to_finalize) {
+            // Atomic Move from Pending to Validated
+            let votes_from_pending = table::remove(pending_table, identifier);
+            table::add(validated_table, identifier, votes_from_pending);
+
+            // Fetch permissions for cross-module calls
+            assert!(exists<Permissions>(@dev), ERROR_CAPS_NOT_PUBLISHED);
+            let cap = borrow_global<Permissions>(@dev);
+
+            // 5. Execute Bridging Logic (Main Event Specific)
+            if (event_type == utf8(b"Bridge Deposit")) {
+                // Handle Deposit specific logic here
+                let (receiver, x, symbol, chain, provider, amount, hash) = Payload::prepare_bridge_deposit(type_names, payload);
+                //tttta(0);
+                TokensCore::c_bridge_to_supra(signer, receiver, symbol, chain, amount, TokensCore::give_permission(&cap.tokens_core));
+
+                if(provider != utf8(b"none")) {
+                    Market::c_bridge_deposit(signer, receiver, symbol, chain, provider, amount, 0, Market::give_permission(&cap.market));
+                }
+
+            } else if (event_type == utf8(b"Request Unlock")) {
+                // Handle Request Unlock here
+            } else if (event_type == utf8(b"Unlock")) {
+                // Handle Unlock here
+            } else {
+                abort(ERROR_INVALID_MESSAGE);
+            };
+
+            // Emit Validated Event
+            let data = vector[
+                Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+                Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
+                Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
+                Event::create_data_struct(utf8(b"total_weight"), utf8(b"u128"), bcs::to_bytes(&quorum)),
+                Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
+                Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
+            ];
+            Event::emit_validation_event(utf8(b"Validated Event"), data);
+        };
+    }
+    fun handle_zk_event(signer: &signer, validator: address, pending_table: &mut table::Table<vector<u8>, ZkVotes>, validated_table: &mut table::Table<vector<u8>, ZkVotes>, identifier: vector<u8>, type_names: vector<String>, payload: vector<vector<u8>>, zk_vote: ZkVote, event_type: String ) acquires Permissions {
+        // 1. Load configuration constants
+        let quorum = (storage::expect_u64(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_REQUIRED_VOTED_WEIGHT"))) as u128);
+        let min_unique = (storage::expect_u8(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"))) as u64);
+        let max_rewarded = (storage::expect_u8(storage::viewConstant(utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"))) as u64);
+
+        // 2. Already validated?
+        if (table::contains(validated_table, identifier)) {
+            abort(ERROR_DUPLICATE_EVENT);
+        };
+
+        // Calculate voting power (Weight)
+        let (_, _, _, _, _, _, _, _, vote_weight_u256, _, _) = Margin::get_user_total_usd(bcs::to_bytes(&signer::address_of(signer)));
+        let vote_weight = (vote_weight_u256 as u128);
+        Validators::take_snapshot(signer);
+
+        // 3. Update or Create the Pending state
+        if (table::contains(pending_table, identifier)) {
+            let votes = table::borrow_mut(pending_table, identifier);
             let (did_validate, _) = check_validator_validation_zk(validator, votes.votes);
 
             if (!did_validate) {
@@ -388,18 +560,16 @@ module dev::QiaraBridgeV38{
                         vector::push_back(&mut votes.rv, validator);
                     };
                 };
-
                 // Emit Vote Event
                 let data = vector[
                     Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
-                    Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
                     Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
                     Event::create_data_struct(utf8(b"vote_weight"), utf8(b"u128"), bcs::to_bytes(&vote_weight)),
-                    Event::create_data_struct(utf8(b"index"), utf8(b"u256"), bcs::to_bytes(&index)),
+                    Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
                     Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                     Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
                 ];
-                Event::emit_bridge_event(utf8(b"Vote Event"), data, utf8(b"none"));
+                Event::emit_consensus_vote_event(data);
             };
         } else {
             // First vote for this message
@@ -411,36 +581,37 @@ module dev::QiaraBridgeV38{
             let new_votes = ZkVotes {
                 votes: vote_map, 
                 rv: vect, 
+                data_types: type_names,
+                data: payload,
                 total_weight: vote_weight, 
                 time: timestamp::now_seconds()
             };
-            table::add(pending_table, index, new_votes);
+            table::add(pending_table, identifier, new_votes);
 
             // Emit Register Event
             let data = vector[
                 Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
-                Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
                 Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
                 Event::create_data_struct(utf8(b"vote_weight"), utf8(b"u128"), bcs::to_bytes(&vote_weight)),
-                Event::create_data_struct(utf8(b"index"), utf8(b"u256"), bcs::to_bytes(&index)),
+                Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
                 Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                 Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
             ];
-            Event::emit_bridge_event(utf8(b"Register Event"), data, utf8(b"none"));
+            Event::emit_consensus_register_event(data);
         };
 
         // 4. Consensus Check & Promotion
         // We check weight AND unique validator count
         let ready_to_finalize = {
-            let votes_ref = table::borrow(pending_table, index);
+            let votes_ref = table::borrow(pending_table, identifier);
             let unique_count = vector::length(&map::keys(&votes_ref.votes));
             (votes_ref.total_weight >= quorum && unique_count >= min_unique)
         };
 
         if (ready_to_finalize) {
             // Atomic Move from Pending to Validated
-            let votes_from_pending = table::remove(pending_table, index);
-            table::add(validated_table, index, votes_from_pending);
+            let votes_from_pending = table::remove(pending_table, identifier);
+            table::add(validated_table, identifier, votes_from_pending);
 
             // Fetch permissions for cross-module calls
             assert!(exists<Permissions>(@dev), ERROR_CAPS_NOT_PUBLISHED);
@@ -450,24 +621,25 @@ module dev::QiaraBridgeV38{
                 let (storage_name, pub_key_x, pub_key_y, pub_key) = Payload::prepare_register_validator(type_names, payload);
                 Validators::c_register_validator(signer, storage_name, pub_key_x, pub_key_y, pub_key, Validators::give_permission(&borrow_global<Permissions>(@dev).validators));
             } else if (event_type == utf8(b"Request Bridge")) {
-                let (receiver, validator_root, old_root, new_root, symbol, chain, amount) = Payload::prepare_finalize_bridge(type_names, payload);
-                
-                let total_outflow = TokensOmnichain::return_address_outflow_by_chain_for_token(receiver, chain, symbol);
+                let (receiver, validator_root, old_root, new_root, symbol, chain, provider, amount, total_outflow, nonce) = Payload::prepare_finalize_bridge(type_names, payload);
                 TokensCore::c_finalize_bridge(signer, symbol, chain, amount, TokensCore::give_permission(&borrow_global<Permissions>(@dev).tokens_core));
-
+                TokensOmnichain::increment_UserOutflow(symbol, chain, receiver, amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain)); 
                 let data = vector[
+                    Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"proof"))),
                     Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
-                    Event::create_data_struct(utf8(b"index"), utf8(b"u256"), bcs::to_bytes(&index)),
-                    Event::create_data_struct(utf8(b"receiver"), utf8(b"vector<u8>"), bcs::to_bytes(&receiver)),
+                    Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
+                    Event::create_data_struct(utf8(b"addr"), utf8(b"vector<u8>"), receiver),
                     Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&symbol)),
                     Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
+                    Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
                     Event::create_data_struct(utf8(b"total_outflow"), utf8(b"u256"), bcs::to_bytes(&total_outflow)),
                     Event::create_data_struct(utf8(b"additional_outflow"), utf8(b"u256"), bcs::to_bytes(&(amount as u256))),
                     Event::create_data_struct(utf8(b"validator_root"), utf8(b"string"), bcs::to_bytes(&validator_root)),
                     Event::create_data_struct(utf8(b"old_root"), utf8(b"string"), bcs::to_bytes(&old_root)),
                     Event::create_data_struct(utf8(b"new_root"), utf8(b"string"), bcs::to_bytes(&new_root)),
+                    Event::create_data_struct(utf8(b"nonce"), utf8(b"u256"), bcs::to_bytes(&nonce)),
                 ];
-                Event::emit_crosschain_event(utf8(b"Crosschain Event"), data, utf8(b"none")); 
+                Event::emit_crosschain_event(utf8(b"Crosschain Event"), data); 
 
             } else {
                 abort(ERROR_INVALID_MESSAGE);
@@ -476,48 +648,42 @@ module dev::QiaraBridgeV38{
             // Emit Validated Event
             let data = vector[
                 Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
-                Event::create_data_struct(utf8(b"shared_storage_name"), utf8(b"string"), bcs::to_bytes(&shared_storage_name)),
                 Event::create_data_struct(utf8(b"event_type"), utf8(b"string"), bcs::to_bytes(&event_type)),
-                Event::create_data_struct(utf8(b"index"), utf8(b"u256"), bcs::to_bytes(&index)),
+                Event::create_data_struct(utf8(b"identifier"), utf8(b"vector<u8>"), identifier),
                 Event::create_data_struct(utf8(b"total_weight"), utf8(b"u128"), bcs::to_bytes(&quorum)),
                 Event::create_data_struct(utf8(b"type_names"), utf8(b"vector<String>"), bcs::to_bytes(&type_names)),
                 Event::create_data_struct(utf8(b"payload"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&payload)),
             ];
-            Event::emit_bridge_event(utf8(b"Validated Event"), data, utf8(b"none"));
+            Event::emit_validation_event(utf8(b"Validated Event"), data);
    
 
         };
     }
-    #[view]
-    public fun return_current_index(index: u256): u256 acquires TxCount {
-        let tx_count = borrow_global<TxCount>(@dev);
-        tx_count.count
-    }
 
     #[view]
-    public fun return_native_pending_tx(index: u256): MainVotes acquires Pending {
+    public fun return_native_pending_tx(identifier: vector<u8>): MainVotes acquires Pending {
         let main = borrow_global<Pending>(@dev);
-        assert!(table::contains(&main.main, index), ERROR_NOT_FOUND);
-        return *table::borrow(&main.main, index)
+        assert!(table::contains(&main.main, identifier), ERROR_NOT_FOUND);
+        return *table::borrow(&main.main, identifier)
     }
     #[view]
-    public fun return_zk_pending_tx(index: u256): ZkVotes acquires Pending {
+    public fun return_zk_pending_tx(identifier: vector<u8>): ZkVotes acquires Pending {
         let zk = borrow_global<Pending>(@dev);
-        assert!(table::contains(&zk.zk, index), ERROR_NOT_FOUND);
-        return *table::borrow(&zk.zk, index)
+        assert!(table::contains(&zk.zk, identifier), ERROR_NOT_FOUND);
+        return *table::borrow(&zk.zk, identifier)
     }
 
     #[view]
-    public fun return_native_validated_tx(index: u256): MainVotes acquires Validated {
+    public fun return_native_validated_tx(identifier: vector<u8>): MainVotes acquires Validated {
         let main = borrow_global<Validated>(@dev);
-        assert!(table::contains(&main.main, index), ERROR_NOT_FOUND);
-        return *table::borrow(&main.main, index)
+        assert!(table::contains(&main.main, identifier), ERROR_NOT_FOUND);
+        return *table::borrow(&main.main, identifier)
     }
     #[view]
-    public fun return_zk_validated_tx(index: u256): ZkVotes acquires Validated {
+    public fun return_zk_validated_tx(identifier: vector<u8>): ZkVotes acquires Validated {
         let zk = borrow_global<Validated>(@dev);
-        assert!(table::contains(&zk.zk, index), ERROR_NOT_FOUND);
-        return *table::borrow(&zk.zk, index)
+        assert!(table::contains(&zk.zk, identifier), ERROR_NOT_FOUND);
+        return *table::borrow(&zk.zk, identifier)
     }
 
 

@@ -1,10 +1,10 @@
     [package]
-    name = "QiaraBridgeV38"
+    name = "QiaraBridgeV65"
     version = "2.1.1"
     authors = []
 
     [addresses]
-    dev = "0x2ac776b09a5a0d55b03be6328ac874bb8897b3978c3b4dc0905622fbef629833"
+    dev = "0xb5a924dde82fd1e3dd0d1c99e863ccce2732a0e0e80c338f8eb3a4cd7ae5aed4"
     supra_framework = "0x1"
     std = "0x1"
     aptos_std = "0x1"
@@ -26,37 +26,37 @@
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
 
-    [dependencies.QiaraStorageV2]
+    [dependencies.QiaraStorageV1]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraTypesV6]
+    [dependencies.QiaraTypesV2]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
 
-    [dependencies.QiaraTokensV5]
+    [dependencies.QiaraTokensV2]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/TokensCore'
 
-    [dependencies.QiaraMarginV7]
+    [dependencies.QiaraMarginV3]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
 
-    [dependencies.QiaraMarketV6]
+    [dependencies.QiaraMarketV3]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Market'
 
-    [dependencies.QiaraEventV14]
+    [dependencies.QiaraEventV59]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Event'
 
-    [dependencies.QiaraGenesisV5]
+    [dependencies.QiaraGenesisV1]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Genesis'
