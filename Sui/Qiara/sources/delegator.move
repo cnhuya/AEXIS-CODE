@@ -173,7 +173,7 @@ module Qiara::QiaraDelegatorV1 {
         balance::split(reserve, amount)
     }
 
-    public fun verifyZK<T>(config: &ProviderManager, nullifiers: &mut Nullifiers, public_inputs: vector<u8>,proof_points: vector<u8>): (address, u64) {
+    public fun verifyZK<T>(config: &ProviderManager, nullifiers: &mut Nullifiers, public_inputs: vector<u8>,proof_points: vector<u8>): (address, u64, u256) {
         let curve = groth16::bn254();
 
         // 2. Verify the proof
@@ -203,7 +203,7 @@ module Qiara::QiaraDelegatorV1 {
         assert!(table::contains(&config.vaults, vault_provider), EWrongProviderProvided);
 
         // 6. Grant withdrawal permission
-        return (user, amount)
+        return (user, amount, nullifier)
     }
 
 
@@ -217,5 +217,11 @@ module Qiara::QiaraDelegatorV1 {
         let token_type = type_name::get<T>();
         df::exists_(&vault.id, SupportedTokenKey { token_type })
     }
+
+
+    public fun is_nullifier_used(nullifiers: &Nullifiers, nullifier: u256): bool {
+        table::contains(&nullifiers.table, nullifier)
+    }
+
 
 }

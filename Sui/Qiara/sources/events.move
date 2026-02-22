@@ -16,7 +16,8 @@ module Qiara::QiaraEventsV1 {
         user: address,
         token_type: String,
         amount: u64,
-        provider: String
+        provider: String,
+        nullifier: u256
     }
 
     public struct Withdrawal has copy, drop {
@@ -32,8 +33,8 @@ module Qiara::QiaraEventsV1 {
     public fun emit_withdraw_event(user: address, token_type: String, amount: u64, provider: String) {
         event::emit(Withdrawal {user: user,token_type: token_type,amount: amount,provider: provider,});
     }
-    public fun emit_withdraw_grant_event(user: address, token_type: String, amount: u64, provider: String) {
-        event::emit(WithdrawGrant {user: user,token_type: token_type,amount: amount,provider: provider,});
+    public fun emit_withdraw_grant_event(user: address, token_type: String, amount: u64, provider: String, nullifier: u256) {
+        event::emit(WithdrawGrant {user: user,token_type: token_type,amount: amount,provider: provider, nullifier: nullifier,});
     }
 
 }
