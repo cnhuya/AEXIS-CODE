@@ -1,4 +1,4 @@
-module dev::QiaraTokensTiersV2{
+module dev::QiaraTokensTiersV4{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -249,7 +249,6 @@ module dev::QiaraTokensTiersV2{
         public fun market_daily_withdraw_limit(id: u8): u64 {
             // formula: (withdraw_limit * tier_efficiency)/1000 + withdraw_limit
             // i.e (10_000_000 * 9300)/10000 + 10_000_000 -> 19_300_000 (19,3%) || id = 1
-
             let tier_efficiency = tier_efficiency(id);
             let withdraw_limit = storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"WITHDRAW_LIMIT")));
 
