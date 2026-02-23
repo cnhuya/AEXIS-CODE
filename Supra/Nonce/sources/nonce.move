@@ -69,7 +69,7 @@ module dev::QiaraNonceV1{
     }
 
     #[view]
-    public fun return_user_nonce(user: vector<u8>): u256 acquires Nonces {
+    public fun  (user: vector<u8>): u256 acquires Nonces {
         let nonces = borrow_global_mut<Nonces>(@dev);
         if (!table::contains(&nonces.table, user)) {
            return 0
