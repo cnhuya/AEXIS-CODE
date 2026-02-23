@@ -1,4 +1,4 @@
-module dev::QiaraOracleV3 {
+module dev::QiaraOracleV5 {
     use std::string::{Self, String, utf8, bytes as b};
     use std::vector;
     use std::signer;
@@ -53,7 +53,7 @@ module dev::QiaraOracleV3 {
         };
     }
 
-public fun impact_price(name: String, oracleID: u64, impact: u256, isPositive: bool, native_oracle_weight: u256): u256 acquires Prices {
+public fun impact_price(name: String, oracleID: u64, impact: u256, isPositive: bool, native_oracle_weight: u256, perm: Permission): u256 acquires Prices {
 
     let prices_storage = borrow_global_mut<Prices>(@dev);
     let price = ensure_price(prices_storage, name, oracleID);
