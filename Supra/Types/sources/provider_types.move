@@ -1,4 +1,4 @@
-module dev::QiaraProviderTypesV2 {
+module dev::QiaraProviderTypesV4 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
@@ -11,7 +11,7 @@ module dev::QiaraProviderTypesV2 {
     // === STRUCTS === //
 
     // Forward: Provider -> Chain -> (VaultAddress, List of Tokens)
-    struct ProviderData has store, drop {
+    struct ProviderData has store, drop, copy {
         vault_address: String,
         tokens: vector<String>
     }
@@ -59,7 +59,7 @@ fun x_init(signer: &signer) acquires Providers, ReverseProviders {
     register_vault(signer, utf8(b"Morpho"), utf8(b"Ethereum"), utf8(b"0xMO_ETH_VAULT"));
 
     // Base Vaults
-    register_vault(signer, utf8(b"Aave"), utf8(b"Base"), utf8(b"0x48d87CE8Bf3c65A0a659A59ECA8e9BD1F530eC8b"));
+    register_vault(signer, utf8(b"Aave"), utf8(b"Base"), utf8(b"0x182872c478976A04401919d034eF003De456EE8D"));
     register_vault(signer, utf8(b"Moonwell"), utf8(b"Base"), utf8(b"0xMW_BAS_VAULT"));
     register_vault(signer, utf8(b"Morpho"), utf8(b"Base"), utf8(b"0xMO_BAS_VAULT"));
 
@@ -191,5 +191,11 @@ fun x_init(signer: &signer) acquires Providers, ReverseProviders {
         let chains_map = map::borrow(&providers.table, &provider);
         let data = map::borrow(chains_map, &chain);
         data.tokens
+    }
+
+    #[view]
+    public fun return_all_providers():  Map<String, Map<String, ProviderData>> acquires Providers {
+        let providers = borrow_global<Providers>(@dev);
+        providers.table
     }
 }
