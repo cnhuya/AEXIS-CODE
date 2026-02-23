@@ -1,10 +1,10 @@
     [package]
-    name = "QiaraTypesV5"
+    name = "QiaraTypesV1"
     version = "2.1.1"
     authors = []
 
     [addresses]
-    dev = "0xb5a924dde82fd1e3dd0d1c99e863ccce2732a0e0e80c338f8eb3a4cd7ae5aed4"
+    dev = "0x93c6acadacc9be9274cc1bc8fd28e1ee067529d73b5a25b8fb021afca3aef81d"
     supra_framework = "0x1"
     std = "0x1"
     aptos_std = "0x1"
