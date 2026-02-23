@@ -1,11 +1,11 @@
-module dev::QiaraPointsV5{
+module dev::QiaraPointsV1{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::table::{Self, Table};
 
-    use dev::QiaraTokenTypesV5::{Self as TokensType};
-    use dev::QiaraChainTypesV5::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV1::{Self as TokensType};
+    use dev::QiaraChainTypesV1::{Self as ChainTypes};
 
     use dev::QiaraStorageV1::{Self as storage, Access as StorageAccess};
 
