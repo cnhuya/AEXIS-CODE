@@ -1,4 +1,4 @@
-module dev::QiaraBridgeV65{
+module dev::QiaraBridgeV67{
     use std::signer;
     use supra_framework::account::{Self as address};
     use std::string::{Self as String, String, utf8};
@@ -15,19 +15,19 @@ module dev::QiaraBridgeV65{
     use supra_framework::fungible_asset::{Self, Metadata, FungibleAsset};
     use supra_framework::object::{Self, Object};
     use supra_framework::primary_fungible_store;
-    use dev::QiaraEventV59::{Self as Event};
+    use dev::QiaraEventV60::{Self as Event};
     use dev::QiaraStorageV1::{Self as storage};
 
-    use dev::QiaraTokensCoreV2::{Self as TokensCore, Access as TokensCoreAccess};
-    use dev::QiaraTokensOmnichainV2::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensValidatorsV2::{Self as TokensValidators};
+    use dev::QiaraTokensCoreV5::{Self as TokensCore, Access as TokensCoreAccess};
+    use dev::QiaraTokensOmnichainV5::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensValidatorsV5::{Self as TokensValidators};
     
-    use dev::QiaraVaultsV3::{Self as Market, Access as MarketAccess};
+    use dev::QiaraVaultsV5::{Self as Market, Access as MarketAccess};
 
-    use dev::QiaraMarginV3::{Self as Margin};
+    use dev::QiaraMarginV5::{Self as Margin};
 
-    use dev::QiaraPayloadV65::{Self as Payload};
-    use dev::QiaraValidatorsV65::{Self as Validators, Access as ValidatorsAccess};
+    use dev::QiaraPayloadV67::{Self as Payload};
+    use dev::QiaraValidatorsV67::{Self as Validators, Access as ValidatorsAccess};
     /// Admin address constant
     const STORAGE: address = @dev;
 

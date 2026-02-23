@@ -1,4 +1,4 @@
-module dev::QiaraPayloadV65{
+module dev::QiaraPayloadV67{
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
@@ -7,8 +7,8 @@ module dev::QiaraPayloadV65{
     use std::hash;
     use std::bcs;
 
-    use dev::QiaraChainTypesV2::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV2::{Self as TokenTypes};
+    use dev::QiaraChainTypesV5::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV5::{Self as TokenTypes};
     
 
     const ERROR_PAYLOAD_LENGTH_MISMATCH_WITH_TYPES: u64 = 0;
@@ -60,16 +60,18 @@ module dev::QiaraPayloadV65{
 
     public fun create_identifier(type_names: vector<String>, payload: vector<vector<u8>>): vector<u8> {
         let (_, addr) = find_payload_value(utf8(b"addr"), type_names, payload);
-        let (_, consensus_type) = find_payload_value(utf8(b"consensus_type"), type_names, payload);
         let (_, nonce) = find_payload_value(utf8(b"nonce"), type_names, payload);
 
+        // To match Solidity's abi.encodePacked(uint256, uint256, uint256):
+        // Ensure each of these vectors is exactly 32 bytes (Big Endian).
         let vect = vector::empty<u8>();
-        vector::append(&mut vect, addr);
-        vector::append(&mut vect, consensus_type);
-        vector::append(&mut vect, nonce);
-        bcs::to_bytes(&hash::sha3_256(vect))
+        vector::append(&mut vect, addr);           // Should be 32 bytes
+        vector::append(&mut vect, nonce);          // Should be 32 bytes
+        
+        // 1. Use SHA2_256 to match Solidity/Sui
+        // 2. Return the raw vector<u8> (32 bytes) without BCS length-prefixing
+        hash::sha2_256(vect)
     }
-
 
     public fun find_payload_value(value: String, vect: vector<String>, from: vector<vector<u8>>): (String, vector<u8>){
         let (isFound, index) = vector::index_of(&vect, &value);
