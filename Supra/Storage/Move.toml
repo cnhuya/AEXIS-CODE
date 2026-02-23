@@ -4,7 +4,7 @@ version = "1.0.0"
 authors = []
 
 [addresses]
-dev = "0xb5a924dde82fd1e3dd0d1c99e863ccce2732a0e0e80c338f8eb3a4cd7ae5aed4"
+dev = "0xc536f11396d0510d90b021cbae973ab1f71155e8ff32c9d544bfb48212b11ac9"
 supra_framework = "0x1"
 [dev-addresses]
 

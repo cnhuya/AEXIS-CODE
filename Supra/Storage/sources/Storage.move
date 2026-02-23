@@ -205,6 +205,10 @@ module dev::QiaraStorageV1 {
         change_constant(admin, utf8(b"QiaraBridge"), utf8(b"MAXIMUM_REWARDED_VALIDATORS"), bc::to_bytes(&3u8), &give_permission(&give_access(admin))); // 5
         change_constant(admin, utf8(b"QiaraBridge"), utf8(b"MINIMUM_UNIQUE_VALIDATORS"), bc::to_bytes(&3u8), &give_permission(&give_access(admin))); // 3
     }
+    public entry fun more8(admin: &signer) acquires ConstantDatabase, KeyRegistry, ConstantCounter{
+        assert!(signer::address_of(admin) == OWNER, ERROR_NOT_ADMIN);
+        register_constant<u64>(admin, utf8(b"QiaraMarket"), utf8(b"WITHDRAW_LIMIT"), 10_000_000, true, &give_permission(&give_access(admin))); // 0.1x
+    }
 
 
     fun register_constant<T: drop>(address: &signer, header: String, constant_name: String, value: T, editable: bool, permission: &Permission) acquires ConstantCounter, ConstantDatabase, KeyRegistry {
