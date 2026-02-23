@@ -15,7 +15,7 @@ module dev::QiaraBridgeV67{
     use supra_framework::fungible_asset::{Self, Metadata, FungibleAsset};
     use supra_framework::object::{Self, Object};
     use supra_framework::primary_fungible_store;
-    use dev::QiaraEventV60::{Self as Event};
+    use dev::QiaraEventV61::{Self as Event};
     use dev::QiaraStorageV1::{Self as storage};
 
     use dev::QiaraTokensCoreV5::{Self as TokensCore, Access as TokensCoreAccess};
