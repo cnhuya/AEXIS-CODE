@@ -4,7 +4,7 @@
     authors = []
 
     [addresses]
-    dev = "0x93c6acadacc9be9274cc1bc8fd28e1ee067529d73b5a25b8fb021afca3aef81d"
+    dev = "0xc536f11396d0510d90b021cbae973ab1f71155e8ff32c9d544bfb48212b11ac9"
     supra_framework = "0x1"
     std = "0x1"
     aptos_std = "0x1"
