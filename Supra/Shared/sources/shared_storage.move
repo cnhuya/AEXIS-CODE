@@ -88,6 +88,33 @@ module dev::QiaraSharedV4{
 
     }
 
+// NATIVE INTERFACE
+    public entry fun create_non_user_shared_storage(name: String) acquires SharedStorage {
+        let shared = borrow_global_mut<SharedStorage>(@dev);
+
+        if (!table::contains(&shared.storage, name)) {
+            table::add(&mut shared.storage, name, Ownership { owner: bcs::to_bytes(&name), sub_owners: vector::empty<vector<u8>>() });
+            table::add(&mut shared.storage_registry, bcs::to_bytes(&name), vector::empty<String>());
+        } else {
+            abort ERROR_SHARED_STORAGE_WITH_THIS_NAME_ALREADY_EXISTS
+        };
+
+        let registry = table::borrow_mut(&mut shared.storage_registry, bcs::to_bytes(&name));
+
+        if(vector::contains(registry, &name)) {
+            abort ERROR_IS_ALREADY_SUB_OWNER
+        } else {
+            vector::push_back(registry, name);
+        };
+
+        let data = vector[
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"none"))),
+            Event::create_data_struct(utf8(b"shared_storage"), utf8(b"string"), bcs::to_bytes(&name)),
+        ];
+        Event::emit_shared_storage_event(utf8(b"Storage Created"), data);
+
+    }
+
     public entry fun allow_sub_owner(signer: &signer, name: String, sub_owner: vector<u8>) acquires SharedStorage {
         let shared = borrow_global_mut<SharedStorage>(@dev);
 
