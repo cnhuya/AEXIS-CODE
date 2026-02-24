@@ -1,4 +1,4 @@
-module dev::QiaraSharedV1{
+module dev::QiaraSharedV2{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;
@@ -6,7 +6,7 @@ module dev::QiaraSharedV1{
     use aptos_std::from_bcs;
     use std::string::{Self as string, String, utf8};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
-
+    use dev::QiaraEventV2::{Self as Event};
 // === ERRORS === //
     const ERROR_NOT_ADMIN:u64 = 0;
     const ERROR_SHARED_STORAGE_DOESNT_EXISTS_FOR_THIS_ADDRESS:u64 = 1;
@@ -75,7 +75,15 @@ module dev::QiaraSharedV1{
             map::upsert(user_map, name, Ownership { owner: bcs::to_bytes(&signer::address_of(signer)), sub_owners: vector::empty<vector<u8>>() });
         } else {
             abort ERROR_SHARED_STORAGE_WITH_THIS_NAME_ALREADY_EXISTS
-        }
+        };
+
+        let data = vector[
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"none"))),
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+            Event::create_data_struct(utf8(b"shared_storage"), utf8(b"string"), bcs::to_bytes(&name)),
+        ];
+        Event::emit_shared_storage_event(utf8(b"Storage Created"), data);
+
     }
 
     public entry fun allow_sub_owner(signer: &signer, name: String, sub_owner: vector<u8>) acquires SharedStorage {
@@ -109,6 +117,14 @@ module dev::QiaraSharedV1{
         };
         let vect = map::borrow_mut(sub_owners_registry, &owner);
         vector::push_back(vect, name);
+
+        let data = vector[
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"none"))),
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+            Event::create_data_struct(utf8(b"shared_storage"), utf8(b"string"), bcs::to_bytes(&name)),
+            Event::create_data_struct(utf8(b"sub_owner"), utf8(b"vector<u8>"), bcs::to_bytes(&sub_owner)),
+        ];
+        Event::emit_shared_storage_event(utf8(b"Sub Owner Added"), data);
     }
 
     public entry fun remove_sub_owner(signer: &signer, name: String, sub_owner: vector<u8>) acquires SharedStorage{
@@ -125,6 +141,14 @@ module dev::QiaraSharedV1{
         let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
         let vect = map::borrow_mut(sub_owners_registry, &bcs::to_bytes(&signer::address_of(signer)));
         vector::remove_value(vect, &name);
+
+        let data = vector[
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"none"))),
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+            Event::create_data_struct(utf8(b"shared_storage"), utf8(b"string"), bcs::to_bytes(&name)),
+            Event::create_data_struct(utf8(b"sub_owner"), utf8(b"vector<u8>"), bcs::to_bytes(&sub_owner)),
+        ];
+        Event::emit_shared_storage_event(utf8(b"Sub Owner Removed"), data);
     }
 
 // PERMISSIONELESS INTERFACE
@@ -141,8 +165,14 @@ module dev::QiaraSharedV1{
             map::upsert(user_map, name, Ownership { owner: owner, sub_owners: vector::empty<vector<u8>>() });
         } else {
             abort ERROR_SHARED_STORAGE_WITH_THIS_NAME_ALREADY_EXISTS
-        }
-
+        };
+        let data = vector[
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"main"))),
+            Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(validator))),
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&owner)),
+            Event::create_data_struct(utf8(b"shared_storage"), utf8(b"string"), bcs::to_bytes(&name)),
+        ];
+        Event::emit_shared_storage_event(utf8(b"Storage Created"), data);
     }
 
     public entry fun p_allow_sub_owner(validator: &signer,  name: String, owner: vector<u8>, sub_owner: vector<u8>) acquires SharedStorage{
@@ -171,6 +201,15 @@ module dev::QiaraSharedV1{
         };
         let vect = map::borrow_mut(sub_owners_registry, &owner);
         vector::push_back(vect, name);
+
+        let data = vector[
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"main"))),
+            Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(validator))),
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&owner)),
+            Event::create_data_struct(utf8(b"shared_storage"), utf8(b"string"), bcs::to_bytes(&name)),
+            Event::create_data_struct(utf8(b"sub_owner"), utf8(b"vector<u8>"), bcs::to_bytes(&sub_owner)),
+        ];
+        Event::emit_shared_storage_event(utf8(b"Sub Owner Added"), data);
     }
 
     public entry fun p_remove_sub_owner(validator: &signer, name: String, owner: vector<u8>, sub_owner: vector<u8>) acquires SharedStorage{
@@ -183,6 +222,15 @@ module dev::QiaraSharedV1{
         let sub_owners_registry = table::borrow_mut(&mut shared.storage_registry, sub_owner);
         let vect = map::borrow_mut(sub_owners_registry, &owner);
         vector::remove_value(vect, &name);
+    
+        let data = vector[
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"main"))),
+            Event::create_data_struct(utf8(b"validator"), utf8(b"address"), bcs::to_bytes(&signer::address_of(validator))),
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&owner)),
+            Event::create_data_struct(utf8(b"shared_storage"), utf8(b"string"), bcs::to_bytes(&name)),
+            Event::create_data_struct(utf8(b"sub_owner"), utf8(b"vector<u8>"), bcs::to_bytes(&sub_owner)),
+        ];
+        Event::emit_shared_storage_event(utf8(b"Sub Owner Removed"), data);
     }
 
     #[view]
