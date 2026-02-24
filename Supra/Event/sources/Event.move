@@ -86,6 +86,10 @@ module dev::QiaraEventV1 {
     struct ProofEvent has copy, drop, store {
         aux: vector<Data>,
     }
+    #[event]
+    struct SharedStorageEvent has copy, drop, store {
+        aux: vector<Data>,
+    }
 
 // === INIT === //
     fun init_module(admin: &signer) {
@@ -200,6 +204,11 @@ module dev::QiaraEventV1 {
     }
     public fun emit_proof_event(data: vector<Data>) {
          event::emit(ProofEvent {
+            aux: data,
+        });
+    }
+    public fun emit_shared_storage_event(data: vector<Data>) {
+         event::emit(SharedStorageEvent {
             aux: data,
         });
     }
