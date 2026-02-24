@@ -1,4 +1,4 @@
-module dev::QiaraEventV1 {
+module dev::QiaraEventV2 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -88,6 +88,7 @@ module dev::QiaraEventV1 {
     }
     #[event]
     struct SharedStorageEvent has copy, drop, store {
+        name: String,
         aux: vector<Data>,
     }
 
@@ -207,8 +208,9 @@ module dev::QiaraEventV1 {
             aux: data,
         });
     }
-    public fun emit_shared_storage_event(data: vector<Data>) {
+    public fun emit_shared_storage_event(type: String, data: vector<Data>) {
          event::emit(SharedStorageEvent {
+            name: type,
             aux: data,
         });
     }
