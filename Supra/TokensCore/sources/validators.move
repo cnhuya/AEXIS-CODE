@@ -1,14 +1,16 @@
-module dev::QiaraTokensValidatorsV1{
+module dev::QiaraTokensValidatorsV2{
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
     use std::table::{Self, Table};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::timestamp;
+    use std::bcs;
 
-    use dev::QiaraTokensCoreV1::{Self as TokensCore, Access as TokensCoreAccess};
-    use dev::QiaraTokensOmnichainV1::{Self as TokensOmnichain};
+    use dev::QiaraTokensCoreV2::{Self as TokensCore, Access as TokensCoreAccess};
+    use dev::QiaraTokensOmnichainV2::{Self as TokensOmnichain};
 
+    use dev::QiaraSharedV4::{Self as Shared};
     // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
     const ERROR_INVALID_VALIDATOR: u64 = 1;
@@ -107,7 +109,9 @@ module dev::QiaraTokensValidatorsV1{
     }
 
  
-    public entry fun claim_rewards(signer: &signer) acquires Permissions, ValidatorRewards{
+    public entry fun claim_rewards(signer: &signer, shared: String) acquires Permissions, ValidatorRewards{
+        Shared::assert_is_sub_owner(shared, bcs::to_bytes(&signer::address_of(signer)));
+        
         let registry_map = TokensOmnichain::return_registry();
 
         let tokens = map::keys(&registry_map);
@@ -125,7 +129,7 @@ module dev::QiaraTokensValidatorsV1{
                 };
                 // The 100_000_000 is here because rewards are upscaled by 100_000_000, due to the fact that the fees might be extremely low,
                 // when user invokes permissioneless function with really small amount of tokens. (i.e 1 -> 0.000001).
-                TokensCore::mint_to(signer::address_of(signer), *token, *chain, ((reward/100_000_000)as u64), TokensCore::give_permission(&borrow_global<Permissions>(@dev).tokens_core_access));
+                TokensCore::mint_to(signer::address_of(signer),shared, *token, *chain, ((reward/100_000_000)as u64), TokensCore::give_permission(&borrow_global<Permissions>(@dev).tokens_core_access));
                 len_chains = len_chains-1;
             };
             len=len-1;

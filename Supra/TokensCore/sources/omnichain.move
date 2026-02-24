@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV1{
+module dev::QiaraTokensOmnichainV2{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -13,6 +13,7 @@ module dev::QiaraTokensOmnichainV1{
     use supra_framework::event;
 
     use dev::QiaraNonceV1::{Self as Nonce, Access as NonceAccess};
+    use dev::QiaraSharedV4::{Self as Shared};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
@@ -51,7 +52,7 @@ module dev::QiaraTokensOmnichainV1{
     }
     // Needed to track addresses, to avoid duplication
     struct AddressDatabase has key {
-        table: Table<vector<u8>, u64>,
+        table: Table<String, u64>,
         table_outflow: Table<vector<u8>, u64>,
     }
     // Tracks allowed/supported chains for each Token.
@@ -67,7 +68,7 @@ module dev::QiaraTokensOmnichainV1{
     // Tracks "liqudity" across chains for each address
     // i.e 0/1/2...(page) -> 0x...123 (user) -> Base/Sui/Solana (chains).. -> Ethereum (token) -> supply
     struct UserCrosschainBook has key{
-        book: Table<u64,Map<vector<u8>, Map<String, Map<String, u256>>>>,
+        book: Table<u64,Map<String, Map<String, Map<String, u256>>>>,
         outflows: Table<u64,Map<vector<u8>, Map<String, Map<String, u256>>>>,
         nonce: Table<vector<u8>, u256>
     }
@@ -76,7 +77,7 @@ module dev::QiaraTokensOmnichainV1{
 // === EVENTS === //
     #[event]
     struct MintEvent has copy, drop, store {
-        address: vector<u8>,
+        shared: String,
         token: String,
         chain: String,
         amount: u64,
@@ -85,7 +86,7 @@ module dev::QiaraTokensOmnichainV1{
 
     #[event]
     struct BurnEvent has copy, drop, store {
-        address: vector<u8>,
+        shared: String,
         token: String,
         chain: String,
         amount: u64,
@@ -100,7 +101,7 @@ module dev::QiaraTokensOmnichainV1{
             move_to(admin, AddressCounter { counter: 0, counter_outflow: 0 });
         };
         if (!exists<AddressDatabase>(@dev)) {
-            move_to(admin, AddressDatabase { table: table::new<vector<u8>, u64>(), table_outflow: table::new<vector<u8>, u64>() });
+            move_to(admin, AddressDatabase { table: table::new<String, u64>(), table_outflow: table::new<vector<u8>, u64>() });
         };
         if (!exists<TokensChains>(@dev)) {
             move_to(admin, TokensChains { book: map::new<String, vector<String>>() });
@@ -109,7 +110,7 @@ module dev::QiaraTokensOmnichainV1{
             move_to(admin, CrosschainBook { book: map::new<String,Map<String, u256>>() });
         };
         if (!exists<UserCrosschainBook>(@dev)) {
-            move_to(admin, UserCrosschainBook { nonce: table::new<vector<u8>, u256>(), book: table::new<u64, Map<vector<u8>, Map<String, Map<String, u256>>>>(), outflows: table::new<u64, Map<vector<u8>, Map<String, Map<String, u256>>>>() });
+            move_to(admin, UserCrosschainBook { nonce: table::new<vector<u8>, u256>(), book: table::new<u64, Map<String, Map<String, Map<String, u256>>>>(), outflows: table::new<u64, Map<vector<u8>, Map<String, Map<String, u256>>>>() });
         };
         if (!exists<Permissions>(@dev)) {
             move_to(admin, Permissions { nonce: Nonce::give_access(admin)});
@@ -159,33 +160,33 @@ module dev::QiaraTokensOmnichainV1{
     }
 
 
-    public fun change_UserTokenSupply(token: String, chain: String, address: vector<u8>, amount: u64, isMint: bool, _perm: Permission) acquires AddressCounter, AddressDatabase, UserCrosschainBook {
+    public fun change_UserTokenSupply(token: String, chain: String, shared: String, amount: u64, isMint: bool, _perm: Permission) acquires AddressCounter, AddressDatabase, UserCrosschainBook {
         let book = borrow_global_mut<UserCrosschainBook>(@dev);
         let addressCounter_ref = borrow_global_mut<AddressCounter>(@dev);
         let addressDatabase_ref = borrow_global_mut<AddressDatabase>(@dev);
         let page_number = addressCounter_ref.counter / 100;
 
-        if (!table::contains(&addressDatabase_ref.table, address)) {
-            table::add(&mut addressDatabase_ref.table, address, page_number); // Store the page!
+        if (!table::contains(&addressDatabase_ref.table, shared)) {
+            table::add(&mut addressDatabase_ref.table, shared, page_number); // Store the page!
             addressCounter_ref.counter = addressCounter_ref.counter + 1;
         };
         
         if (!table::contains(&book.book, page_number)) {
-            table::add(&mut book.book, page_number, map::new<vector<u8>, Map<String, Map<String, u256>>>());
+            table::add(&mut book.book, page_number, map::new<String, Map<String, Map<String, u256>>>());
         };
 
         // handling pagination
         let users = table::borrow_mut(&mut book.book, page_number);
-        if (!map::contains_key(users, &address)) {
-            map::add(users, address, map::new<String, Map<String, u256>>());
+        if (!map::contains_key(users, &shared)) {
+            map::add(users, shared, map::new<String, Map<String, u256>>());
         };
 
         // handling user
-        let user = map::borrow_mut(users, &address);
-        if(!map::contains_key(user, &chain)) {
-            map::add(user, chain, map::new<String, u256>());
+        let shared_storage = map::borrow_mut(users, &shared);
+        if(!map::contains_key(shared_storage, &chain)) {
+            map::add(shared_storage, chain, map::new<String, u256>());
         };
-        let token_map = map::borrow_mut(user, &chain);
+        let token_map = map::borrow_mut(shared_storage, &chain);
 
         // --- CRITICAL FIX: MOVE THIS OUTSIDE THE ELSE BLOCK ---
         if (!map::contains_key(token_map, &token)) {
@@ -203,13 +204,14 @@ module dev::QiaraTokensOmnichainV1{
 
         // --- EMIT EVENTS AT THE VERY END ---
         if (isMint) {
-            event::emit(MintEvent { address, token, chain, amount, time: timestamp::now_seconds() });
+            event::emit(MintEvent { shared, token, chain, amount, time: timestamp::now_seconds() });
         } else {
-            event::emit(BurnEvent { address, token, chain, amount, time: timestamp::now_seconds() });
+            event::emit(BurnEvent { shared, token, chain, amount, time: timestamp::now_seconds() });
         };
     }
 
-    public fun increment_UserOutflow(token: String, chain: String, address: vector<u8>, amount: u64, isMint: bool, _perm: Permission) acquires Permissions, AddressCounter, AddressDatabase, UserCrosschainBook {
+    public fun increment_UserOutflow(token: String, chain: String, shared: String, address: vector<u8>, amount: u64, isMint: bool, _perm: Permission) acquires Permissions, AddressCounter, AddressDatabase, UserCrosschainBook {
+        Shared::assert_is_sub_owner(shared, address);
         let book = borrow_global_mut<UserCrosschainBook>(@dev);
         let addressCounter_ref = borrow_global_mut<AddressCounter>(@dev);
         let addressDatabase_ref = borrow_global_mut<AddressDatabase>(@dev);
@@ -255,9 +257,9 @@ module dev::QiaraTokensOmnichainV1{
 
         // --- EMIT EVENTS AT THE VERY END ---
         if (isMint) {
-            event::emit(MintEvent { address, token, chain, amount, time: timestamp::now_seconds() });
+            event::emit(MintEvent { shared, token, chain, amount, time: timestamp::now_seconds() });
         } else {
-            event::emit(BurnEvent { address, token, chain, amount, time: timestamp::now_seconds() });
+            event::emit(BurnEvent { shared, token, chain, amount, time: timestamp::now_seconds() });
         };
     }
 
@@ -312,13 +314,13 @@ module dev::QiaraTokensOmnichainV1{
     }
     
     #[view]
-    public fun return_balance_page(page_number: u64): Map<vector<u8>,Map<String, Map<String, u256>>> acquires UserCrosschainBook {
+    public fun return_balance_page(page_number: u64): Map<String,Map<String, Map<String, u256>>> acquires UserCrosschainBook {
         let book = borrow_global<UserCrosschainBook>(@dev);
 
         *table::borrow(&book.book, page_number)
     }
     #[view]
-    public fun return_address_full_balance(address: vector<u8>): Map<String, Map<String, u256>> acquires UserCrosschainBook, AddressDatabase {
+    public fun return_address_full_balance(address: String): Map<String, Map<String, u256>> acquires UserCrosschainBook, AddressDatabase {
         let book = borrow_global<UserCrosschainBook>(@dev);
         let addressDatabase_ref = borrow_global<AddressDatabase>(@dev);
 
@@ -331,7 +333,7 @@ module dev::QiaraTokensOmnichainV1{
         return *map::borrow(users, &address)
     }
     #[view]
-    public fun return_address_balance_by_chain_for_token(address: vector<u8>, chain:String, token:String,): u256 acquires UserCrosschainBook, AddressDatabase {
+    public fun return_address_balance_by_chain_for_token(address: String, chain:String, token:String,): u256 acquires UserCrosschainBook, AddressDatabase {
         let book = borrow_global<UserCrosschainBook>(@dev);
         let addressDatabase_ref = borrow_global<AddressDatabase>(@dev);
 
