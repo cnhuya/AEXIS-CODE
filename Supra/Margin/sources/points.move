@@ -1,11 +1,11 @@
-module dev::QiaraPointsV1{
+module dev::QiaraPointsV2{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::table::{Self, Table};
 
-    use dev::QiaraTokenTypesV1::{Self as TokensType};
-    use dev::QiaraChainTypesV1::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV2::{Self as TokensType};
+    use dev::QiaraChainTypesV2::{Self as ChainTypes};
 
     use dev::QiaraStorageV1::{Self as storage, Access as StorageAccess};
 
@@ -35,34 +35,34 @@ module dev::QiaraPointsV1{
 // === STRUCTS === //
     // (shared storage owner) -> points
     struct UsersProfile has key {
-        points: Table<vector<u8>, User>,
+        points: Table<String, User>,
     }
 
 // === INIT === //
     fun init_module(admin: &signer){
         if (!exists<UsersProfile>(@dev)) {
-            move_to(admin,UsersProfile {points: table::new<vector<u8>, User>()});
+            move_to(admin,UsersProfile {points: table::new<String, User>()});
         };
 
     }
 
 // === ENTRY FUN === //
 
-    public fun ensure_user(points_table: &mut UsersProfile, user: vector<u8>): &mut User{
+    public fun ensure_user(points_table: &mut UsersProfile, shared: String): &mut User{
 
-        if (!table::contains(&points_table.points, user)) {
-            table::add(&mut points_table.points, user, User {points: 0, perk: utf8(b"none")});
+        if (!table::contains(&points_table.points, shared)) {
+            table::add(&mut points_table.points, shared, User {points: 0, perk: utf8(b"none")});
         };
-        return table::borrow_mut(&mut points_table.points, user)
+        return table::borrow_mut(&mut points_table.points, shared)
     }
 
-    public fun add_points(user: vector<u8>, n_points: u256, perm: Permission) acquires UsersProfile{
-        let user  = ensure_user(borrow_global_mut<UsersProfile>(@dev),user);
+    public fun add_points(shared: String, n_points: u256, perm: Permission) acquires UsersProfile{
+        let user  = ensure_user(borrow_global_mut<UsersProfile>(@dev),shared);
         user.points = user.points + n_points;
     }
 
-    public fun remove_points(user: vector<u8>, n_points: u256, perm: Permission) acquires UsersProfile{
-        let user  = ensure_user(borrow_global_mut<UsersProfile>(@dev),user);
+    public fun remove_points(shared: String, n_points: u256, perm: Permission) acquires UsersProfile{
+        let user  = ensure_user(borrow_global_mut<UsersProfile>(@dev),shared);
         if(n_points > user.points){
             user.points = 0;
             return
@@ -74,13 +74,13 @@ module dev::QiaraPointsV1{
 // === PUBLIC VIEWS === //
 
     #[view]
-    public fun get_user(user: vector<u8>): User acquires UsersProfile {
+    public fun get_user(shared: String): User acquires UsersProfile {
         let points_table = borrow_global<UsersProfile>(@dev);
 
-        if (!table::contains(&points_table.points, user)) {
+        if (!table::contains(&points_table.points, shared)) {
             return User {points: 0, perk: utf8(b"none")}
         };
-        return *table::borrow(&points_table.points, user)
+        return *table::borrow(&points_table.points, shared)
     }
 
     #[view]
