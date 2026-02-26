@@ -61,48 +61,48 @@ module dev::QiaraSharedV5{
     }
 
 // NATIVE INTERFACE
-public entry fun create_shared_storage(signer: &signer, name: String) acquires SharedStorage {
-    let shared = borrow_global_mut<SharedStorage>(@dev);
-    let signer_addr = signer::address_of(signer);
-    let signer_addr_bytes = bcs::to_bytes(&signer_addr);
+    public entry fun create_shared_storage(signer: &signer, name: String) acquires SharedStorage {
+        let shared = borrow_global_mut<SharedStorage>(@dev);
+        let signer_addr = signer::address_of(signer);
+        let signer_addr_bytes = bcs::to_bytes(&signer_addr);
 
-    // 1. Check if this specific storage name is globally unique
-    if (table::contains(&shared.storage, name)) {
-        abort ERROR_SHARED_STORAGE_WITH_THIS_NAME_ALREADY_EXISTS
-    };
+        // 1. Check if this specific storage name is globally unique
+        if (table::contains(&shared.storage, name)) {
+            abort ERROR_SHARED_STORAGE_WITH_THIS_NAME_ALREADY_EXISTS
+        };
 
-    // 2. Initialize sub_owners WITH the creator already inside
-    let sub_owners = vector::empty<vector<u8>>();
-    vector::push_back(&mut sub_owners, signer_addr_bytes); //  Add creator here
+        // 2. Initialize sub_owners WITH the creator already inside
+        let sub_owners = vector::empty<vector<u8>>();
+        vector::push_back(&mut sub_owners, signer_addr_bytes); //  Add creator here
 
-    // 3. Add the storage ownership
-    table::add(&mut shared.storage, name, Ownership { 
-        owner: signer_addr_bytes, 
-        sub_owners: sub_owners //  Now contains the creator
-    });
+        // 3. Add the storage ownership
+        table::add(&mut shared.storage, name, Ownership { 
+            owner: signer_addr_bytes, 
+            sub_owners: sub_owners //  Now contains the creator
+        });
 
-    // 4. Ensure the user has a spot in the registry table
-    if (!table::contains(&shared.storage_registry, signer_addr_bytes)) {
-        table::add(&mut shared.storage_registry, signer_addr_bytes, vector::empty<String>());
-    };
+        // 4. Ensure the user has a spot in the registry table
+        if (!table::contains(&shared.storage_registry, signer_addr_bytes)) {
+            table::add(&mut shared.storage_registry, signer_addr_bytes, vector::empty<String>());
+        };
 
-    // 5. Update the user list of owned storages
-    let registry = table::borrow_mut(&mut shared.storage_registry, signer_addr_bytes);
+        // 5. Update the user list of owned storages
+        let registry = table::borrow_mut(&mut shared.storage_registry, signer_addr_bytes);
 
-    if (vector::contains(registry, &name)) {
-        abort ERROR_IS_ALREADY_SUB_OWNER
-    } else {
-        vector::push_back(registry, name);
-    };
+        if (vector::contains(registry, &name)) {
+            abort ERROR_IS_ALREADY_SUB_OWNER
+        } else {
+            vector::push_back(registry, name);
+        };
 
-    // 6. Emit Event
-    let data = vector[
-        Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"none"))),
-        Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer_addr)),
-        Event::create_data_struct(utf8(b"shared_storage"), utf8(b"string"), bcs::to_bytes(&name)),
-    ];
-    Event::emit_shared_storage_event(utf8(b"Storage Created"), data);
-}
+        // 6. Emit Event
+        let data = vector[
+            Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"none"))),
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer_addr)),
+            Event::create_data_struct(utf8(b"shared_storage"), utf8(b"string"), bcs::to_bytes(&name)),
+        ];
+        Event::emit_shared_storage_event(utf8(b"Storage Created"), data);
+    }
 
     public entry fun create_non_user_shared_storage(name: String) acquires SharedStorage {
         let shared = borrow_global_mut<SharedStorage>(@dev);
@@ -186,22 +186,38 @@ public entry fun create_shared_storage(signer: &signer, name: String) acquires S
 // PERMISSIONELESS INTERFACE
     public entry fun p_create_shared_storage(validator: &signer, user: vector<u8>, name: String) acquires SharedStorage {
         let shared = borrow_global_mut<SharedStorage>(@dev);
+        let signer_addr_bytes = bcs::to_bytes(&user);
 
-
-        if (!table::contains(&shared.storage, name)) {
-            table::add(&mut shared.storage, name, Ownership { owner: bcs::to_bytes(&user), sub_owners: vector::empty<vector<u8>>() });
-        } else {
+        // 1. Check if this specific storage name is globally unique
+        if (table::contains(&shared.storage, name)) {
             abort ERROR_SHARED_STORAGE_WITH_THIS_NAME_ALREADY_EXISTS
         };
 
-        let registry = table::borrow_mut(&mut shared.storage_registry, bcs::to_bytes(&user));
+        // 2. Initialize sub_owners WITH the creator already inside
+        let sub_owners = vector::empty<vector<u8>>();
+        vector::push_back(&mut sub_owners, signer_addr_bytes); //  Add creator here
 
-        if(vector::contains(registry, &name)) {
+        // 3. Add the storage ownership
+        table::add(&mut shared.storage, name, Ownership { 
+            owner: signer_addr_bytes, 
+            sub_owners: sub_owners //  Now contains the creator
+        });
+
+        // 4. Ensure the user has a spot in the registry table
+        if (!table::contains(&shared.storage_registry, signer_addr_bytes)) {
+            table::add(&mut shared.storage_registry, signer_addr_bytes, vector::empty<String>());
+        };
+
+        // 5. Update the user list of owned storages
+        let registry = table::borrow_mut(&mut shared.storage_registry, signer_addr_bytes);
+
+        if (vector::contains(registry, &name)) {
             abort ERROR_IS_ALREADY_SUB_OWNER
         } else {
             vector::push_back(registry, name);
         };
 
+        // 6. Emit Event
         let data = vector[
             Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"main"))),
             Event::create_data_struct(utf8(b"validator"), utf8(b"vector<u8>"), bcs::to_bytes(&signer::address_of(validator))),
@@ -209,7 +225,6 @@ public entry fun create_shared_storage(signer: &signer, name: String) acquires S
             Event::create_data_struct(utf8(b"shared_storage"), utf8(b"string"), bcs::to_bytes(&name)),
         ];
         Event::emit_shared_storage_event(utf8(b"Storage Created"), data);
-
     }
 
     public entry fun p_allow_sub_owner(validator: &signer, user: vector<u8>, name: String, sub_owner: vector<u8>) acquires SharedStorage {
