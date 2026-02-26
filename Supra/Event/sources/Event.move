@@ -1,4 +1,4 @@
-module dev::QiaraEventV3 {
+module dev::QiaraEventV4 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -204,11 +204,13 @@ module dev::QiaraEventV3 {
         });
     }
     public fun emit_proof_event(data: vector<Data>) {
+        vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
          event::emit(ProofEvent {
             aux: data,
         });
     }
     public fun emit_shared_storage_event(type: String, data: vector<Data>) {
+        vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
          event::emit(SharedStorageEvent {
             name: type,
             aux: data,
