@@ -1,4 +1,4 @@
-module dev::QiaraEventV4 {
+module dev::QiaraEventV5 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -97,15 +97,18 @@ module dev::QiaraEventV4 {
         assert!(signer::address_of(admin) == @dev, 1);
     }
 
+    public fun create_identifier(addr: vector<u8>, nonce: vector<u8>,): vector<u8> {
 
-    public fun create_identifier(addr: vector<u8>, nonce: vector<u8>, consensus_type: vector<u8>): vector<u8> {
+        // To match Solidity's abi.encodePacked(uint256, uint256, uint256):
+        // Ensure each of these vectors is exactly 32 bytes (Big Endian).
         let vect = vector::empty<u8>();
-        vector::append(&mut vect, addr);
-        vector::append(&mut vect, consensus_type);
-        vector::append(&mut vect, nonce);
-        bcs::to_bytes(&hash::sha3_256(vect))
+        vector::append(&mut vect, addr);           // Should be 32 bytes
+        vector::append(&mut vect, nonce);          // Should be 32 bytes
+        
+        // 1. Use SHA2_256 to match Solidity/Sui
+        // 2. Return the raw vector<u8> (32 bytes) without BCS length-prefixing
+        hash::sha2_256(vect)
     }
-
 // Pubic
     public fun create_data_struct(name: String, type: String, value: vector<u8>): Data {
         Data {name: name,type: type,value: value}
