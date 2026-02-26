@@ -1,4 +1,4 @@
-module dev::QiaraTokensValidatorsV3{
+module dev::QiaraTokensValidatorsV4{
     use std::signer;
     use std::vector;
     use std::string::{Self as string, String, utf8};
@@ -7,10 +7,10 @@ module dev::QiaraTokensValidatorsV3{
     use std::timestamp;
     use std::bcs;
 
-    use dev::QiaraTokensCoreV3::{Self as TokensCore, Access as TokensCoreAccess};
-    use dev::QiaraTokensOmnichainV3::{Self as TokensOmnichain};
+    use dev::QiaraTokensCoreV4::{Self as TokensCore, Access as TokensCoreAccess};
+    use dev::QiaraTokensOmnichainV4::{Self as TokensOmnichain};
 
-    use dev::QiaraSharedV4::{Self as Shared};
+    use dev::QiaraSharedV6::{Self as Shared};
     // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
     const ERROR_INVALID_VALIDATOR: u64 = 1;
