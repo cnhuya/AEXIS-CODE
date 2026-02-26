@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraMarketV4"
+    name = "QiaraMarketV5"
     version = "2.1.1"
     authors = []
 
@@ -31,7 +31,7 @@
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraMarginV7]
+    [dependencies.QiaraMarginV8]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
@@ -41,12 +41,12 @@
     rev = 'main'
     subdir = 'Supra/Math'
 
-    [dependencies.QiaraTokensV5]
+    [dependencies.QiaraTokensV6]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/TokensCore'
 
-    [dependencies.QiaraTypesV4]
+    [dependencies.QiaraTypesV5]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
@@ -56,7 +56,7 @@
     rev = 'main'
     subdir = 'Supra/AutoCustom'
 
-    [dependencies.QiaraEventV7]
+    [dependencies.QiaraEventV8]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Event'
