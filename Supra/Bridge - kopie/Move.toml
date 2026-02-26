@@ -1,10 +1,10 @@
     [package]
-    name = "QiaraBridgeV67"
+    name = "QiaraBridgeV3"
     version = "2.1.1"
     authors = []
 
     [addresses]
-    dev = "0xb5a924dde82fd1e3dd0d1c99e863ccce2732a0e0e80c338f8eb3a4cd7ae5aed4"
+    dev = "0xc536f11396d0510d90b021cbae973ab1f71155e8ff32c9d544bfb48212b11ac9"
     supra_framework = "0x1"
     std = "0x1"
     aptos_std = "0x1"
@@ -31,27 +31,27 @@
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraTypesV5]
+    [dependencies.QiaraTypesV3]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
 
-    [dependencies.QiaraTokensV5]
+    [dependencies.QiaraTokensV4]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/TokensCore'
 
-    [dependencies.QiaraMarginV5]
+    [dependencies.QiaraMarginV6]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
 
-    [dependencies.QiaraMarketV5]
+    [dependencies.QiaraMarketV3]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Market'
 
-    [dependencies.QiaraEventV61]
+    [dependencies.QiaraEventV4]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Event'
@@ -60,5 +60,11 @@
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Genesis'
+
+    [dependencies.QiaraSharedV6]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Shared'
+
 
     [dev-dependencies]
