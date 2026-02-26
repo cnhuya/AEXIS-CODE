@@ -6,7 +6,7 @@ module dev::QiaraSharedV6{
     use aptos_std::from_bcs;
     use std::string::{Self as string, String, utf8};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
-    use dev::QiaraEventV3::{Self as Event};
+    use dev::QiaraEventV4::{Self as Event};
 // === ERRORS === //
     const ERROR_NOT_ADMIN:u64 = 0;
     const ERROR_SHARED_STORAGE_DOESNT_EXISTS_FOR_THIS_ADDRESS:u64 = 1;
