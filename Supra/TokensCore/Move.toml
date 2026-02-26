@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraTokensV4"
+    name = "QiaraTokensV5"
     version = "2.1.1"
     authors = []
 
@@ -32,7 +32,7 @@
     rev = 'main'
     subdir = 'Supra/Math'
 
-    [dependencies.QiaraTypesV3]
+    [dependencies.QiaraTypesV4]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
@@ -47,12 +47,12 @@
     rev = 'main'
     subdir = 'Supra/Storage'
 
-    [dependencies.QiaraEventV6]
+    [dependencies.QiaraEventV7]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Event'
 
-    [dependencies.QiaraStoragesV3]
+    [dependencies.QiaraStoragesV4]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Storages'
