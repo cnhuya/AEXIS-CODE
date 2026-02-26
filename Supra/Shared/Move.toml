@@ -1,5 +1,5 @@
     [package]
-    name = "QiaraSharedV5"
+    name = "QiaraSharedV6"
     version = "2.1.1"
     authors = []
 
@@ -21,7 +21,7 @@
     rev = "dev"
     subdir = "aptos-move/framework/supra-framework"
 
-    [dependencies.QiaraEventV2]
+    [dependencies.QiaraEventV3]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Event'
