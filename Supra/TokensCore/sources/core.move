@@ -27,7 +27,7 @@ module dev::QiaraTokensCoreV4 {
 
     use dev::QiaraSharedV6::{Self as Shared};
 
-    use dev::QiaraEventV4::{Self as Event};
+    use dev::QiaraEventV5::{Self as Event};
     use dev::QiaraStoragesV3::{Self as Storages};
 
     use dev::QiaraChainTypesV3::{Self as ChainTypes};
@@ -391,14 +391,14 @@ module dev::QiaraTokensCoreV4 {
         let storage = Storages::return_lock_storage(symbol, chain);
 
         let storage_address_bytes = string_utils::to_string(&object::object_address(&storage));
-   // tttta(123456789);
+
         if(!Shared::assert_shared_storage((storage_address_bytes))){
             Shared::create_non_user_shared_storage((storage_address_bytes));
         };
 
         internal_deposit((storage_address_bytes),storage, fa, chain,managed);
 
-        let identifier = Event::create_identifier(bcs::to_bytes(&receiver), bcs::to_bytes(&nonce), bcs::to_bytes(&utf8(b"zk")));
+        let identifier = Event::create_identifier(bcs::to_bytes(&receiver), bcs::to_bytes(&nonce));
         let data = vector[
             Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(user))),
@@ -443,7 +443,7 @@ module dev::QiaraTokensCoreV4 {
         TokensOmnichain::change_UserTokenSupply(symbol, chain, shared, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
         TokensOmnichain::increment_UserOutflow(symbol, chain, shared, bcs::to_bytes(&receiver), amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
 
-        let identifier = Event::create_identifier(bcs::to_bytes(&receiver), bcs::to_bytes(&nonce), bcs::to_bytes(&utf8(b"zk")));
+        let identifier = Event::create_identifier(bcs::to_bytes(&receiver), bcs::to_bytes(&nonce));
         let data = vector[
             Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
@@ -504,12 +504,13 @@ module dev::QiaraTokensCoreV4 {
 
         let storage = Storages::return_lock_storage(symbol, chain);
 
-        let storage_address_bytes = bcs::to_bytes(&object::object_address(&storage));
+        let storage_address_bytes = string_utils::to_string(&object::object_address(&storage));
 
-        if(!Shared::assert_shared_storage(utf8(storage_address_bytes))){
-            Shared::create_non_user_shared_storage(utf8(storage_address_bytes));
+        if(!Shared::assert_shared_storage((storage_address_bytes))){
+            Shared::create_non_user_shared_storage((storage_address_bytes));
         };
-        let fa = internal_withdraw(utf8(storage_address_bytes),storage, amount, chain, managed);
+
+        let fa = internal_withdraw((storage_address_bytes),storage, amount, chain, managed);
 
         TokensOmnichain::change_TokenSupply(symbol, chain, fungible_asset::amount(&fa), false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access));
         fungible_asset::burn(&managed.burn_ref, fa);

@@ -211,7 +211,7 @@ module dev::QiaraTokensOmnichainV4{
     }
 
     public fun increment_UserOutflow(token: String, chain: String, shared: String, address: vector<u8>, amount: u64, isMint: bool, _perm: Permission) acquires Permissions, AddressCounter, AddressDatabase, UserCrosschainBook {
-        Shared::assert_is_sub_owner(shared, address);
+       // Shared::assert_is_sub_owner(shared, address);
         let book = borrow_global_mut<UserCrosschainBook>(@dev);
         let addressCounter_ref = borrow_global_mut<AddressCounter>(@dev);
         let addressDatabase_ref = borrow_global_mut<AddressDatabase>(@dev);
