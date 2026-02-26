@@ -1,4 +1,4 @@
-module dev::QiaraMarginV4{
+module dev::QiaraMarginV6{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -9,14 +9,14 @@ module dev::QiaraMarginV4{
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::bcs;
 
-    use dev::QiaraTokensMetadataV3::{Self as TokensMetadata};
+    use dev::QiaraTokensMetadataV4::{Self as TokensMetadata};
 
-    use dev::QiaraTokenTypesV2::{Self as TokensType};
+    use dev::QiaraTokenTypesV3::{Self as TokensType};
     
     use dev::QiaraMathV1::{Self as QiaraMath};
     use dev::QiaraGenesisV1::{Self as Genesis};
 
-    use dev::QiaraSharedV4::{Self as Shared};
+    use dev::QiaraSharedV6::{Self as Shared};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;

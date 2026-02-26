@@ -1,15 +1,15 @@
-module dev::QiaraRanksV4{
+module dev::QiaraRanksV6{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::table::{Self, Table};
     use aptos_std::math128::{Self as math128};
-    use dev::QiaraTokenTypesV2::{Self as TokensType};
-    use dev::QiaraChainTypesV2::{Self as ChainTypes};
-
+    use dev::QiaraTokenTypesV3::{Self as TokensType};
+    use dev::QiaraChainTypesV3::{Self as ChainTypes};
+    use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use dev::QiaraStorageV1::{Self as storage, Access as StorageAccess};
 
-    use dev::QiaraSharedV4::{Self as Shared};
+    use dev::QiaraSharedV6::{Self as Shared};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -40,7 +40,7 @@ module dev::QiaraRanksV4{
         custom_rank: String,
     }
 
-    struct ViewUser has copy, drop{
+    struct ViewUser has copy, drop, store{
         experience: u256,
         experience_to_this_level: u256,
         experience_to_next_level: u256,
@@ -97,7 +97,7 @@ module dev::QiaraRanksV4{
                 experience_to_this_level: 0,
                 experience_to_next_level: 0,
                 level: 0,
-                rank: utf8(b"None"),
+                rank: utf8(b"Iron"),
                 custom_rank: utf8(b"None"),
                 fee_deduction: 0,
                 ltv_increase: 0,
@@ -127,19 +127,19 @@ module dev::QiaraRanksV4{
     }
 
     #[view]
-    public fun return_multiple_shared_rank(shared: vector<String>): vector<ViewUser> acquires UsersProfile{
+    public fun return_multiple_shared_rank(shared: vector<String>): Map<String, ViewUser> acquires UsersProfile{
         let points_table = borrow_global<UsersProfile>(@dev);
 
-        let vect = vector::empty<ViewUser>();
+        let map = map::new<String, ViewUser>();
 
         let len = vector::length(&shared);
         while(len>0){
             let shared = vector::borrow(&shared, len-1);
             let viewUser = return_shared_rank(*shared);
-            vector::push_back(&mut vect, viewUser);
+            map::upsert(&mut map, *shared, viewUser);
             len = len-1
         };
-        return vect
+        return map
     }
 
     #[view]
