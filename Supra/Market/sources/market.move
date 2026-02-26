@@ -21,7 +21,7 @@ module dev::QiaraVaultsV3 {
     use dev::QiaraTokensOmnichainV4::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
     use dev::QiaraMarginV6::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraPointsV6::{Self as Points, Access as PointsAccess};
+    use dev::QiaraRanksV6::{Self as Points, Access as PointsAccess};
     use dev::QiaraRIV6::{Self as RI};
     use dev::QiaraAutomationV1::{Self as auto, Access as AutoAccess};
 
