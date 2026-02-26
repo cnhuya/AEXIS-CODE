@@ -1,4 +1,4 @@
-module dev::QiaraStoragesV2 {
+module dev::QiaraStoragesV3 {
     use std::signer;
     use std::string::{Self as string, String, utf8};
     use std::table::{Self, Table};
@@ -8,8 +8,8 @@ module dev::QiaraStoragesV2 {
     use supra_framework::primary_fungible_store;
     use supra_framework::object::{Self, Object};
     
-    use dev::QiaraChainTypesV2::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV2::{Self as TokensType};
+    use dev::QiaraChainTypesV3::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV3::{Self as TokensType};
 
 
     // === ERRORS === //
