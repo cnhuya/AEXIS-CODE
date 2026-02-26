@@ -15,6 +15,8 @@ module dev::QiaraTokensCoreV4 {
     use supra_framework::object::{Self, Object};
     use std::string::{Self as string, String, utf8};
 
+    use aptos_std::string_utils ::{Self as string_utils};
+
     use dev::QiaraMathV1::{Self as Math};
     use dev::QiaraTokensMetadataV4::{Self as TokensMetadata};
     use dev::QiaraTokensOmnichainV4::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
@@ -25,7 +27,7 @@ module dev::QiaraTokensCoreV4 {
 
     use dev::QiaraSharedV6::{Self as Shared};
 
-    use dev::QiaraEventV3::{Self as Event};
+    use dev::QiaraEventV4::{Self as Event};
     use dev::QiaraStoragesV3::{Self as Storages};
 
     use dev::QiaraChainTypesV3::{Self as ChainTypes};
@@ -388,13 +390,13 @@ module dev::QiaraTokensCoreV4 {
 
         let storage = Storages::return_lock_storage(symbol, chain);
 
-        let storage_address_bytes = bcs::to_bytes(&object::object_address(&storage));
-
-        if(!Shared::assert_shared_storage(utf8(storage_address_bytes))){
-            Shared::create_non_user_shared_storage(utf8(storage_address_bytes));
+        let storage_address_bytes = string_utils::to_string(&object::object_address(&storage));
+   // tttta(123456789);
+        if(!Shared::assert_shared_storage((storage_address_bytes))){
+            Shared::create_non_user_shared_storage((storage_address_bytes));
         };
 
-        internal_deposit(utf8(storage_address_bytes),storage, fa, chain,managed);
+        internal_deposit((storage_address_bytes),storage, fa, chain,managed);
 
         let identifier = Event::create_identifier(bcs::to_bytes(&receiver), bcs::to_bytes(&nonce), bcs::to_bytes(&utf8(b"zk")));
         let data = vector[
