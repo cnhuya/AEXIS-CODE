@@ -6,6 +6,7 @@ module dev::QiaraVaultsV3 {
     use std::type_info::{Self, TypeInfo};
     use std::table::{Self as table, Table};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
+    use aptos_std::string_utils ::{Self as string_utils};
     use std::bcs;
     use supra_oracle::supra_oracle_storage;
     use supra_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore};
@@ -36,7 +37,7 @@ module dev::QiaraVaultsV3 {
 
     use dev::QiaraSharedV6::{Self as Shared};
 
-    use dev::QiaraEventV3::{Self as Event};
+    use dev::QiaraEventV4::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -167,12 +168,14 @@ module dev::QiaraVaultsV3 {
 
     }
 
+
+
     fun non_user_storage_helper<T: key>(obj: &Object<T>): String{
-        let storage_address_bytes = bcs::to_bytes(&object::object_address(obj));
-        if(!Shared::assert_shared_storage(utf8(storage_address_bytes))){
-            Shared::create_non_user_shared_storage(utf8(storage_address_bytes));
-        };
-        return utf8(storage_address_bytes)
+        let storage_address_bytes = string_utils::to_string(&object::object_address(obj));
+            if(!Shared::assert_shared_storage((storage_address_bytes))){
+                Shared::create_non_user_shared_storage((storage_address_bytes));
+            };
+        return (storage_address_bytes)
     }
 
     public entry fun init_vault(admin: &signer, token: String, chain: String, provider: String, init_liquidity: u64) acquires GlobalVault, Permissions {
