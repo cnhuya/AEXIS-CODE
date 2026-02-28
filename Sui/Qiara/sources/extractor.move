@@ -54,20 +54,22 @@ module Qiara::QiaraExtractorV1 {
         let user_h = bytes_to_u256(extract_chunk(inputs, 4));
         let nonce = (extract_nonce(inputs) as u256);
 
-        // 1. Replicate Solidity's abi.encodePacked:
-        // We need to append the 32-byte BE representations of user_l, user_h, and nonce.
+        // 1. Replicate Solidity bitwise logic: (userH << 128) | userL
+        // This creates the single 32-byte "userBytes" word
+        let user_bytes_combined = (user_h << 128) | user_l;
+
         let mut data = vector::empty<u8>();
-        vector::append(&mut data, u256_to_bytes_be(user_l));
-        vector::append(&mut data, u256_to_bytes_be(user_h));
+        
+        // 2. Append only TWO 32-byte words (64 bytes total)
+        vector::append(&mut data, u256_to_bytes_be(user_bytes_combined));
         vector::append(&mut data, u256_to_bytes_be(nonce));
 
-        // 2. Compute SHA256
+        // 3. Compute SHA256
         let hash_bytes = hash::sha2_256(data);
 
-        // 3. Convert resulting 32 bytes back to u256 to match Solidity uint256 cast
+        // 4. Convert back to u256
         bytes_to_u256_be(hash_bytes)
     }
-
     // --- Internal Bit Shifting & Unpacking ---
 
     fun unpack_slot_8(packed_data: u256): UnpackedTx {

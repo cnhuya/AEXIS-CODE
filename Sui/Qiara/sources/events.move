@@ -5,36 +5,28 @@ module Qiara::QiaraEventsV1 {
     use sui::event;
 // --- Events ---
 
-    public struct Deposit has copy, drop {
-        user: address,
-        token_type: String,
-        amount: u64,
-        provider: String
+    public struct Data has copy, drop, store{
+        name: String,
+        type_name: String,
+        value: vector<u8>,
     }
 
-    public struct WithdrawGrant has copy, drop {
-        user: address,
-        token_type: String,
-        amount: u64,
-        provider: String,
-        nullifier: u256
+    public struct VaultEvent has copy, drop {
+        name: String,
+        aux: vector<Data>
     }
 
-    public struct Withdrawal has copy, drop {
-        user: address,
-        token_type: String,
-        amount: u64,
-        provider: String
+    public fun create_data_struct(name: String, type_name: String, value: vector<u8>): Data {
+        Data {name: name,type_name: type_name,value: value}
     }
 
-    public fun emit_deposit_event(user: address, token_type: String, amount: u64, provider: String) {
-        event::emit(Deposit {user: user,token_type: token_type,amount: amount,provider: provider,});
+    public fun emit_deposit_event(name: String, data: vector<Data>) {
+         event::emit(VaultEvent {name: name,aux: data,});
     }
-    public fun emit_withdraw_event(user: address, token_type: String, amount: u64, provider: String) {
-        event::emit(Withdrawal {user: user,token_type: token_type,amount: amount,provider: provider,});
+    public fun emit_withdraw_event(name: String, data: vector<Data>) {
+         event::emit(VaultEvent {name: name,aux: data,});
     }
-    public fun emit_withdraw_grant_event(user: address, token_type: String, amount: u64, provider: String, nullifier: u256) {
-        event::emit(WithdrawGrant {user: user,token_type: token_type,amount: amount,provider: provider, nullifier: nullifier,});
+    public fun emit_withdraw_grant_event(name: String, data: vector<Data>) {
+         event::emit(VaultEvent {name: name,aux: data,});
     }
-
 }
