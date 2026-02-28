@@ -13,7 +13,7 @@ module dev::QiaraTokensOmnichainV7{
     use supra_framework::event;
 
     use dev::QiaraNonceV3::{Self as Nonce, Access as NonceAccess};
-    use dev::QiaraSharedV7::{Self as Shared};
+    use dev::QiaraSharedV6::{Self as Shared};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
@@ -253,7 +253,7 @@ module dev::QiaraTokensOmnichainV7{
             };
         };
 
-        Nonce::increment_nonce(address, Nonce::give_permission(&borrow_global<Permissions>(@dev).nonce));
+        Nonce::increment_nonce(address, utf8(b"zk"), Nonce::give_permission(&borrow_global<Permissions>(@dev).nonce));
 
         // --- EMIT EVENTS AT THE VERY END ---
         if (isMint) {
