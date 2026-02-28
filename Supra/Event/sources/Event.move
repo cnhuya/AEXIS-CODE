@@ -97,29 +97,46 @@ module dev::QiaraEventV9 {
         assert!(signer::address_of(admin) == @dev, 1);
     }
 
-    public fun create_identifier(addr: vector<u8>, nonce: vector<u8>,): vector<u8> {
+  public fun create_identifier(addr: vector<u8>, nonce: vector<u8>): vector<u8> {
         let vect = vector::empty<u8>();
     
-        // Convert both to 32-byte Big Endian vectors
-        let user_bytes = u256_to_bytes_be(user_val);
-        let nonce_bytes = u256_to_bytes_be(nonce_val);
+        // 1. Convert vectors to u256 first so your BE function can process them
+        // OR: If they are already 32 bytes, just append them directly!
+        let addr_u256 = bytes_to_u256(addr);
+        let nonce_u256 = bytes_to_u256(nonce);
         
-        // Concatenate (matches abi.encodePacked)
+        // 2. Convert to 32-byte Big Endian vectors
+        let user_bytes = u256_to_bytes_be(addr_u256);
+        let nonce_bytes = u256_to_bytes_be(nonce_u256);
+        
+        // 3. Concatenate (matches abi.encodePacked)
         vector::append(&mut vect, user_bytes);
         vector::append(&mut vect, nonce_bytes);
         
-        // SHA2-256 hash
+        // 4. SHA2-256 hash
         hash::sha2_256(vect)
+    }
+
+    // Helper to turn your input vector into the u256 your function expects
+    public fun bytes_to_u256(bytes: vector<u8>): u256 {
+        let val = 0u256;
+        let i = 0;
+        let len = vector::length(&bytes);
+        while (i < len) {
+            val = (val << 8) | (*vector::borrow(&bytes, i) as u256);
+            i = i + 1;
+        };
+        val
     }
 
     public fun u256_to_bytes_be(val: u256): vector<u8> {
         let res = vector::empty<u8>();
         let i = 0;
         while (i < 32) {
-            // Extract byte starting from the most significant (leftmost) side
             let shift_bits = (31 - i) * 8;
-            let byte = ((val >> shift_bits) & 0xFF as u8);
-            vector::push_back(&mut res, byte);
+            // FIX: Added parentheses to ensure bit-shift happens before casting
+            let byte = ((val >> (shift_bits as u8)) & 0xFF);
+            vector::push_back(&mut res, (byte as u8));
             i = i + 1;
         };
         res
