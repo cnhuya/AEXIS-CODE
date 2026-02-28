@@ -1,4 +1,4 @@
-module dev::QiaraProviderTypesV5 {
+module dev::QiaraProviderTypesV6 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
@@ -95,6 +95,11 @@ fun x_init(signer: &signer) acquires Providers, ReverseProviders {
     // Supra Tokens
     allow_tokens_for_provider(signer, utf8(b"Supralend"), utf8(b"Supra"), vector[utf8(b"Supra"), utf8(b"Qiara")]);
 }
+
+    public entry fun reg_bluefin(signer: &signer) acquires ReverseProviders , Providers{
+        register_vault(signer, utf8(b"Bluefin"), utf8(b"Sui"), utf8(b"0xBL_SUI_VAULT"));
+        allow_tokens_for_provider(signer, utf8(b"Bluefin"), utf8(b"Sui"), vector[utf8(b"USDC"), utf8(b"USDT"), utf8(b"Ethereum"), utf8(b"Bitcoin"), utf8(b"Sui"), utf8(b"Deepbook")]);
+    }
 
     // === ENTRY FUNCTIONS === //
 
