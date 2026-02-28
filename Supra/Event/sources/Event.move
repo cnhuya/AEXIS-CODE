@@ -1,4 +1,4 @@
-module dev::QiaraEventV8 {
+module dev::QiaraEventV9 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -98,17 +98,33 @@ module dev::QiaraEventV8 {
     }
 
     public fun create_identifier(addr: vector<u8>, nonce: vector<u8>,): vector<u8> {
-
-        // To match Solidity's abi.encodePacked(uint256, uint256, uint256):
-        // Ensure each of these vectors is exactly 32 bytes (Big Endian).
         let vect = vector::empty<u8>();
-        vector::append(&mut vect, addr);           // Should be 32 bytes
-        vector::append(&mut vect, nonce);          // Should be 32 bytes
+    
+        // Convert both to 32-byte Big Endian vectors
+        let user_bytes = u256_to_bytes_be(user_val);
+        let nonce_bytes = u256_to_bytes_be(nonce_val);
         
-        // 1. Use SHA2_256 to match Solidity/Sui
-        // 2. Return the raw vector<u8> (32 bytes) without BCS length-prefixing
+        // Concatenate (matches abi.encodePacked)
+        vector::append(&mut vect, user_bytes);
+        vector::append(&mut vect, nonce_bytes);
+        
+        // SHA2-256 hash
         hash::sha2_256(vect)
     }
+
+    public fun u256_to_bytes_be(val: u256): vector<u8> {
+        let res = vector::empty<u8>();
+        let i = 0;
+        while (i < 32) {
+            // Extract byte starting from the most significant (leftmost) side
+            let shift_bits = (31 - i) * 8;
+            let byte = ((val >> shift_bits) & 0xFF as u8);
+            vector::push_back(&mut res, byte);
+            i = i + 1;
+        };
+        res
+    }
+
 // Pubic
     public fun create_data_struct(name: String, type: String, value: vector<u8>): Data {
         Data {name: name,type: type,value: value}
