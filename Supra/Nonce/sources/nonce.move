@@ -67,6 +67,20 @@ module dev::QiaraNonceV3{
     }
 
     #[view]
+    public fun return_user_nonce_by_type(user: vector<u8>, type: String): u256 acquires Nonces {
+        let nonces = borrow_global_mut<Nonces>(@dev);
+        if (!table::contains(&nonces.table, user)) {
+           return 0;
+        };
+        if(type == utf8(b"zk")) {
+            return table::borrow(&nonces.table, user).zk_nonce
+        } else if(type == utf8(b"main")) {
+            return table::borrow(&nonces.table, user).main_nonce
+        } else {
+            return 0
+        }
+    }
+    #[view]
     public fun return_user_nonce(user: vector<u8>): UserNonce acquires Nonces {
         let nonces = borrow_global_mut<Nonces>(@dev);
         if (!table::contains(&nonces.table, user)) {
