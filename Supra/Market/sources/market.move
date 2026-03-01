@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV7 {
+module dev::QiaraVaultsV8 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -15,20 +15,20 @@ module dev::QiaraVaultsV7 {
     use supra_framework::object::{Self, Object};
     use supra_framework::account;
 
-    use dev::QiaraTokensCoreV8::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
-    use dev::QiaraTokensMetadataV8::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
-    use dev::QiaraTokensRatesV8::{Self as TokensRates, Access as TokensRatesAccess};
-    use dev::QiaraTokensTiersV8::{Self as TokensTiers};
-    use dev::QiaraTokensOmnichainV8::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensCoreV9::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
+    use dev::QiaraTokensMetadataV9::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
+    use dev::QiaraTokensRatesV9::{Self as TokensRates, Access as TokensRatesAccess};
+    use dev::QiaraTokensTiersV9::{Self as TokensTiers};
+    use dev::QiaraTokensOmnichainV9::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
-    use dev::QiaraMarginV10::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraRanksV10::{Self as Points, Access as PointsAccess};
-    use dev::QiaraRIV10::{Self as RI};
+    use dev::QiaraMarginV11::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraRanksV11::{Self as Points, Access as PointsAccess};
+    use dev::QiaraRIV11::{Self as RI};
     use dev::QiaraAutomationV1::{Self as auto, Access as AutoAccess};
 
-    use dev::QiaraTokenTypesV7::{Self as TokensTypes};
-    use dev::QiaraChainTypesV7::{Self as ChainTypes};
-    use dev::QiaraProviderTypesV7::{Self as ProviderTypes};
+    use dev::QiaraTokenTypesV8::{Self as TokensTypes};
+    use dev::QiaraChainTypesV8::{Self as ChainTypes};
+    use dev::QiaraProviderTypesV8::{Self as ProviderTypes};
 
     use dev::QiaraMathV1::{Self as QiaraMath};
 
@@ -37,7 +37,7 @@ module dev::QiaraVaultsV7 {
 
     use dev::QiaraSharedV6::{Self as Shared};
 
-    use dev::QiaraEventV10::{Self as Event};
+    use dev::QiaraEventV11::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -199,7 +199,7 @@ module dev::QiaraVaultsV7 {
     /// No need for recipient to have signed anything.
 
     public fun c_bridge_deposit(validator: &signer, shared: String, sender: vector<u8>, token: String, chain: String, provider: String, amount: u64, lend_rate: u64, permission: Permission) acquires GlobalVault, Permissions {
-        Shared::assert_is_sub_owner(shared, bcs::to_bytes(&sender));
+        Shared::assert_is_sub_owner(shared, sender);
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
         TokensOmnichain::change_UserTokenSupply(token, chain, shared, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain)); 
         let amount_u256 = (amount as u256)*1000000000000000000;
@@ -217,16 +217,16 @@ module dev::QiaraVaultsV7 {
        
         let storage = provider_vault.balance;
         let storage_address_string = non_user_storage_helper(&storage);
-       
+        //tttta(99);
         TokensCore::deposit(storage_address_string, storage, fa, chain);
         provider_vault.total_deposited = provider_vault.total_deposited + amount_u256;
         provider_vault.total_accumulated_rewards = provider_vault.total_accumulated_rewards + fee/5;
 
         Margin::update_reward_index(shared, sender, token, chain, provider, provider_vault.total_accumulated_rewards, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
         Margin::add_deposit(shared, sender, token, chain, provider, amount_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-
+        //tttta(1);
         let (user_borrow_interest, user_lend_rewards, staked_rewards, user_points) = new_accrue(provider_vault, shared, sender, token, chain, provider);
-
+        //tttta(0);
         let data = vector[
             // Items from the event top-level fields
             Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"zk"))),
@@ -246,7 +246,7 @@ module dev::QiaraVaultsV7 {
         if(user_borrow_interest > 0){
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
         };
-
+       // tttta(0);
         Event::emit_market_event(utf8(b"Bridge Deposit"), data);
     }
 
@@ -1094,15 +1094,15 @@ module dev::QiaraVaultsV7 {
         let minimal_apr = calculate_minimal_apr(id, utilization);
         let total_apr = (native_chain_lend_apr as u256) + (minimal_apr/1000);
         let borrow_apr = total_apr + (total_apr * (TokensTiers::market_borrow_interest_multiplier(id) as u256))/1_000_000;
-
+        //tttta(11);
         let time_diff = timestamp::now_seconds() - vault.last_update;
         let user_time_diff = timestamp::now_seconds() - user_last_interacted;
         vault.last_update = timestamp::now_seconds();
-
+        //tttta(0);
         // vault accumulated rewards index from APR (External Providers + Qiara Utilization Model)
         let additional_accumulated_rewards = calculate_rewards(vault.total_deposited, total_apr ,(time_diff as u256)); // (/100 - convert from percentage + /1000 - apr scale)
         vault.total_accumulated_rewards = vault.total_accumulated_rewards + additional_accumulated_rewards;
-        
+       // tttta(999);
         if(user_staked > 0){
             staked_reward = (user_staked * (total_apr*105+1000) * (user_time_diff as u256))/100;
         };
@@ -1113,6 +1113,7 @@ module dev::QiaraVaultsV7 {
         let user_interest = (user_borrowed * borrow_apr * (user_time_diff as u256));
         Margin::add_borrow(shared, user, token, chain, provider, user_interest, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         // user interest reward
+        //tttta(101);
         let user_interest_reward = calculate_interest(vault.total_accumulated_rewards, user_accumulated_rewards_index, net_deposited, vault.total_deposited);
         Margin::add_rewards(shared, user, token, chain, provider, user_interest_reward+staked_reward, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         // user points reward
