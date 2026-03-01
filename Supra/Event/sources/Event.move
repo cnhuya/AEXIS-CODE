@@ -1,4 +1,4 @@
-module dev::QiaraEventV10 {
+module dev::QiaraEventV11 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -97,7 +97,7 @@ module dev::QiaraEventV10 {
         assert!(signer::address_of(admin) == @dev, 1);
     }
 
-  public fun create_identifier(addr: vector<u8>, nonce: vector<u8>): vector<u8> {
+  public fun create_identifier(addr: vector<u8>, type: String, nonce: vector<u8>): vector<u8> {
         let vect = vector::empty<u8>();
     
         // 1. Convert vectors to u256 first so your BE function can process them
@@ -111,6 +111,7 @@ module dev::QiaraEventV10 {
         
         // 3. Concatenate (matches abi.encodePacked)
         vector::append(&mut vect, user_bytes);
+        vector::append(&mut vect, bcs::to_bytes(&type));
         vector::append(&mut vect, nonce_bytes);
         
         // 4. SHA2-256 hash
