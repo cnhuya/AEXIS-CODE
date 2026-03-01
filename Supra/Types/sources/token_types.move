@@ -1,13 +1,13 @@
-module dev::QiaraTokenTypesV7 {
+module dev::QiaraTokenTypesV8 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::table::{Self, Table};
 
-    use dev::QiaraChainTypesV7::{Self as ChainTypes};
+    use dev::QiaraChainTypesV8::{Self as ChainTypes};
 
-    const TOKEN_PREFIX: vector<u8> = b"Qiara73 ";
+    const TOKEN_PREFIX: vector<u8> = b"Qiara74 ";
     const SYMBOL_PREFIX: vector<u8> = b"Q";
 
 // === ERRORS === //
@@ -51,52 +51,52 @@ module dev::QiaraTokenTypesV7 {
 
 fun x_init(signer: &signer) acquires Tokens {
     // Qiara Token: 1 Real Address, 4 Placeholders
-    register_token_with_chains(signer, utf8(b"Qiara73 Qiara"), utf8(b"Qiara"), 
+    register_token_with_chains(signer, utf8(b"Qiara74 Qiara"), utf8(b"Qiara"), 
         vector[utf8(b"0x8C9621E38f74c59b0B784894f12C0CD5bE8a2f02"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
         vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Monad"), utf8(b"Ethereum"), utf8(b"Supra")]
     );
     
     // USDC: Moved real address to index 1 (Base), index 0 (Sui) is now 0x0
-    register_token_with_chains(signer, utf8(b"Qiara73 USDC"), utf8(b"USDC"), 
+    register_token_with_chains(signer, utf8(b"Qiara74 USDC"), utf8(b"USDC"), 
         vector[utf8(b"0x0"), utf8(b"0x0D5322Af414db3bd855cC44424F8532859469957"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
         vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Supra"), utf8(b"Monad"), utf8(b"Ethereum")]
     );
     
     // USDT: 4 chains -> 4 placeholders
-    register_token_with_chains(signer, utf8(b"Qiara73 USDT"), utf8(b"USDT"), 
+    register_token_with_chains(signer, utf8(b"Qiara74 USDT"), utf8(b"USDT"), 
         vector[utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
         vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Supra"), utf8(b"Ethereum")]
     );
 
     // USDT0, AUSD, earnAUSD: 2 chains -> 2 placeholders
-    register_token_with_chains(signer, utf8(b"Qiara73 USDT0"), utf8(b"USDT0"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
-    register_token_with_chains(signer, utf8(b"Qiara73 AUSD"), utf8(b"AUSD"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
-    register_token_with_chains(signer, utf8(b"Qiara73 earnAUSD"), utf8(b"earnAUSD"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
+    register_token_with_chains(signer, utf8(b"Qiara74 USDT0"), utf8(b"USDT0"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
+    register_token_with_chains(signer, utf8(b"Qiara74 AUSD"), utf8(b"AUSD"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
+    register_token_with_chains(signer, utf8(b"Qiara74 earnAUSD"), utf8(b"earnAUSD"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
 
     // Ethereum: 5 chains -> 5 placeholders
-    register_token_with_chains(signer, utf8(b"Qiara73 Ethereum"), utf8(b"Ethereum"), 
+    register_token_with_chains(signer, utf8(b"Qiara74 Ethereum"), utf8(b"Ethereum"), 
         vector[utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
         vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Supra"), utf8(b"Monad"), utf8(b"Ethereum")]
     );
     
     // Bitcoin: 5 chains -> 5 placeholders
-    register_token_with_chains(signer, utf8(b"Qiara73 Bitcoin"), utf8(b"Bitcoin"),
+    register_token_with_chains(signer, utf8(b"Qiara74 Bitcoin"), utf8(b"Bitcoin"),
         vector[utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
         vector[utf8(b"Sui"), utf8(b"Monad"), utf8(b"Ethereum"), utf8(b"Base"), utf8(b"Supra")]
     );
     
     // Monad: 2 chains -> 2 placeholders
-    register_token_with_chains(signer, utf8(b"Qiara73 Monad"), utf8(b"Monad"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
+    register_token_with_chains(signer, utf8(b"Qiara74 Monad"), utf8(b"Monad"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Monad"), utf8(b"Supra")]);
     
     // Supra: 1 chain -> 1 placeholder
-    register_token_with_chains(signer, utf8(b"Qiara73 Supra"), utf8(b"Supra"), vector[utf8(b"0x0")], vector[utf8(b"Supra")]);
+    register_token_with_chains(signer, utf8(b"QiarQiara74a73 Supra"), utf8(b"Supra"), vector[utf8(b"0x0")], vector[utf8(b"Supra")]);
     
     // Sui & Deepbook: 2 chains -> 2 placeholders
-    register_token_with_chains(signer, utf8(b"Qiara73 Sui"), utf8(b"Sui"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Sui"), utf8(b"Supra")]);
-    register_token_with_chains(signer, utf8(b"Qiara73 Deepbook"), utf8(b"Deepbook"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Sui"), utf8(b"Supra")]);
+    register_token_with_chains(signer, utf8(b"Qiara74 Sui"), utf8(b"Sui"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Sui"), utf8(b"Supra")]);
+    register_token_with_chains(signer, utf8(b"Qiara74 Deepbook"), utf8(b"Deepbook"), vector[utf8(b"0x0"), utf8(b"0x0")], vector[utf8(b"Sui"), utf8(b"Supra")]);
     
     // Virtuals: 3 chains -> 3 placeholders
-    register_token_with_chains(signer, utf8(b"Qiara73 Virtuals"), utf8(b"Virtuals"), 
+    register_token_with_chains(signer, utf8(b"Qiara74 Virtuals"), utf8(b"Virtuals"), 
         vector[utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
         vector[utf8(b"Base"), utf8(b"Ethereum"), utf8(b"Supra")]
     );
