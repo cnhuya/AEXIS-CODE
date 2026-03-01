@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV7 {
+module dev::QiaraTokensCoreV8 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -18,21 +18,21 @@ module dev::QiaraTokensCoreV7 {
     use aptos_std::string_utils ::{Self as string_utils};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV7::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV7::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensTiersV7::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV7::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV8::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV8::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensTiersV8::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV8::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
     use dev::QiaraNonceV3::{Self as Nonce, Access as NonceAccess};
 
     use dev::QiaraSharedV6::{Self as Shared};
 
-    use dev::QiaraEventV9::{Self as Event};
-    use dev::QiaraStoragesV6::{Self as Storages};
+    use dev::QiaraEventV10::{Self as Event};
+    use dev::QiaraStoragesV7::{Self as Storages};
 
-    use dev::QiaraChainTypesV6::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV6::{Self as TokensType};
-    use dev::QiaraProviderTypesV6::{Self as ProviderTypes};
+    use dev::QiaraChainTypesV7::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV7::{Self as TokensType};
+    use dev::QiaraProviderTypesV7::{Self as ProviderTypes};
 
     const ADMIN: address = @dev;
 
@@ -244,12 +244,12 @@ module dev::QiaraTokensCoreV7 {
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV7"),
+            string::utf8(b"QiaraTokensCoreV8"),
             string::utf8(b"c_deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV7"),
+            string::utf8(b"QiaraTokensCoreV8"),
             string::utf8(b"c_withdraw"),
         );
    
