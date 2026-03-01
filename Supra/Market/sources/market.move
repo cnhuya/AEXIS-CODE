@@ -37,7 +37,7 @@ module dev::QiaraVaultsV9 {
 
     use dev::QiaraSharedV6::{Self as Shared};
 
-    use dev::QiaraEventV11::{Self as Event};
+    use dev::QiaraEventV12::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -722,6 +722,7 @@ module dev::QiaraVaultsV9 {
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
+            Event::create_data_struct(utf8(b"storage"), utf8(b"string"), bcs::to_bytes(&storage_address_string)),
 
             // Original items from the data vector
             Event::create_data_struct(utf8(b"amount"), utf8(b"u256"), bcs::to_bytes(&amount_u256_taxed)),
