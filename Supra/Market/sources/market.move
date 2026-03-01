@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV8 {
+module dev::QiaraVaultsV9 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -15,20 +15,20 @@ module dev::QiaraVaultsV8 {
     use supra_framework::object::{Self, Object};
     use supra_framework::account;
 
-    use dev::QiaraTokensCoreV9::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
-    use dev::QiaraTokensMetadataV9::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
-    use dev::QiaraTokensRatesV9::{Self as TokensRates, Access as TokensRatesAccess};
-    use dev::QiaraTokensTiersV9::{Self as TokensTiers};
-    use dev::QiaraTokensOmnichainV9::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensCoreV10::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
+    use dev::QiaraTokensMetadataV10::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
+    use dev::QiaraTokensRatesV10::{Self as TokensRates, Access as TokensRatesAccess};
+    use dev::QiaraTokensTiersV10::{Self as TokensTiers};
+    use dev::QiaraTokensOmnichainV10::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
-    use dev::QiaraMarginV11::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraRanksV11::{Self as Points, Access as PointsAccess};
-    use dev::QiaraRIV11::{Self as RI};
+    use dev::QiaraMarginV12::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraRanksV12::{Self as Points, Access as PointsAccess};
+    use dev::QiaraRIV12::{Self as RI};
     use dev::QiaraAutomationV1::{Self as auto, Access as AutoAccess};
 
-    use dev::QiaraTokenTypesV8::{Self as TokensTypes};
-    use dev::QiaraChainTypesV8::{Self as ChainTypes};
-    use dev::QiaraProviderTypesV8::{Self as ProviderTypes};
+    use dev::QiaraTokenTypesV9::{Self as TokensTypes};
+    use dev::QiaraChainTypesV9::{Self as ChainTypes};
+    use dev::QiaraProviderTypesV9::{Self as ProviderTypes};
 
     use dev::QiaraMathV1::{Self as QiaraMath};
 
