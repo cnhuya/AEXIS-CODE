@@ -1,4 +1,4 @@
-module dev::QiaraNonceV3{
+module dev::QiaraNonceV4{
     use std::signer;
     use std::table::{Self, Table};
     use std::string::{Self as String, String, utf8};
