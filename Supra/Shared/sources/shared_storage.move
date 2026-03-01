@@ -328,6 +328,21 @@ module dev::QiaraSharedV6{
         };
     }
 
+    public fun safe_assert_is_sub_owner(name: String, sub_owner: vector<u8>): bool acquires SharedStorage {
+        let shared = borrow_global<SharedStorage>(@dev);
+
+        if (!table::contains(&shared.storage, name)) {
+            return false
+        };
+
+        let ownership_record = table::borrow(&shared.storage, name);
+
+        if (!vector::contains(&ownership_record.sub_owners, &sub_owner)) {
+            return false
+        };
+        return true
+    }
+
     public fun assert_is_owner(owner: vector<u8>, name: String) acquires SharedStorage {
         let shared = borrow_global<SharedStorage>(@dev);
 
