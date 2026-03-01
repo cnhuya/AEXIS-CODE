@@ -27,7 +27,7 @@ module dev::QiaraTokensCoreV10 {
 
     use dev::QiaraSharedV6::{Self as Shared};
 
-    use dev::QiaraEventV12::{Self as Event};
+    use dev::QiaraEventV13::{Self as Event};
     use dev::QiaraStoragesV9::{Self as Storages};
 
     use dev::QiaraChainTypesV9::{Self as ChainTypes};
@@ -384,8 +384,7 @@ module dev::QiaraTokensCoreV10 {
         let managed = authorized_borrow_refs(symbol);
         let wallet = primary_fungible_store::primary_store(signer::address_of(user), get_metadata(symbol));
         let fa = internal_withdraw(shared, wallet, amount, chain, managed);
-        let nonce = Nonce::return_user_nonce(bcs::to_bytes(&receiver));
-
+        let nonce = Nonce::return_user_nonce_by_type(bcs::to_bytes(&receiver), utf8(b"zk"));
         let total_outflow = (TokensOmnichain::return_specified_outflow_path(bcs::to_bytes(&receiver), chain, symbol) as u64);
 
         let storage = Storages::return_lock_storage(symbol, chain);
