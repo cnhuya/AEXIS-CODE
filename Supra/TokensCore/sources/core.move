@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV9 {
+module dev::QiaraTokensCoreV10 {
     use std::signer;
     use std::option;
     use std::vector;
@@ -18,21 +18,21 @@ module dev::QiaraTokensCoreV9 {
     use aptos_std::string_utils ::{Self as string_utils};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV9::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV9::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensTiersV9::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV9::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV10::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV10::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensTiersV10::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV10::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
     use dev::QiaraNonceV3::{Self as Nonce, Access as NonceAccess};
 
     use dev::QiaraSharedV6::{Self as Shared};
 
     use dev::QiaraEventV11::{Self as Event};
-    use dev::QiaraStoragesV8::{Self as Storages};
+    use dev::QiaraStoragesV9::{Self as Storages};
 
-    use dev::QiaraChainTypesV8::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV8::{Self as TokensType};
-    use dev::QiaraProviderTypesV8::{Self as ProviderTypes};
+    use dev::QiaraChainTypesV9::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV9::{Self as TokensType};
+    use dev::QiaraProviderTypesV9::{Self as ProviderTypes};
 
     const ADMIN: address = @dev;
 
@@ -244,12 +244,12 @@ module dev::QiaraTokensCoreV9 {
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV9"),
+            string::utf8(b"QiaraTokensCoreV10"),
             string::utf8(b"c_deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV9"),
+            string::utf8(b"QiaraTokensCoreV10"),
             string::utf8(b"c_withdraw"),
         );
    
