@@ -185,7 +185,7 @@ module Qiara::QiaraDelegatorV1 {
         assert!(groth16::verify_groth16_proof(&curve, &pvk, &pi_struct, &pp_struct), EInvalidProof);
 
         // 3. Nullification Logic - Avoiding re-use
-        let nullifier = extractor::build_nullifier(&public_inputs);
+        let nullifier = extractor::build_nullifier(&public_inputs, string::utf8(b"zk"));
 
         if(table::contains(&nullifiers.table, nullifier)) {
             abort ENullifierUsed;

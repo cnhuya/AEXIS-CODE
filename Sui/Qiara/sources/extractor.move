@@ -3,6 +3,7 @@ module Qiara::QiaraExtractorV1 {
     use std::string::{Self, String};
     use std::hash; // Added for sha2_256
     use sui::address;
+    use sui::bcs;
 
     // --- Constants ---
     const E_INVALID_CHAIN_ID: u64 = 0;
@@ -49,7 +50,7 @@ module Qiara::QiaraExtractorV1 {
 
     /// Builds a Nullifier using SHA256(user_low, user_high, nonce)
     /// This matches Solidity's abi.encodePacked(a, b, c) -> sha256
-    public fun build_nullifier(inputs: &vector<u8>): u256 {
+    public fun build_nullifier(inputs: &vector<u8>, type_name: String): u256 {
         let user_l = bytes_to_u256(extract_chunk(inputs, 3));
         let user_h = bytes_to_u256(extract_chunk(inputs, 4));
         let nonce = (extract_nonce(inputs) as u256);
@@ -62,6 +63,7 @@ module Qiara::QiaraExtractorV1 {
         
         // 2. Append only TWO 32-byte words (64 bytes total)
         vector::append(&mut data, u256_to_bytes_be(user_bytes_combined));
+        vector::append(&mut data, bcs::to_bytes(&type_name));
         vector::append(&mut data, u256_to_bytes_be(nonce));
 
         // 3. Compute SHA256
