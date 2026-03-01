@@ -1,4 +1,4 @@
-module dev::QiaraTokensOmnichainV10{
+module dev::QiaraTokensOmnichainV11{
     use std::signer;
     use std::bcs;
     use std::timestamp;
@@ -12,7 +12,7 @@ module dev::QiaraTokensOmnichainV10{
     use supra_framework::object::{Self, Object};
     use supra_framework::event;
 
-    use dev::QiaraNonceV3::{Self as Nonce, Access as NonceAccess};
+    use dev::QiaraNonceV4::{Self as Nonce, Access as NonceAccess};
     use dev::QiaraSharedV6::{Self as Shared};
 
 // === ERRORS === //
