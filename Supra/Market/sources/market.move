@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV6 {
+module dev::QiaraVaultsV7 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -15,20 +15,20 @@ module dev::QiaraVaultsV6 {
     use supra_framework::object::{Self, Object};
     use supra_framework::account;
 
-    use dev::QiaraTokensCoreV7::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
-    use dev::QiaraTokensMetadataV7::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
-    use dev::QiaraTokensRatesV7::{Self as TokensRates, Access as TokensRatesAccess};
-    use dev::QiaraTokensTiersV7::{Self as TokensTiers};
-    use dev::QiaraTokensOmnichainV7::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensCoreV8::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
+    use dev::QiaraTokensMetadataV8::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
+    use dev::QiaraTokensRatesV8::{Self as TokensRates, Access as TokensRatesAccess};
+    use dev::QiaraTokensTiersV8::{Self as TokensTiers};
+    use dev::QiaraTokensOmnichainV8::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
 
-    use dev::QiaraMarginV9::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraRanksV9::{Self as Points, Access as PointsAccess};
-    use dev::QiaraRIV9::{Self as RI};
+    use dev::QiaraMarginV10::{Self as Margin, Access as MarginAccess};
+    use dev::QiaraRanksV10::{Self as Points, Access as PointsAccess};
+    use dev::QiaraRIV10::{Self as RI};
     use dev::QiaraAutomationV1::{Self as auto, Access as AutoAccess};
 
-    use dev::QiaraTokenTypesV6::{Self as TokensTypes};
-    use dev::QiaraChainTypesV6::{Self as ChainTypes};
-    use dev::QiaraProviderTypesV6::{Self as ProviderTypes};
+    use dev::QiaraTokenTypesV7::{Self as TokensTypes};
+    use dev::QiaraChainTypesV7::{Self as ChainTypes};
+    use dev::QiaraProviderTypesV7::{Self as ProviderTypes};
 
     use dev::QiaraMathV1::{Self as QiaraMath};
 
@@ -37,7 +37,7 @@ module dev::QiaraVaultsV6 {
 
     use dev::QiaraSharedV6::{Self as Shared};
 
-    use dev::QiaraEventV9::{Self as Event};
+    use dev::QiaraEventV10::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
