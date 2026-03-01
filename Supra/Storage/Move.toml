@@ -18,4 +18,9 @@ git = "https://github.com/Entropy-Foundation/aptos-core.git"
 rev = "dev"
 subdir = "aptos-move/framework/aptos-stdlib"
 
+    [dependencies.QiaraSharedV6]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Shared'
+
 [dev-dependencies]
