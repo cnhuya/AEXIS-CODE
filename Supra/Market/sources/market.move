@@ -37,7 +37,7 @@ module dev::QiaraVaultsV9 {
 
     use dev::QiaraSharedV6::{Self as Shared};
 
-    use dev::QiaraEventV12::{Self as Event};
+    use dev::QiaraEventV13::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
