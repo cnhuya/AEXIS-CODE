@@ -60,7 +60,7 @@ module dev::QiaraNonceV3{
         let nonce_ref = table::borrow_mut(&mut nonces.table, user);
         if(type == utf8(b"zk")) {
             nonce_ref.zk_nonce = nonce_ref.zk_nonce + 1;
-        } else if(type == utf8(b"main")) {
+        } else if(type == utf8(b"native")) {
             nonce_ref.main_nonce = nonce_ref.main_nonce + 1;
         };
 
@@ -74,7 +74,7 @@ module dev::QiaraNonceV3{
         };
         if(type == utf8(b"zk")) {
             return table::borrow(&nonces.table, user).zk_nonce
-        } else if(type == utf8(b"main")) {
+        } else if(type == utf8(b"native")) {
             return table::borrow(&nonces.table, user).main_nonce
         } else {
             return 0
