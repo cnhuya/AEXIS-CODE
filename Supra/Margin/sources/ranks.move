@@ -1,4 +1,4 @@
-module dev::QiaraRanksV14{
+module dev::QiaraRanksV15{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -9,7 +9,7 @@ module dev::QiaraRanksV14{
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use dev::QiaraStorageV1::{Self as storage, Access as StorageAccess};
 
-    use dev::QiaraSharedV6::{Self as Shared};
+    use dev::QiaraSharedV6::{Self as Shared, Ownership};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -41,6 +41,7 @@ module dev::QiaraRanksV14{
     }
 
     struct ViewUser has copy, drop, store{
+        ownership: Ownership,
         experience: u256,
         experience_to_this_level: u256,
         experience_to_next_level: u256,
@@ -90,9 +91,10 @@ module dev::QiaraRanksV14{
     #[view]
     public fun return_shared_rank(shared: String): ViewUser acquires UsersProfile{
         let points_table = borrow_global<UsersProfile>(@dev);
-
+        let ownership = Shared::return_shared_ownership_new(shared);
         if(!table::contains(&points_table.table, shared)){
             return ViewUser {
+                ownership: ownership,
                 experience: 0,
                 experience_to_this_level: 0,
                 experience_to_next_level: 0,
@@ -114,6 +116,7 @@ module dev::QiaraRanksV14{
         };
 
         return ViewUser {
+            ownership: ownership,
             experience: user.experience,
             experience_to_this_level: return_xp_needed_to_level(level),
             experience_to_next_level: return_xp_needed_to_level(level+1),
