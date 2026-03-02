@@ -308,8 +308,20 @@ module dev::QiaraSharedV6{
         map
     }
 
+
     #[view]
     public fun return_shared_ownership(owner: vector<u8>, name: String): Ownership acquires SharedStorage{
+        let shared = borrow_global_mut<SharedStorage>(@dev);
+
+        if (!table::contains(&shared.storage, name)) {
+            abort ERROR_SHARED_STORAGE_WITH_THIS_NAME_DOESNT_EXISTS
+        };
+
+        *table::borrow_mut(&mut shared.storage, name)
+    }
+
+    #[view]
+    public fun return_shared_ownership_new(name: String): Ownership acquires SharedStorage{
         let shared = borrow_global_mut<SharedStorage>(@dev);
 
         if (!table::contains(&shared.storage, name)) {
