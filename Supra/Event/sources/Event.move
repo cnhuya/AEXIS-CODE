@@ -91,6 +91,11 @@ module dev::QiaraEventV15 {
         name: String,
         aux: vector<Data>,
     }
+    #[event]
+    struct AutomatedEvent has copy, drop, store {
+        name: String,
+        aux: vector<Data>,
+    }
 
 // === INIT === //
     fun init_module(admin: &signer) {
@@ -249,6 +254,13 @@ module dev::QiaraEventV15 {
     public fun emit_shared_storage_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
          event::emit(SharedStorageEvent {
+            name: type,
+            aux: data,
+        });
+    }
+    public fun emit_automated_event(type: String, data: vector<Data>) {
+        vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
+         event::emit(AutomatedEvent {
             name: type,
             aux: data,
         });
