@@ -1,10 +1,10 @@
     [package]
-    name = "QiaraPerpsV41"
+    name = "QiaraPerpsV3"
     version = "2.1.1"
     authors = []
 
     [addresses]
-    dev = "0xd4fcdba413ff103eec996a07b795847a8b4ce5c328d35d9843dc5ec2230de605"
+    dev = "0xc536f11396d0510d90b021cbae973ab1f71155e8ff32c9d544bfb48212b11ac9"
     supra_framework = "0x1"
     std = "0x1"
     aptos_std = "0x1"
@@ -26,27 +26,37 @@
     rev = "dev"
     subdir = "aptos-move/framework/aptos-stdlib"
 
-    [dependencies.QiaraTokensV51]
-    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
-    rev = 'main'
-    subdir = 'Supra/TokensCore'
-    
-    [dependencies.QiaraTypesV30]
+    [dependencies.QiaraTypesV11]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Types'
 
-    [dependencies.QiaraMathV9]
+    [dependencies.QiaraTokensV12]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
-    subdir = 'Supra/Math'
+    subdir = 'Supra/TokensCore'
 
-    [dependencies.QiaraMarginV60]
+    [dependencies.QiaraMarginV15]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/Margin'
 
-    [dependencies.QiaraAutomationV9]
+    [dependencies.QiaraEventV15]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Event'
+
+    [dependencies.QiaraMathV1]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Math'
+
+    [dependencies.QiaraSharedV6]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Shared'
+
+    [dependencies.QiaraAutomationV1]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Supra/AutoCustom'
