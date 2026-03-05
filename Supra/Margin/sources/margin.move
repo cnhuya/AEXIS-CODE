@@ -1,4 +1,4 @@
-module dev::QiaraMarginV15{
+module dev::QiaraMarginV16{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -58,6 +58,8 @@ module dev::QiaraMarginV15{
     struct Credit has key, store, copy, drop{
         deposited: u256,
         borrowed: u256,
+        virtual_borrow: u256,
+        virtual_deposit: u256,
         staked: u256,
         stake_lock: u64, // epoch
         rewards: u256,
@@ -176,6 +178,46 @@ module dev::QiaraMarginV15{
                 balance.deposited = 0
             } else {
                 balance.deposited = balance.deposited - value;
+            };
+        };
+    }
+
+    public fun add_virtual_deposit(shared: String, user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
+        Shared::assert_is_sub_owner(shared, user);
+        {
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared, token, chain, provider);
+            balance.virtual_deposit = balance.virtual_deposit + value;
+        };
+    }
+
+    public fun remove_virtual_deposit(shared: String, user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
+        Shared::assert_is_sub_owner(shared, user);
+        {
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared, token, chain, provider);
+            if(value > balance.virtual_deposit){
+                balance.virtual_deposit = 0
+            } else {
+                balance.virtual_deposit = balance.virtual_deposit - value;
+            };
+        };
+    }
+
+    public fun add_virtual_borrow(shared: String, user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
+        Shared::assert_is_sub_owner(shared, user);
+        {
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared, token, chain, provider);
+            balance.virtual_borrow = balance.virtual_borrow + value;
+        };
+    }
+
+    public fun remove_virtual_borrow(shared: String, user: vector<u8>, token: String, chain: String,provider: String, value: u256, cap: Permission) acquires TokenHoldings{
+        Shared::assert_is_sub_owner(shared, user);
+        {
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared, token, chain, provider);
+            if(value > balance.virtual_borrow){
+                balance.virtual_borrow = 0
+            } else {
+                balance.virtual_borrow = balance.virtual_borrow - value;
             };
         };
     }
@@ -492,9 +534,9 @@ module dev::QiaraMarginV15{
     }
 
     #[view]
-    public fun get_user_raw_balance(shared: String, token: String, chain: String, provider: String): (u256, u256,u256, u256, u256, u256, u256, u256, u64) acquires TokenHoldings {
+    public fun get_user_raw_balance(shared: String, token: String, chain: String, provider: String): (u256, u256,u256,u256,u256, u256, u256, u256, u256, u256, u64) acquires TokenHoldings {
         let balance  = *find_balance(borrow_global_mut<TokenHoldings>(@dev),shared, token, chain, provider);
-        return (balance.deposited, balance.borrowed, balance.staked, balance.rewards, balance.reward_index_snapshot, balance.interest, balance.interest_index_snapshot, balance.locked_fee, balance.last_update)
+        return (balance.deposited, balance.borrowed, balance.virtual_deposit, balance.virtual_borrow, balance.staked, balance.rewards, balance.reward_index_snapshot, balance.interest, balance.interest_index_snapshot, balance.locked_fee, balance.last_update)
     }
 
     #[view]
@@ -563,6 +605,8 @@ module dev::QiaraMarginV15{
         let new_credit = Credit {
             deposited: 0,
             borrowed: 0,
+            virtual_borrow: 0,
+            virtual_deposit: 0,
             staked: 0,
             stake_lock: 0,
             rewards: 0,
