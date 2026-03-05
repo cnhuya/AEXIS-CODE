@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV14 {
+module dev::QiaraVaultsV15 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -868,7 +868,7 @@ module dev::QiaraVaultsV14 {
         Event::emit_market_event(utf8(b"Borrow"), data);
     }
 
-    public fun virtual_borrow(user: vector<u8>, shared: String, to: address, token: String, chain: String, provider: String, amount: u64, perm: Permission) acquires GlobalVault, Permissions {
+    public fun virtual_borrow(user: vector<u8>, shared: String, token: String, chain: String, provider: String, amount: u64, perm: Permission) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         let amount_u256 = (amount as u256)*1000000000000000000;
@@ -919,7 +919,7 @@ module dev::QiaraVaultsV14 {
 
         Event::emit_market_event(utf8(b"Virtual Borrow"), data);
     }
-    public fun virtual_deposit(user: vector<u8>, shared: String, to: address, token: String, chain: String, provider: String, amount: u64, perm: Permission) acquires GlobalVault, Permissions {
+    public fun virtual_deposit(user: vector<u8>, shared: String, token: String, chain: String, provider: String, amount: u64, perm: Permission) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         let amount_u256 = (amount as u256)*1000000000000000000;
