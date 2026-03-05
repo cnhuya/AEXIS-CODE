@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV13 {
+module dev::QiaraVaultsV14 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -519,6 +519,7 @@ module dev::QiaraVaultsV13 {
             Event::create_data_struct(utf8(b"consensus_type"), utf8(b"string"), bcs::to_bytes(&utf8(b"zk"))),
             Event::create_data_struct(utf8(b"validator"), utf8(b"vector<u8>"), bcs::to_bytes(&signer::address_of(validator))),
             Event::create_data_struct(utf8(b"sender"), utf8(b"vector<u8>"), bcs::to_bytes(&sender)),
+            Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
@@ -600,6 +601,7 @@ module dev::QiaraVaultsV13 {
         
         let data = vector[
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+            Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
@@ -640,6 +642,7 @@ module dev::QiaraVaultsV13 {
         
         let data = vector[
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+            Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
             Event::create_data_struct(utf8(b"token"), utf8(b"vector<String>"), bcs::to_bytes(&token)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"vector<String>"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"vector<String>"), bcs::to_bytes(&provider)),
@@ -737,6 +740,7 @@ module dev::QiaraVaultsV13 {
         let data = vector[
             // Items from the event top-level fields
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+            Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
@@ -789,8 +793,8 @@ module dev::QiaraVaultsV13 {
         
         let data = vector[
             // Items from the event top-level fields
-            Event::create_data_struct(utf8(b"type"), utf8(b"string"), bcs::to_bytes(&utf8(b"Withdraw"))),
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+            Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
@@ -800,7 +804,6 @@ module dev::QiaraVaultsV13 {
             Event::create_data_struct(utf8(b"fee"), utf8(b"u256"), bcs::to_bytes(&fee)),
             Event::create_data_struct(utf8(b"points"), utf8(b"u256"), bcs::to_bytes(&user_points)),
             Event::create_data_struct(utf8(b"lend_rewards"), utf8(b"u256"), bcs::to_bytes(&user_lend_rewards)),
-
 
             Event::create_data_struct(utf8(b"total_rewards"), utf8(b"u256"), bcs::to_bytes(&total_rewards)),
             Event::create_data_struct(utf8(b"total_interest"), utf8(b"u256"), bcs::to_bytes(&total_interest))
@@ -843,6 +846,7 @@ module dev::QiaraVaultsV13 {
         let data = vector[
             // Items from the event top-level fields
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+            Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
@@ -864,19 +868,19 @@ module dev::QiaraVaultsV13 {
         Event::emit_market_event(utf8(b"Borrow"), data);
     }
 
-    public entry fun virtual_borrow(signer: &signer, shared: String, to: address, token: String, chain: String, provider: String, amount: u64) acquires GlobalVault, Permissions {
+    public fun virtual_borrow(user: vector<u8>, shared: String, to: address, token: String, chain: String, provider: String, amount: u64, perm: Permission) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
 
         let amount_u256 = (amount as u256)*1000000000000000000;
         let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
-        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"spot"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
+        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"perps"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
         
         fee = assert_minimal_fee(fee);
         
         let amount_u256_taxed = amount_u256-fee;
         if(amount_u256_taxed == 0) { return };
 
-        Margin::update_reward_index(shared, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
+        Margin::update_reward_index(shared, bcs::to_bytes(&user), token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
     
        // let storage = provider_vault.balance;
        // let storage_address_string = non_user_storage_helper(&storage);
@@ -884,15 +888,16 @@ module dev::QiaraVaultsV13 {
        // let fa = TokensCore::withdraw(storage_address_string, storage, amount, chain);
        // TokensCore::deposit(shared, primary_fungible_store::ensure_primary_store_exists(to,TokensCore::get_metadata(token)), fa, chain);
 
-        Margin::add_virtual_borrow(shared, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, amount_u256, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::add_virtual_borrow(shared, bcs::to_bytes(&user), token, chain, provider, amount_u256, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         provider_vault.virtual_borrowed = provider_vault.virtual_borrowed + amount_u256_taxed;
         assert!(provider_vault.total_deposited >= amount_u256_taxed, ERROR_NOT_ENOUGH_LIQUIDITY);
         provider_vault.total_deposited = provider_vault.total_deposited - amount_u256_taxed;
 
-        let (total_rewards, total_interest, user_borrow_interest, user_lend_rewards, staked_rewards,user_points) = new_accrue(provider_vault, shared, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider);
+        let (total_rewards, total_interest, user_borrow_interest, user_lend_rewards, staked_rewards,user_points) = new_accrue(provider_vault, shared, user, token, chain, provider);
         let data = vector[
             // Items from the event top-level fields
-            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
+            Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
@@ -912,7 +917,92 @@ module dev::QiaraVaultsV13 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
         };
 
-        Event::emit_market_event(utf8(b"Borrow"), data);
+        Event::emit_market_event(utf8(b"Virtual Borrow"), data);
+    }
+    public fun virtual_deposit(user: vector<u8>, shared: String, to: address, token: String, chain: String, provider: String, amount: u64, perm: Permission) acquires GlobalVault, Permissions {
+        assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
+
+        let amount_u256 = (amount as u256)*1000000000000000000;
+        let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
+        let (_, fee) = TokensMetadata::impact(token, amount_u256, provider_vault.total_deposited, false, utf8(b"perps"), TokensMetadata::give_permission(&borrow_global<Permissions>(@dev).tokens_metadata));
+        
+        fee = assert_minimal_fee(fee);
+        
+        let amount_u256_taxed = amount_u256-fee;
+        if(amount_u256_taxed == 0) { return };
+
+        Margin::update_reward_index(shared, bcs::to_bytes(&user), token, chain, provider, fee, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
+    
+       // let storage = provider_vault.balance;
+       // let storage_address_string = non_user_storage_helper(&storage);
+
+       // let fa = TokensCore::withdraw(storage_address_string, storage, amount, chain);
+       // TokensCore::deposit(shared, primary_fungible_store::ensure_primary_store_exists(to,TokensCore::get_metadata(token)), fa, chain);
+
+        Margin::add_virtual_deposit(shared, bcs::to_bytes(&user), token, chain, provider, amount_u256, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        provider_vault.virtual_deposited = provider_vault.virtual_deposited + amount_u256_taxed;
+        assert!(provider_vault.total_deposited >= amount_u256_taxed, ERROR_NOT_ENOUGH_LIQUIDITY);
+        provider_vault.total_deposited = provider_vault.total_deposited - amount_u256_taxed;
+
+        let (total_rewards, total_interest, user_borrow_interest, user_lend_rewards, staked_rewards,user_points) = new_accrue(provider_vault, shared, user, token, chain, provider);
+        let data = vector[
+            // Items from the event top-level fields
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
+            Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
+            Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
+            Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
+            Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
+
+            // Original items from the data vector
+            Event::create_data_struct(utf8(b"amount"), utf8(b"u256"), bcs::to_bytes(&amount_u256_taxed)),
+            Event::create_data_struct(utf8(b"fee"), utf8(b"u256"), bcs::to_bytes(&fee)),
+            Event::create_data_struct(utf8(b"points"), utf8(b"u256"), bcs::to_bytes(&user_points)),
+            Event::create_data_struct(utf8(b"lend_rewards"), utf8(b"u256"), bcs::to_bytes(&user_lend_rewards)),
+
+
+            Event::create_data_struct(utf8(b"total_rewards"), utf8(b"u256"), bcs::to_bytes(&total_rewards)),
+            Event::create_data_struct(utf8(b"total_interest"), utf8(b"u256"), bcs::to_bytes(&total_interest))
+        ];
+
+        if(user_borrow_interest > 0){
+            vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
+        };
+
+        Event::emit_market_event(utf8(b"Virtual Deposit"), data);
+    }
+
+    public fun virtual_repay(user: vector<u8>, shared: String, token: String, chain: String, provider: String, amount: u64, permission: Permission) acquires GlobalVault, Permissions {
+        assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
+        let amount_u256 = (amount as u256)*1000000000000000000;
+        let provider_vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider); 
+
+        Margin::remove_virtual_borrow(shared, bcs::to_bytes(&user), token, chain, provider, (amount as u256), Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        provider_vault.virtual_borrowed = provider_vault.virtual_borrowed - (amount as u256);
+        provider_vault.total_deposited = provider_vault.total_deposited + (amount as u256);
+
+        let (total_rewards, total_interest, user_borrow_interest, user_lend_rewards, staked_rewards, user_points) = new_accrue(provider_vault, shared, user, token, chain, provider);
+        let data = vector[
+            // Items from the event top-level fields
+            Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
+            Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
+            Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
+            Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
+            Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
+
+            // Original items from the data vector
+            Event::create_data_struct(utf8(b"amount"), utf8(b"u256"), bcs::to_bytes(&amount_u256)),
+            Event::create_data_struct(utf8(b"points"), utf8(b"u256"), bcs::to_bytes(&user_points)),
+            Event::create_data_struct(utf8(b"lend_rewards"), utf8(b"u256"), bcs::to_bytes(&user_lend_rewards)),
+
+            Event::create_data_struct(utf8(b"total_rewards"), utf8(b"u256"), bcs::to_bytes(&total_rewards)),
+            Event::create_data_struct(utf8(b"total_interest"), utf8(b"u256"), bcs::to_bytes(&total_interest))
+        ];
+
+        if (user_borrow_interest > 0) {
+            vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)));
+        };
+
+        Event::emit_market_event(utf8(b"Virtual Repay"), data);
     }
 
     public entry fun repay(signer: &signer,shared: String,  token: String, chain: String, provider: String, amount: u64) acquires GlobalVault, Permissions {
@@ -934,6 +1024,7 @@ module dev::QiaraVaultsV13 {
         let data = vector[
             // Items from the event top-level fields
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&signer::address_of(signer))),
+            Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
             Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"provider"), utf8(b"string"), bcs::to_bytes(&provider)),
