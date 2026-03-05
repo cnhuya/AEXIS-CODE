@@ -894,7 +894,7 @@ module dev::QiaraVaultsV15 {
         provider_vault.total_deposited = provider_vault.total_deposited - amount_u256_taxed;
 
         let (total_rewards, total_interest, user_borrow_interest, user_lend_rewards, staked_rewards,user_points) = new_accrue(provider_vault, shared, user, token, chain, provider);
-        let data = vector[
+      /*  let data = vector[
             // Items from the event top-level fields
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
             Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
@@ -917,7 +917,7 @@ module dev::QiaraVaultsV15 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
         };
 
-        Event::emit_market_event(utf8(b"Virtual Borrow"), data);
+        Event::emit_market_event(utf8(b"Virtual Borrow"), data);*/
     }
     public fun virtual_deposit(user: vector<u8>, shared: String, token: String, chain: String, provider: String, amount: u64, perm: Permission) acquires GlobalVault, Permissions {
         assert!(exists<GlobalVault>(@dev), ERROR_VAULT_NOT_INITIALIZED);
@@ -945,7 +945,7 @@ module dev::QiaraVaultsV15 {
         provider_vault.total_deposited = provider_vault.total_deposited - amount_u256_taxed;
 
         let (total_rewards, total_interest, user_borrow_interest, user_lend_rewards, staked_rewards,user_points) = new_accrue(provider_vault, shared, user, token, chain, provider);
-        let data = vector[
+/*        let data = vector[
             // Items from the event top-level fields
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
             Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
@@ -968,7 +968,7 @@ module dev::QiaraVaultsV15 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)))
         };
 
-        Event::emit_market_event(utf8(b"Virtual Deposit"), data);
+        Event::emit_market_event(utf8(b"Virtual Deposit"), data);*/
     }
 
     public fun virtual_repay(user: vector<u8>, shared: String, token: String, chain: String, provider: String, amount: u64, permission: Permission) acquires GlobalVault, Permissions {
@@ -981,7 +981,7 @@ module dev::QiaraVaultsV15 {
         provider_vault.total_deposited = provider_vault.total_deposited + (amount as u256);
 
         let (total_rewards, total_interest, user_borrow_interest, user_lend_rewards, staked_rewards, user_points) = new_accrue(provider_vault, shared, user, token, chain, provider);
-        let data = vector[
+/*        let data = vector[
             // Items from the event top-level fields
             Event::create_data_struct(utf8(b"sender"), utf8(b"address"), bcs::to_bytes(&user)),
             Event::create_data_struct(utf8(b"shared"), utf8(b"string"), bcs::to_bytes(&shared)),
@@ -1002,7 +1002,7 @@ module dev::QiaraVaultsV15 {
             vector::push_back(&mut data, Event::create_data_struct(utf8(b"borrow_interest"), utf8(b"u256"), bcs::to_bytes(&user_borrow_interest)));
         };
 
-        Event::emit_market_event(utf8(b"Virtual Repay"), data);
+        Event::emit_market_event(utf8(b"Virtual Repay"), data);*/
     }
 
     public entry fun repay(signer: &signer,shared: String,  token: String, chain: String, provider: String, amount: u64) acquires GlobalVault, Permissions {
