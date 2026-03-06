@@ -44,6 +44,10 @@ module dev::QiaraOracleV1 {
         isPositive: bool,
     }
 
+    fun tttta(x: u64){
+        abort(x);
+    }
+
 // === INIT === //
     fun init_module(admin: &signer) {
         assert!(signer::address_of(admin) == @dev, 1);
@@ -53,55 +57,57 @@ module dev::QiaraOracleV1 {
         };
     }
 
-public fun impact_price(name: String, oracleID: u64, impact: u256, isPositive: bool, native_oracle_weight: u256, perm: Permission): u256 acquires Prices {
+    public fun impact_price(name: String, oracleID: u64, impact: u256, isPositive: bool, native_oracle_weight: u256, perm: Permission): u256 acquires Prices {
 
-    let prices_storage = borrow_global_mut<Prices>(@dev);
-    let price = ensure_price(prices_storage, name, oracleID);
-    
-    // Capture old state for the event
-    let old_price_state = *price;
+        let prices_storage = borrow_global_mut<Prices>(@dev);
+        let price = ensure_price(prices_storage, name, oracleID);
+        
+        // Capture old state for the event
+        let old_price_state = *price;
 
-    let (supra_oracle_price, _, _, _) = supra_oracle_storage::get_price((oracleID as u32));
-    
-    // Scaling impact
-    let scaled_impact = (impact * 1_000_000) / native_oracle_weight;
-    if (scaled_impact == 0) { return 0 };
+        let (supra_oracle_price, _, _, _) = supra_oracle_storage::get_price((oracleID as u32));
+        
+        // Scaling impact
+        let scaled_impact = (impact * 1_000_000) / native_oracle_weight;
+        if (scaled_impact == 0) { return 0 };
 
-    if (isPositive) {
-        if (price.isPositive) {
-            price.value = price.value + scaled_impact;
-        } else {
-            if (scaled_impact >= price.value) {
-                price.value = scaled_impact - price.value;
-                price.isPositive = true;
+        if (isPositive) {
+            if (price.isPositive) {
+                price.value = price.value + scaled_impact;
             } else {
-                price.value = price.value - scaled_impact;
-            };
-        }
-    } else {
-        // Handle Negative Impact
-        if (price.isPositive) {
-            if (scaled_impact >= price.value) {
-                price.value = scaled_impact - price.value;
-                price.isPositive = false;
-            } else {
-                price.value = price.value - scaled_impact;
-            };
+                if (scaled_impact >= price.value) {
+                    price.value = scaled_impact - price.value;
+                    price.isPositive = true;
+                } else {
+                    price.value = price.value - scaled_impact;
+                };
+            }
         } else {
-            price.value = price.value + scaled_impact;
-        }
-    };
+            // Handle Negative Impact
+            if (price.isPositive) {
+                if (scaled_impact >= price.value) {
+                    price.value = scaled_impact - price.value;
+                    price.isPositive = false;
+                } else {
+                    price.value = price.value - scaled_impact;
+                };
+            } else {
+                price.value = price.value + scaled_impact;
+            }
+        };
+        event::emit(PriceChangeEvent {
+            supra_oracle_price: (supra_oracle_price as u256),
+            old_qiara_oracle_price_impact: old_price_state, 
+            new_qiara_oracle_price_impact: *price,   
+            time: timestamp::now_seconds(),
+        });
 
-    event::emit(PriceChangeEvent {
-        supra_oracle_price: (supra_oracle_price as u256),
-        old_qiara_oracle_price_impact: old_price_state, 
-        new_qiara_oracle_price_impact: *price,   
-        time: timestamp::now_seconds(),
-    });
+        // You need to decide if return value is % or the new absolute impact
+        let a =  calculate_impact_percentage((supra_oracle_price as u256), price.value, price.isPositive);
+        //tttta(9);
 
-    // You need to decide if return value is % or the new absolute impact
-    return calculate_impact_percentage((supra_oracle_price as u256), price.value, price.isPositive)
-}
+        return a/1_000_000
+    }
 
     fun ensure_price(prices: &mut Prices, name: String, oracleID: u64): &mut Integer{
         if (!map::contains_key(&prices.map, &name)) {
@@ -135,8 +141,13 @@ public fun impact_price(name: String, oracleID: u64, impact: u256, isPositive: b
 
     #[view]
     public fun viewPrice(name: String): u256 acquires Prices{
+        if (name == utf8(b"Qiara")) { return 0 };
 
-        let prices = borrow_global_mut<Prices>(@dev);
+            // Check if the Prices resource actually exists at @dev
+            assert!(exists<Prices>(@dev), 404); // Custom error code instead of Abort 1
+
+
+        let prices = borrow_global<Prices>(@dev);
 
         if (!map::contains_key(&prices.map, &name)) {
             abort(ERROR_TOKEN_PRICE_COULDNT_BE_FOUND)
@@ -183,7 +194,6 @@ public fun impact_price(name: String, oracleID: u64, impact: u256, isPositive: b
     public fun calculate_impact_percentage(supra_oracle_price: u256, impact: u256,  isPositive: bool): u256 {
         // Avoid division by zero
         if (supra_oracle_price == 0) { return 0 };
-
         if (isPositive) {
             // Returns the price multiplier (e.g., 1.05 * 1e18)
             return ((supra_oracle_price + impact) * 1_000_000_000_000_000_000) / supra_oracle_price
