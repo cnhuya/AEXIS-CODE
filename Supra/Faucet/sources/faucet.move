@@ -60,6 +60,8 @@ module dev::QiaraFaucetV1{
             table::add(&mut users_table.table, &name, timestamp::now_seconds());
         };
 
+
+
         let time_period = storage::expect_u64(storage::viewConstant(utf8(b"QiaraFaucet"), utf8(b"TIME_PERIOD"))),
         let faucet_usd_value = storage::expect_u64(storage::viewConstant(utf8(b"QiaraFaucet"), utf8(b"USD_VALUE"))),
 
@@ -68,6 +70,13 @@ module dev::QiaraFaucetV1{
         let i = 0;
 
         while (i < len_tokens) {
+
+            let user_last_claim = table::borrow_mut(&mut users_table.table, user);
+            if((timestamp::now_seconds() - user_last_claim) < time_period) {
+                i = i + 1;
+                continue
+            }
+
             let token = *vector::borrow(&tokens, i);
             let metadata = TokensTypes::get_coin_metadata_by_symbol(token);
             let price = (TokensTypes::get_coin_metadata_price(&metadata) as u256);
@@ -75,6 +84,10 @@ module dev::QiaraFaucetV1{
 
             let tokens = oracle::convert_to_token(token, faucet_usd_value);
             TokensCore::mint_to(user, name, token, metadata.chain, tokens, TokensCoreAccess::give_permission(&borrow_global<Permissions>(@dev).tokens_core));
+
+            table::upsert(&mut user_last_claim, user, timestamp::now_seconds());
+            i = i + 1;
+        }
     }
 
 
