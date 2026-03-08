@@ -120,8 +120,8 @@ module dev::QiaraLiquidityV3{
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
         let storage_address_string = non_user_storage_helper(&vault.storage);
 
-        vault.total_deposited = vault.total_deposited - amount;
-        internal_daily_withdraw_limit(token, vault, amount);
+        vault.total_deposited = vault.total_deposited - amount*1000000000000000000;
+        internal_daily_withdraw_limit(token, vault, amount*1000000000000000000);
         TokensCore::withdraw(storage_address_string, vault.storage, (amount as u64), chain)
 
     }
@@ -130,7 +130,7 @@ module dev::QiaraLiquidityV3{
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
         let storage_address_string = non_user_storage_helper(&vault.storage);
 
-        vault.total_deposited = vault.total_deposited + (fungible_asset::amount(&fa) as u256);
+        vault.total_deposited = vault.total_deposited + ((fungible_asset::amount(&fa) as u256)*1000000000000000000);
         TokensCore::deposit(storage_address_string, vault.storage, fa, chain);
 
     }
