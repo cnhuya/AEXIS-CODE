@@ -1,4 +1,4 @@
-module dev::QiaraFaucetV2{
+module dev::QiaraFaucetV3{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;
@@ -117,8 +117,8 @@ module dev::QiaraFaucetV2{
         internal_faucet(signer, shared, utf8(b"Supra"), utf8(b"Supra"));
         internal_faucet(signer, shared, utf8(b"USDT"), utf8(b"Base"));
         internal_faucet(signer, shared, utf8(b"USDC"), utf8(b"Base"));
-        internal_faucet(signer, shared, utf8(b"Qiara"), utf8(b"Sui"));
-        internal_faucet(signer, shared, utf8(b"Qiara"), utf8(b"Supra"));
+        //internal_faucet(signer, shared, utf8(b"Qiara"), utf8(b"Sui"));
+        //internal_faucet(signer, shared, utf8(b"Qiara"), utf8(b"Supra"));
 
         table::upsert(&mut users_table.table, shared, timestamp::now_seconds());
     }
