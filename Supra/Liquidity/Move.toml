@@ -1,0 +1,50 @@
+    [package]
+    name = "QiaraLiquidityV1"
+    version = "2.1.1"
+    authors = []
+
+    [addresses]
+    dev = "0xc536f11396d0510d90b021cbae973ab1f71155e8ff32c9d544bfb48212b11ac9"
+    supra_framework = "0x1"
+    std = "0x1"
+    aptos_std = "0x1"
+    Extensions = "0x1"
+    [dev-addresses]
+
+    [dependencies.SupraFramework]
+    git = "https://github.com/Entropy-Foundation/aptos-core.git"
+    rev = "dev"
+    subdir = "aptos-move/framework/supra-framework"
+
+
+    [dependencies.AptosStdlib]
+    git = "https://github.com/Entropy-Foundation/aptos-core.git"
+    rev = "dev"
+    subdir = "aptos-move/framework/aptos-stdlib"
+
+    [dependencies.QiaraStorageV1]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Storage'
+
+    [dependencies.QiaraTokensV12]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/TokensCore'
+
+    [dependencies.QiaraMarginV16]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Margin'
+
+    [dependencies.QiaraTypesV11]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Types'
+
+    [dependencies.QiaraSharedV6]
+    git = 'https://github.com/cnhuya/AEXIS-CODE.git'
+    rev = 'main'
+    subdir = 'Supra/Shared'
+
+    [dev-dependencies]
