@@ -1,4 +1,4 @@
-module dev::QiaraLiquidityV2{
+module dev::QiaraTokenIndexesV3{
     use std::signer;
     use std::timestamp;
     use std::vector;    
@@ -81,11 +81,11 @@ module dev::QiaraLiquidityV2{
         {
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token);
             vault.total_accumulated_rewards = vault.total_accumulated_rewards + value;
-            internal_update(vault);
         };
     }
 
-    fun internal_update(vault: &mut Vault){
+    public fun update(token: String, cap: Permission) acquires GlobalVault{
+        let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token);
         vault.last_update = timestamp::now_seconds();
     }
 

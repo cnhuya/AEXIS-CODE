@@ -1,4 +1,4 @@
-module dev::QiaraTokenIndexesV2{
+module dev::QiaraLiquidityV3{
     use std::signer;
     use std::timestamp;
     use std::vector;    
@@ -123,8 +123,6 @@ module dev::QiaraTokenIndexesV2{
         vault.total_deposited = vault.total_deposited + (fungible_asset::amount(&fa) as u256);
         TokensCore::deposit(storage_address_string, vault.storage, fa, chain);
 
-        internal_update(vault);
-
     }
 
 
@@ -132,7 +130,6 @@ module dev::QiaraTokenIndexesV2{
         {
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
             vault.total_deposited = vault.total_deposited + value;
-            internal_update(vault);
         };
     }
 
@@ -144,7 +141,6 @@ module dev::QiaraTokenIndexesV2{
             } else {
                 vault.total_deposited = vault.total_deposited - value;
             };
-            internal_update(vault);
         };
     }
 
@@ -152,7 +148,6 @@ module dev::QiaraTokenIndexesV2{
         {
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
             vault.total_borrowed = vault.total_borrowed + value;
-            internal_update(vault);
         };
     }
 
@@ -164,7 +159,6 @@ module dev::QiaraTokenIndexesV2{
             } else {
                 vault.total_borrowed = vault.total_borrowed - value;
             };
-            internal_update(vault);
         };
     }
 
@@ -173,7 +167,6 @@ module dev::QiaraTokenIndexesV2{
         {
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
             vault.virtual_borrowed = vault.virtual_borrowed + value;
-            internal_update(vault);
         };
     }
 
@@ -185,7 +178,6 @@ module dev::QiaraTokenIndexesV2{
             } else {
                 vault.virtual_borrowed = vault.virtual_borrowed - value;
             };
-            internal_update(vault);
         };
     }
 
@@ -194,7 +186,6 @@ module dev::QiaraTokenIndexesV2{
         {
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
             vault.virtual_deposited = vault.virtual_deposited + value;
-            internal_update(vault);
         };
     }
 
@@ -206,7 +197,6 @@ module dev::QiaraTokenIndexesV2{
             } else {
                 vault.virtual_deposited = vault.virtual_deposited - value;
             };
-            internal_update(vault);
         };
     }
 
@@ -214,7 +204,6 @@ module dev::QiaraTokenIndexesV2{
         {
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
             vault.total_staked = vault.total_staked + value;
-            internal_update(vault);
         };
     }
 
@@ -226,7 +215,6 @@ module dev::QiaraTokenIndexesV2{
             } else {
                 vault.total_staked = vault.total_staked - value;
             };
-            internal_update(vault);
         };
     }
 
@@ -234,18 +222,17 @@ module dev::QiaraTokenIndexesV2{
         {
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
             vault.total_accumulated_rewards = vault.total_accumulated_rewards + value;
-            internal_update(vault);
         };
     }
     public fun add_accumulated_interest(token: String, chain: String,provider: String, value: u256, cap: Permission) acquires GlobalVault{
         {
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
             vault.total_accumulated_interest = vault.total_accumulated_interest + value;
-            internal_update(vault);
         };
     }
 
-    fun internal_update(vault: &mut Vault){
+    public fun update(token: String,  chain: String,provider: String, cap: Permission) acquires GlobalVault{
+        let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
         vault.last_update = timestamp::now_seconds();
     }
 
@@ -271,8 +258,16 @@ module dev::QiaraTokenIndexesV2{
         return (vault.total_borrowed, vault.total_deposited, vault.total_staked, vault.total_accumulated_rewards, vault.total_accumulated_interest, vault.virtual_borrowed, vault.virtual_deposited, vault.last_update)
     }
 
+
     #[view]
-    public fun return_storage(token: String, chain: String,provider: String, value: u256): Object<FungibleStore> acquires GlobalVault{
+    public fun return_raw_vault_incentive(token: String, chain: String,provider: String): (u64, u64, u256) acquires GlobalVault{
+        let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
+
+        return (vault.incentive.start, vault.incentive.end, vault.incentive.per_second)
+    }
+
+    #[view]
+    public fun return_storage(token: String, chain: String,provider: String): Object<FungibleStore> acquires GlobalVault{
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
         return vault.storage
     }
