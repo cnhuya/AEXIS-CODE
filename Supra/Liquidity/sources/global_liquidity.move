@@ -1,4 +1,4 @@
-module dev::QiaraLiquidityV1{
+module dev::QiaraTokenIndexesV2{
     use std::signer;
     use std::timestamp;
     use std::vector;    
@@ -119,8 +119,12 @@ module dev::QiaraLiquidityV1{
     public fun deposit_token(token: String, chain: String,provider: String, fa: FungibleAsset, cap: Permission) acquires GlobalVault{
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
         let storage_address_string = non_user_storage_helper(&vault.storage);
+
+        vault.total_deposited = vault.total_deposited + (fungible_asset::amount(&fa) as u256);
         TokensCore::deposit(storage_address_string, vault.storage, fa, chain);
+
         internal_update(vault);
+
     }
 
 
@@ -268,7 +272,7 @@ module dev::QiaraLiquidityV1{
     }
 
     #[view]
-    public fun return_storage(token: String, chain: String,provider: String, value: u256, cap: Permission): Object<FungibleStore> acquires GlobalVault{
+    public fun return_storage(token: String, chain: String,provider: String, value: u256): Object<FungibleStore> acquires GlobalVault{
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
         return vault.storage
     }
