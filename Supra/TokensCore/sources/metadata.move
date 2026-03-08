@@ -8,6 +8,7 @@ module dev::QiaraTokensMetadataV12{
     use supra_framework::supra_coin::{Self, SupraCoin};
     use std::timestamp;
     use supra_framework::event;
+    use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 
     use dev::QiaraStorageV1::{Self as storage};
     use dev::QiaraMathV1::{Self as Math};
@@ -569,6 +570,19 @@ module dev::QiaraTokensMetadataV12{
             abort(ERROR_COIN_RESOURCE_NOT_FOUND_IN_LIST)
         }
 
+        #[view]
+        public fun get_all_metadata(name: vector<String>): Map<String, VMetadata> acquires Tokens {
+            let len = vector::length(&name);
+            let map = map::new<String, VMetadata>();
+            let i = 0;
+            while (i < len) {
+                let symbol = vector::borrow(&name, i);
+                let metadata = get_coin_metadata(*symbol);
+                map::upsert(&mut map, *symbol, metadata);
+                i = i + 1;
+            };
+            map
+        }
 
         public fun get_coin_metadata_symbol(metadata: &VMetadata): String {
             metadata.symbol
@@ -726,11 +740,20 @@ module dev::QiaraTokensMetadataV12{
             let vault_list = borrow_global_mut<Tokens>(@dev);
             let len = vector::length(&vault_list.list);
 
+            let price = 0;
+            let denom = 0;
+
             while (len > 0) {
                 let metadat = vector::borrow(&vault_list.list, len - 1);
                 if (metadat.symbol == res) {
-                    let (price, price_decimals, _, _) = supra_oracle_storage::get_price(metadat.oracleID);
-                    let denom = Math::pow10_u256((price_decimals as u8));
+                    if(res == utf8(b"Qiara")){
+                        price = 0;
+                        denom = 0;
+                    } else {
+                        let (_, price_decimals, _, _) = supra_oracle_storage::get_price(metadat.oracleID);
+                        price = (oracle::viewPrice(metadat.symbol) as u128);
+                        denom = Math::pow10_u256((price_decimals as u8));
+                    };
                     let tier;
 
                     if(metadat.penalty_expiry > timestamp::now_seconds()){

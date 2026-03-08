@@ -279,6 +279,8 @@ module dev::QiaraTokensCoreV12{
     fun internal_deposit<T: key>(shared: String,store: Object<T>,fa: FungibleAsset, chain: String, managed: &ManagedFungibleAsset) acquires Permissions {
         ChainTypes::ensure_valid_chain_name(chain);
         fungible_asset::set_frozen_flag(&managed.transfer_ref, store, true);
+
+        
         if(fungible_asset::amount(&fa) == 0){
            fungible_asset::destroy_zero(fa);
            return
