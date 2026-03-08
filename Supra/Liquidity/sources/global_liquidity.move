@@ -116,6 +116,15 @@ module dev::QiaraLiquidityV3{
         return (storage_address_bytes)
     }
 
+    public fun withdraw_token(token: String, chain: String,provider: String, amount:u256, cap: Permission): FungibleAsset acquires GlobalVault{
+        let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
+        let storage_address_string = non_user_storage_helper(&vault.storage);
+
+        vault.total_deposited = vault.total_deposited - amount;
+        TokensCore::withdraw(storage_address_string, vault.storage, (amount as u64), chain)
+
+    }
+
     public fun deposit_token(token: String, chain: String,provider: String, fa: FungibleAsset, cap: Permission) acquires GlobalVault{
         let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token, chain, provider);
         let storage_address_string = non_user_storage_helper(&vault.storage);
