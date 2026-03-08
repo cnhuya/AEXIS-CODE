@@ -1,4 +1,4 @@
-module dev::QiaraFaucetV1{
+module dev::QiaraFaucetV2{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;
@@ -81,7 +81,7 @@ module dev::QiaraFaucetV1{
         let users_table = borrow_global_mut<Users>(@dev);
 
         if(!table::contains(&users_table.table, shared)) {
-            table::add(&mut users_table.table, shared, timestamp::now_seconds());
+            table::add(&mut users_table.table, shared, 0);
         };
 
         let time_period = storage::expect_u64(storage::viewConstant(utf8(b"QiaraFaucet"), utf8(b"TIME_PERIOD")));
