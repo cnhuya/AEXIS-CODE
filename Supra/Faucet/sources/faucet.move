@@ -1,4 +1,4 @@
-module dev::QiaraFaucetV3{
+module dev::QiaraFaucetV4{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;
