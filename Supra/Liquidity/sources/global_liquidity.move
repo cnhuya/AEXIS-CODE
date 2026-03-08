@@ -121,6 +121,7 @@ module dev::QiaraLiquidityV3{
         let storage_address_string = non_user_storage_helper(&vault.storage);
 
         vault.total_deposited = vault.total_deposited - amount;
+        internal_daily_withdraw_limit(token, vault, amount);
         TokensCore::withdraw(storage_address_string, vault.storage, (amount as u64), chain)
 
     }
