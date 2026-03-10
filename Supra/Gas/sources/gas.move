@@ -1,4 +1,4 @@
-module dev::QiaraGasV2{
+module dev::QiaraGasV3{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -9,19 +9,8 @@ module dev::QiaraGasV2{
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use aptos_std::math128 ::{Self as math128};
 
-    use dev::QiaraMarginV16::{Self as Margin, Access as MarginAccess};
-    use dev::QiaraRIV16::{Self as RI};
-    use dev::QiaraEventV15::{Self as Event};
-    use dev::QiaraTokensMetadataV12::{Self as TokensMetadata, VMetadata};
+    use dev::QiaraOracleV1::{Self as Oracle};
 
-    use dev::QiaraSharedV6::{Self as Shared};
-
-    use dev::QiaraTokenTypesV11::{Self as TokensTypes};
-
-    use dev::QiaraMathV1::{Self as QiaraMath};
-    use dev::QiaraNonceV5::{Self as Nonce, Access as NonceAccess};
-
-    use dev::QiaraVaultsV15::{Self as Market, Access as MarketAccess};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -63,31 +52,31 @@ module dev::QiaraGasV2{
         };
     }
 
-    public fun add_leverage(leverage: u64) acquires Gas {
+    public fun add_leverage(token: String,leverage: u64) acquires Gas {
         let gas = borrow_global_mut<Gas>(@dev);
         gas.avg_leverage = gas.avg_leverage + leverage;
     }
 
 
-    public fun add_deposit(deposit: u256) acquires Gas {
+    public fun add_deposit(token: String, deposit: u256) acquires Gas {
         let gas = borrow_global_mut<Gas>(@dev);
-        gas.usd_deposits = gas.usd_deposits + deposit;
+        gas.usd_deposits = gas.usd_deposits + Oracle::convert_to_usd(token, deposit);
         let (gas_rate, _, _, _, _, _) = calculateGas(gas, deposit, 0);
         gas.gas = gas_rate;
     }
 
 
-    public fun add_withdraw(withdraw: u256) acquires Gas {
+    public fun add_withdraw(token: String,withdraw: u256) acquires Gas {
         let gas = borrow_global_mut<Gas>(@dev);
-        gas.usd_withdrawals = gas.usd_withdrawals + withdraw;
+        gas.usd_withdrawals = gas.usd_withdrawals + Oracle::convert_to_usd(token, withdraw);
         let (gas_rate, _, _, _, _, _) = calculateGas(gas, 0, withdraw);
         gas.gas = gas_rate;
     }
 
 
-    public fun add_borrow(borrow: u256) acquires Gas {
+    public fun add_borrow(token: String,borrow: u256) acquires Gas {
         let gas = borrow_global_mut<Gas>(@dev);
-        gas.usd_borrows = gas.usd_borrows + borrow;
+        gas.usd_borrows = gas.usd_borrows + Oracle::convert_to_usd(token, borrow);
         let (gas_rate, _, _, _, _, _) = calculateGas(gas, 0, 0);
         gas.gas = gas_rate;
     }
