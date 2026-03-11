@@ -1,4 +1,4 @@
-module dev::QiaraTokensMetadataV12{
+module dev::QiaraTokensMetadataV1{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -13,8 +13,8 @@ module dev::QiaraTokensMetadataV12{
     use dev::QiaraStorageV1::{Self as storage};
     use dev::QiaraMathV1::{Self as Math};
 
-    use dev::QiaraTokensRatesV12::{Self as rates};
-    use dev::QiaraTokensTiersV12::{Self as tier};
+    use dev::QiaraTokensRatesV1::{Self as rates};
+    use dev::QiaraTokensTiersV1::{Self as tier};
 
     use dev::QiaraOracleV1::{Self as oracle, Access as OracleAccess};
 
@@ -392,25 +392,52 @@ module dev::QiaraTokensMetadataV12{
     }
 
     #[view]
-    public fun calculate_price_impact_perp(token: String, liquidity: u256, value: u256): (u256) acquires Tokens{
+    public fun calculate_price_impact_perp(token: String, additional_liquidity: u256, value: u256): (u256) acquires Tokens{
 
         let metadata = get_coin_metadata_by_symbol(token);
         let valueUSD = getValue(token, value*1000000000000000000);
-        let liquidityUSD = getValue(token, liquidity*1000000000000000000);
+        let additional_liquidityUSD = getValue(token, additional_liquidity*1000000000000000000);
         let fdvUSD = ((get_coin_metadata_fdv(&metadata) as u256)*1000000000000000000*10_000_000);
 
+        let base_liquidity = fdvUSD/100; // 1%
+        let liquidityUSD = base_liquidity + additional_liquidityUSD;
         let price = getValue(token, 1*1000000000000000000);
 
-        assert!(valueUSD < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
+        //assert!(valueUSD < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
         assert!(valueUSD >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); 
 
-        let denominator = ((fdvUSD / 100) - valueUSD + (liquidityUSD * 2) - valueUSD);
+        //let denominator = ((fdvUSD / 100) - valueUSD + (liquidityUSD * 2) - valueUSD);
 
         //(1402450*100_000_000_000_000)/1402449997195100
 
         // Standardize the result to 6 decimal places (1,000,000 = 100%)
-        let impact = ((valueUSD * 1000000000000000000) / denominator);
+        let impact = ((valueUSD * 1000000000000000000) / liquidityUSD);
         return (price*impact)/1_000_000_000_000_000_000
+    }
+
+    #[view]
+    public fun calculate_price_impact_perp2(token: String, additional_liquidity: u256, value: u256): (u256,u256,u256,u256,u256,u256) acquires Tokens{
+
+        let metadata = get_coin_metadata_by_symbol(token);
+        let valueUSD = getValue(token, value*1000000000000000000);
+        let additional_liquidityUSD = getValue(token, additional_liquidity*1000000000000000000);
+        let fdvUSD = ((get_coin_metadata_fdv(&metadata) as u256)*1000000000000000000);
+
+        let base_liquidity = fdvUSD; // 1%
+        let liquidityUSD = (base_liquidity + additional_liquidityUSD*2);
+        let price = getValue(token, 1*1000000000000000000);
+
+        //assert!(valueUSD < fdvUSD/10, ERROR_SIZE_TOO_BIG_COMAPRED_TO_DV); // essentially Value cant be higher than 10% of FDV
+        assert!(valueUSD >= 1000000000000000000, ERROR_MINIMUM_VALUE_NOT_MET); 
+
+        //let denominator = ((fdvUSD / 100) - valueUSD + (liquidityUSD * 2) - valueUSD);
+
+        //(1402450*100_000_000_000_000)/1402449997195100
+
+        // Standardize the result to 6 decimal places (1,000,000 = 100%)
+        let impact = ((valueUSD * 1000000000000000000) / liquidityUSD);
+        let final = (price*impact)/1_000_000_000_000_000_000;
+        return(price, final,impact,liquidityUSD,fdvUSD,base_liquidity)
     }
 
 

@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV12{
+module dev::QiaraTokensCoreV1{
     use std::signer;
     use std::option;
     use std::vector;
@@ -18,21 +18,21 @@ module dev::QiaraTokensCoreV12{
     use aptos_std::string_utils ::{Self as string_utils};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV12::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV12::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensTiersV12::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV12::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV1::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV1::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensTiersV1::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV1::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
-    use dev::QiaraNonceV5::{Self as Nonce, Access as NonceAccess};
+    use dev::QiaraNonceV1::{Self as Nonce, Access as NonceAccess};
 
-    use dev::QiaraSharedV6::{Self as Shared};
+    use dev::QiaraSharedV1::{Self as Shared};
 
-    use dev::QiaraEventV15::{Self as Event};
-    use dev::QiaraStoragesV11::{Self as Storages};
+    use dev::QiaraEventV1::{Self as Event};
+    use dev::QiaraStoragesV1::{Self as Storages};
 
-    use dev::QiaraChainTypesV11::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV11::{Self as TokensType};
-    use dev::QiaraProviderTypesV11::{Self as ProviderTypes};
+    use dev::QiaraChainTypesV1::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV1::{Self as TokensType};
+    use dev::QiaraProviderTypesV1::{Self as ProviderTypes};
 
     const ADMIN: address = @dev;
 
@@ -244,12 +244,12 @@ module dev::QiaraTokensCoreV12{
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV12"),
+            string::utf8(b"QiaraTokensCoreV1"),
             string::utf8(b"c_deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV12"),
+            string::utf8(b"QiaraTokensCoreV1"),
             string::utf8(b"c_withdraw"),
         );
    
@@ -352,6 +352,11 @@ module dev::QiaraTokensCoreV12{
         Shared::assert_is_sub_owner(shared, bcs::to_bytes(&address));
         let asset = get_metadata(symbol); 
         let managed = authorized_borrow_refs(symbol);
+
+        if(!account::exists_at(address)){
+            TokensOmnichain::change_UserTokenSupply(symbol, chain, shared, amount, true, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
+            return
+        };
         let fa = internal_mint(symbol, chain, amount, managed);
         let to = primary_fungible_store::ensure_primary_store_exists(address,asset);
         internal_deposit(shared, to, fa, chain, managed);
