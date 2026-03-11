@@ -1,4 +1,4 @@
-module dev::QiaraEventV15 {
+module dev::QiaraEventV1 {
     use std::vector;
     use std::signer;
     use std::bcs;
@@ -6,6 +6,7 @@ module dev::QiaraEventV15 {
     use std::timestamp;
     use std::hash;
     use supra_framework::event;
+
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
