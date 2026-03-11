@@ -1,4 +1,4 @@
-module dev::QiaraGovernanceV6 {
+module dev::QiaraGovernanceV1 {
     use std::signer;
     use std::string::{Self, String, utf8};
     use std::vector;
@@ -11,12 +11,12 @@ module dev::QiaraGovernanceV6 {
     use supra_framework::primary_fungible_store;
     use aptos_std::from_bcs;
 
-    use dev::QiaraEventV6::{Self as Event};
-    use dev::QiaraMarginV8::{Self as Margin};
+    use dev::QiaraEventV1::{Self as Event};
+    use dev::QiaraMarginV1::{Self as Margin};
 
-    use dev::QiaraStorageV6::{Self as storage, Access as StorageAccess};
-    use dev::QiaraCapabilitiesV6::{Self as capabilities, Access as CapabilitiesAccess};
-    use dev::QiaraFunctionsV6::{Self as functions, Access as FunctionAccess};
+    use dev::QiaraStorageV1::{Self as storage, Access as StorageAccess};
+    use dev::QiaraCapabilitiesV1::{Self as capabilities, Access as CapabilitiesAccess};
+    use dev::QiaraFunctionsV1::{Self as functions, Access as FunctionAccess};
     use dev::QiaraSharedV1::{Self as TokensShared};
     const OWNER: address = @dev;
 
@@ -257,21 +257,21 @@ module dev::QiaraGovernanceV6 {
 
             let data = vector[
                 Event::create_data_struct(utf8(b"proposal_id"), utf8(b"u64"), bcs::to_bytes(&id)),
-                Event::create_data_struct(utf8(b"type"), utf8(b"u64"), bcs::to_bytes(&type)),
-                Event::create_data_struct(utf8(b"proposer"), utf8(b"bool"), bcs::to_bytes(&proposer)),
+                Event::create_data_struct(utf8(b"type"), utf8(b"vector<string>"), bcs::to_bytes(&type)),
+                Event::create_data_struct(utf8(b"proposer"), utf8(b"address"), bcs::to_bytes(&proposer)),
                 Event::create_data_struct(utf8(b"duration"), utf8(b"u64"), bcs::to_bytes(&duration)),
-                Event::create_data_struct(utf8(b"header"), utf8(b"bool"), bcs::to_bytes(&header)),
-                Event::create_data_struct(utf8(b"constant"), utf8(b"u64"), bcs::to_bytes(&constant)),
-                Event::create_data_struct(utf8(b"new_value"), utf8(b"u64"), bcs::to_bytes(&new_value)),
-                Event::create_data_struct(utf8(b"value_type"), utf8(b"bool"), bcs::to_bytes(&value_type)),
-                Event::create_data_struct(utf8(b"isChange"), utf8(b"bool"), bcs::to_bytes(&isChange)),
-                Event::create_data_struct(utf8(b"editable"), utf8(b"bool"), bcs::to_bytes(&editable)),
-                Event::create_data_struct(utf8(b"yes"), utf8(b"bool"), bcs::to_bytes(&yes)),
-                Event::create_data_struct(utf8(b"no"), utf8(b"bool"), bcs::to_bytes(&no)),
-                Event::create_data_struct(utf8(b"result"), utf8(b"bool"), bcs::to_bytes(&result)),
+                Event::create_data_struct(utf8(b"header"), utf8(b"vector<string>"), bcs::to_bytes(&header)),
+                Event::create_data_struct(utf8(b"constant"), utf8(b"vector<string>"), bcs::to_bytes(&constant)),
+                Event::create_data_struct(utf8(b"new_value"), utf8(b"vector<vector<u8>>"), bcs::to_bytes(&new_value)),
+                Event::create_data_struct(utf8(b"value_type"), utf8(b"vector<string>"), bcs::to_bytes(&value_type)),
+                Event::create_data_struct(utf8(b"isChange"), utf8(b"vector<bool>"), bcs::to_bytes(&isChange)),
+                Event::create_data_struct(utf8(b"editable"), utf8(b"vector<bool>"), bcs::to_bytes(&editable)),
+                Event::create_data_struct(utf8(b"yes"), utf8(b"u256"), bcs::to_bytes(&yes)),
+                Event::create_data_struct(utf8(b"no"), utf8(b"u256"), bcs::to_bytes(&no)),
+                Event::create_data_struct(utf8(b"result"), utf8(b"u8"), bcs::to_bytes(&result)),
             ];
 
-            Event::emit_governance_event(utf8(b"Proposal Result"), data, utf8(b"none"));
+            Event::emit_governance_event(utf8(b"Proposal Result"), data);
             len = idx;
             };
         }
@@ -310,7 +310,7 @@ module dev::QiaraGovernanceV6 {
                 Event::create_data_struct(utf8(b"isYes"), utf8(b"bool"), bcs::to_bytes(&isYes)),
             ];
 
-            Event::emit_governance_event(utf8(b"Vote"), data, utf8(b"none"))
+            Event::emit_governance_event(utf8(b"Vote"), data)
 
     }
 
