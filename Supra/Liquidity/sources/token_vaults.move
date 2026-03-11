@@ -25,7 +25,7 @@ module dev::QiaraTokenVaultsV1{
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
-    const ERROR_WITHDRAW_LIMIT_EXCEEDED: u64 = 2;
+    const ERROR_INVALID_VAULT_TYPE: u64 = 2;
 
 // === ACCESS === //
     struct Access has store, key, drop {}
@@ -55,7 +55,7 @@ module dev::QiaraTokenVaultsV1{
         last_update: u64,
     }
 
-    struct GlobalVault has key {
+    struct GlobalVault has key, copy {
         //  token, chain, provider
         additional_rewards: Map<String,Vault>,
         protocol_reserves: Map<String,Vault>,
@@ -87,7 +87,7 @@ module dev::QiaraTokenVaultsV1{
     }
 
     public fun update(type: String, token: String, cap: Permission) acquires GlobalVault{
-        let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), token);
+        let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), type, token);
         vault.last_update = timestamp::now_seconds();
     }
 
@@ -95,30 +95,33 @@ module dev::QiaraTokenVaultsV1{
 // === PUBLIC VIEWS === //
 
     #[view]
-    public fun return_vaults(tokens: vector<String>): Map<String, Vault> acquires GlobalVault {
-        let vaults = borrow_global<GlobalVault>(@dev);
-        return vaults.map
+    public fun return_vaults(tokens: vector<String>): GlobalVault acquires GlobalVault {
+        return *borrow_global<GlobalVault>(@dev)
     }
 
 // === MUT RETURNS === //
     fun find_vault(vaults: &mut GlobalVault, type: String, token: String): &mut Vault {
-        let metadata = TokensCore::get_metadata(token);
-
-        let map = if(type == "protocol_revenue"){
+        // 1. Identify which map we are targeting
+        let target_map = if (type == utf8(b"protocol_revenue")) {
             &mut vaults.protocol_revenue
-        }else if(type == "protocol_reserves"){
+        } else if (type == utf8(b"protocol_reserves")) {
             &mut vaults.protocol_reserves
-        }else if(type == "additional_rewards"){
+        } else if (type == utf8(b"additional_rewards")) {
             &mut vaults.additional_rewards
+        } else {
+            abort(ERROR_INVALID_VAULT_TYPE)
         };
 
-        if(!map::contains_key(&vaults.map, &token)){
-            map::add(map, token, Vault {
+        // 2. Check the TARGET map (not vaults.map) for the token
+        // Note: We provide the type <String, Vault> to help the compiler infer types
+        if (!map::contains_key<String, Vault>(target_map, &token)) {
+            map::add(target_map, token, Vault {
                 last_update: timestamp::now_seconds(),
                 total_accumulated_rewards: 0,
             });
         };
-        return map::borrow_mut(map, &token)
 
+        // 3. Return the mutable reference from the chosen map
+        map::borrow_mut(target_map, &token)
     }
 }
