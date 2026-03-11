@@ -9,14 +9,14 @@ module dev::QiaraMarginV1{
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::bcs;
 
-    use dev::QiaraTokensMetadataV12::{Self as TokensMetadata};
+    use dev::QiaraTokensMetadataV1::{Self as TokensMetadata};
 
-    use dev::QiaraTokenTypesV11::{Self as TokensType};
+    use dev::QiaraTokenTypesV1::{Self as TokensType};
     
     use dev::QiaraMathV1::{Self as QiaraMath};
     use dev::QiaraGenesisV1::{Self as Genesis};
 
-    use dev::QiaraSharedV6::{Self as Shared};
+    use dev::QiaraSharedV1::{Self as Shared};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
