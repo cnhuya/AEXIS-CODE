@@ -1,4 +1,4 @@
-module dev::QiaraGasV1{
+module dev::QiaraGasV2{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -118,24 +118,13 @@ module dev::QiaraGasV1{
         let last_update_sec = ((timestamp::now_seconds() - gas_ref.last_update) as u256);
 
         // Standard decay logic
-        let previous_deposit_impact = if (gas_ref.usd_deposits > 0) {
-            let decay = (gas_ref.usd_deposits * skewer * last_update_sec) / e6;
-            if (gas_ref.usd_deposits > decay) gas_ref.usd_deposits - decay else 0
-        } else { 0 };
-
-        let previous_withdrawal_impact = if (gas_ref.usd_withdrawals > 0) {
-            let decay = (gas_ref.usd_withdrawals * skewer * last_update_sec) / e6;
-            if (gas_ref.usd_withdrawals > decay) gas_ref.usd_withdrawals - decay else 0
-        } else { 0 };
+        let previous_deposit_impact = gas_ref.usd_deposits-((gas_ref.usd_deposits*skewer*last_update_sec)/1_000_000);
+        let previous_withdrawal_impact = gas_ref.usd_withdrawals-((gas_ref.usd_withdrawals*skewer*last_update_sec)/1_000_000);
 
         let new_deposits = deposit + previous_deposit_impact;
         let new_withdrawals = withdrawal + previous_withdrawal_impact;
 
-        let ratio = if (new_deposits > 0) {
-            (new_withdrawals * withdrawal_weight) / new_deposits
-        } else {
-            0
-        };
+        let ratio = (new_withdrawals * withdrawal_weight) / new_deposits;
 
         let total_fee = (base * ((ratio * ratio) / e6) / e6) + (gas_ref.avg_leverage as u256) + base;
         
