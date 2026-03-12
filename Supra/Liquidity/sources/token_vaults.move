@@ -1,4 +1,4 @@
-module dev::QiaraTokenVaultsV1{
+module dev::QiaraTokenVaultsV2{
     use std::signer;
     use std::timestamp;
     use std::vector;    
@@ -50,23 +50,18 @@ module dev::QiaraTokenVaultsV1{
 
 
 // === STRUCTS === //
-    struct Vault has key, store, copy, drop{
-        total_accumulated_rewards: u256,
-        last_update: u64,
-    }
-
     struct GlobalVault has key, copy {
         //  token, chain, provider
-        additional_rewards: Map<String,Vault>,
-        protocol_reserves: Map<String,Vault>,
-        protocol_revenue: Map<String,Vault>
+        additional_rewards: Map<String,u256>,
+        protocol_reserves: Map<String,u256>,
+        protocol_revenue: Map<String,u256>
     }
 
 
 // === INIT === //
     fun init_module(admin: &signer){
         if (!exists<GlobalVault>(@dev)) {
-            move_to(admin, GlobalVault { additional_rewards: map::new<String, Vault>(),protocol_reserves: map::new<String, Vault>(),protocol_revenue: map::new<String, Vault>() });
+            move_to(admin, GlobalVault { additional_rewards: map::new<String, u256>(),protocol_reserves: map::new<String, u256>(),protocol_revenue: map::new<String, u256>() });
         };
         if (!exists<Permissions>(@dev)) {
             move_to(admin, Permissions {margin: Margin::give_access(admin), points: Points::give_access(admin), tokens_rates:  TokensRates::give_access(admin), tokens_core: TokensCore::give_access(admin)});
@@ -80,15 +75,18 @@ module dev::QiaraTokenVaultsV1{
 
     public fun add_accumulated_rewards(type: String, token: String ,value: u256, cap: Permission) acquires GlobalVault{
         {
-        let vault = find_vault(borrow_global_mut<GlobalVault>(@dev),type, token);
+        let rewards = find_vault(borrow_global_mut<GlobalVault>(@dev),type, token);
 
-        vault.total_accumulated_rewards = vault.total_accumulated_rewards + value;
+        *rewards = *rewards + value;
         };
     }
 
-    public fun update(type: String, token: String, cap: Permission) acquires GlobalVault{
-        let vault = find_vault(borrow_global_mut<GlobalVault>(@dev), type, token);
-        vault.last_update = timestamp::now_seconds();
+    public fun fast_add_accumulated_rewards(token: String , value: u256, cap: Permission) acquires GlobalVault{
+        let value_protocol_revenue = value / 2;
+        let value_protocol_reserves = value-value_protocol_revenue;
+
+        add_accumulated_rewards(utf8(b"protocol_revenue"), token, value_protocol_revenue, give_permission(&Access{}));
+        add_accumulated_rewards(utf8(b"protocol_reserves"), token, value_protocol_reserves, give_permission(&Access{}));
     }
 
 
@@ -100,7 +98,7 @@ module dev::QiaraTokenVaultsV1{
     }
 
 // === MUT RETURNS === //
-    fun find_vault(vaults: &mut GlobalVault, type: String, token: String): &mut Vault {
+    fun find_vault(vaults: &mut GlobalVault, type: String, token: String): &mut u256 {
         // 1. Identify which map we are targeting
         let target_map = if (type == utf8(b"protocol_revenue")) {
             &mut vaults.protocol_revenue
@@ -112,16 +110,10 @@ module dev::QiaraTokenVaultsV1{
             abort(ERROR_INVALID_VAULT_TYPE)
         };
 
-        // 2. Check the TARGET map (not vaults.map) for the token
-        // Note: We provide the type <String, Vault> to help the compiler infer types
-        if (!map::contains_key<String, Vault>(target_map, &token)) {
-            map::add(target_map, token, Vault {
-                last_update: timestamp::now_seconds(),
-                total_accumulated_rewards: 0,
-            });
+        if (!map::contains_key(target_map, &token)) {
+            map::add(target_map, token, 0);
         };
 
-        // 3. Return the mutable reference from the chosen map
         map::borrow_mut(target_map, &token)
     }
 }
