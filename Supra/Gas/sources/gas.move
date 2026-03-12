@@ -8,7 +8,7 @@ module dev::QiaraGasV2{
     use supra_framework::event;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use aptos_std::math128 ::{Self as math128};
-
+    use dev::QiaraEventV1::{Self as Event};
     use dev::QiaraOracleV1::{Self as Oracle};
 
 
@@ -128,6 +128,15 @@ module dev::QiaraGasV2{
 
         let total_fee = (base * ((ratio * ratio) / e6) / e6) + (gas_ref.avg_leverage as u256) + base;
         
+
+        let data = vector[
+            // Items from the event top-level fields
+            Event::create_data_struct(utf8(b"gas"), utf8(b"u256"), bcs::to_bytes(&utf8(b"total_fee"))),
+            Event::create_data_struct(utf8(b"previous_deposit_impact"), utf8(b"u256"), bcs::to_bytes(&utf8(b"previous_deposit_impact"))),
+            Event::create_data_struct(utf8(b"previous_withdrawal_impact"), utf8(b"u256"), bcs::to_bytes(&utf8(b"previous_withdrawal_impact"))),
+        ];
+
+        Event::emit_historical_event(utf8(b"Gas"), data);
         return (total_fee, previous_deposit_impact, previous_withdrawal_impact, new_deposits, new_withdrawals, ((ratio * ratio) / e6))
     }
 
