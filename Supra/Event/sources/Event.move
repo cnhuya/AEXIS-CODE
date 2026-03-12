@@ -93,6 +93,11 @@ module dev::QiaraEventV1 {
         aux: vector<Data>,
     }
     #[event]
+    struct HistoricalEvent has copy, drop, store {
+        name: String,
+        aux: vector<Data>,
+    }
+    #[event]
     struct AutomatedEvent has copy, drop, store {
         name: String,
         aux: vector<Data>,
@@ -255,6 +260,13 @@ module dev::QiaraEventV1 {
     public fun emit_shared_storage_event(type: String, data: vector<Data>) {
         vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
          event::emit(SharedStorageEvent {
+            name: type,
+            aux: data,
+        });
+    }
+    public fun emit_historical_event(type: String, data: vector<Data>) {
+        vector::push_back(&mut data, Data {name: utf8(b"timestamp"), type: utf8(b"u64"), value: bcs::to_bytes(&timestamp::now_seconds())});   
+         event::emit(HistoricalEvent {
             name: type,
             aux: data,
         });

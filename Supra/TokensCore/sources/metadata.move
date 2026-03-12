@@ -486,36 +486,40 @@ module dev::QiaraTokensMetadataV1{
         return(percentage_impact, current_price, impact,fee,0, (vault_listed as u256))
     }
 
-    public fun impact(token: String, size: u256, liquidity: u256, isPositive: bool, type: String, perm:Permission): (u256,u256) acquires Permissions, Tokens{
-
+    public fun impact(token: String, size: u256, liquidity: u256, isPositive: bool, type: String, perm:Permission): (u256,u256) acquires Permissions, Tokens {
         let metadata = get_coin_metadata_by_symbol(token);
         let oracleID = get_coin_metadata_oracleID(&metadata);
         let tierID = get_coin_metadata_tier(&metadata);
-
         let vault_listed = get_coin_metadata_listed(&metadata);
-
         let oracle_native_weight = tier::oracle_native_weight(tierID);
 
-        // this needs to be done to assure that price exists in map (it sets the price to current price from oracle, which is enough for initialization)
-        if(!oracle::existsPrice(token)){
-            oracle::impact_price(token, (oracleID as u64), 0, isPositive, oracle_native_weight, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+        let impact_value = 0;
+
+        if (type == utf8(b"perps")) {
+            impact_value = calculate_price_impact_perp(token, liquidity, size);
+        } else if (type == utf8(b"spot")) {
+            impact_value = calculate_price_impact_spot(token, (tier::price_impact_penalty(tierID) as u256), ((vault_listed/3600) as u256), size, liquidity);
         };
-        let current_price = oracle::viewPrice(token);
 
-        let impact = 0;
+        // atomic call: impact_price already calls ensure_price internally
+        let percentage_impact = oracle::impact_price(
+            token, 
+            (oracleID as u64), 
+            impact_value, 
+            isPositive, 
+            oracle_native_weight, 
+            oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access)
+        );
+        // We get the price AFTER the impact is applied to ensure the map entry exists
+        let _current_price = oracle::viewPrice(token);
 
-        if(type == utf8(b"perps")){
-            (impact) = calculate_price_impact_perp(token, liquidity, size);
-        } else if (type == utf8(b"spot")){
-            (impact) = calculate_price_impact_spot(token,(tier::price_impact_penalty(tierID) as u256),((vault_listed/3600) as u256), size, liquidity);
-        };
-  
-        let percentage_impact = oracle::impact_price(token, (oracleID as u64), impact, isPositive, oracle_native_weight, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
-        let fee = percentage_impact*size;
+        let fee = (percentage_impact * size); // Standardize decimal scaling
 
-        return(percentage_impact, fee)
+        return (percentage_impact, fee)
     }
-
+    fun tttta(id: u64){
+        abort(id);
+    }
 
     fun associate_tier(credit: u256, stable: u8): u8{
 
