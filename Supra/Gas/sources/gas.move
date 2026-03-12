@@ -55,6 +55,7 @@ module dev::QiaraGasV2{
     public fun add_leverage(token: String,leverage: u64): u256 acquires Gas {
         let gas = borrow_global_mut<Gas>(@dev);
         gas.avg_leverage = gas.avg_leverage + leverage;
+        let (gas_rate, _, _, _, _, _) = calculateGas(gas, 0, 0);
         return gas_rate
     }
 
