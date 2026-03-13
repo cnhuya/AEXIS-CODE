@@ -156,7 +156,7 @@ module dev::QiaraOracleV1 {
             // If we don't have it in the map, we can't look up Supra.
             // Therefore, we return a 0 or abort with a clearer message.
             let (supra_oracle_price, _, _, _) = supra_oracle_storage::get_price(oracleID);
-            return supra_oracle_price
+            return (supra_oracle_price as u256)
         };
 
         let qiara_impact = map::borrow(&prices.map, &name);
