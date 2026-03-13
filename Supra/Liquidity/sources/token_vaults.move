@@ -2,6 +2,7 @@ module dev::QiaraTokenVaultsV2{
     use std::signer;
     use std::timestamp;
     use std::vector;    
+    use std::bcs;
     use std::string::{Self as String, String, utf8};
     use std::table::{Self as table, Table};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
@@ -11,6 +12,7 @@ module dev::QiaraTokenVaultsV2{
     use supra_framework::primary_fungible_store;
     use supra_framework::object::{Self, Object};
     use supra_framework::account;
+    use dev::QiaraEventV2::{Self as Event};
 
     use dev::QiaraTokensMetadataV1::{Self as TokensMetadata};
     use dev::QiaraTokensCoreV1::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
@@ -79,14 +81,23 @@ module dev::QiaraTokenVaultsV2{
 
         *rewards = *rewards + value;
         };
+
+        let data = vector[
+            // Items from the event top-level fields
+            Event::create_data_struct(utf8(b"token"), utf8(b"string"), bcs::to_bytes(&token)),
+            Event::create_data_struct(utf8(b"value"), utf8(b"u256"), bcs::to_bytes(&value)),
+        ];
+
+        Event::emit_historical_event(type, data);
+
     }
 
     public fun fast_add_accumulated_rewards(token: String , value: u256, cap: Permission) acquires GlobalVault{
         let value_protocol_revenue = value / 2;
         let value_protocol_reserves = value-value_protocol_revenue;
 
-        add_accumulated_rewards(utf8(b"protocol_revenue"), token, value_protocol_revenue, give_permission(&Access{}));
-        add_accumulated_rewards(utf8(b"protocol_reserves"), token, value_protocol_reserves, give_permission(&Access{}));
+        add_accumulated_rewards(utf8(b"Protocol Revenue"), token, value_protocol_revenue, give_permission(&Access{}));
+        add_accumulated_rewards(utf8(b"Protocol Reserves"), token, value_protocol_reserves, give_permission(&Access{}));
     }
 
 
@@ -100,11 +111,11 @@ module dev::QiaraTokenVaultsV2{
 // === MUT RETURNS === //
     fun find_vault(vaults: &mut GlobalVault, type: String, token: String): &mut u256 {
         // 1. Identify which map we are targeting
-        let target_map = if (type == utf8(b"protocol_revenue")) {
+        let target_map = if (type == utf8(b"Protocol Revenue")) {
             &mut vaults.protocol_revenue
-        } else if (type == utf8(b"protocol_reserves")) {
+        } else if (type == utf8(b"Protocol Reserves")) {
             &mut vaults.protocol_reserves
-        } else if (type == utf8(b"additional_rewards")) {
+        } else if (type == utf8(b"Additional Rewards")) {
             &mut vaults.additional_rewards
         } else {
             abort(ERROR_INVALID_VAULT_TYPE)
