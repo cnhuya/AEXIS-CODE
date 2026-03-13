@@ -1,4 +1,4 @@
-module dev::QiaraVaultsV1 {
+module dev::QiaraVaultsV3 {
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::timestamp;
@@ -37,12 +37,12 @@ module dev::QiaraVaultsV1 {
 
     use dev::QiaraSharedV1::{Self as Shared};
 
-    use dev::QiaraGasV1::{Self as Gas};
+    use dev::QiaraGasV3::{Self as Gas};
 
-    use dev::QiaraLiquidityV1::{Self as Liquidity, Access as LiquidityAccess};
+    use dev::QiaraLiquidityV2::{Self as Liquidity, Access as LiquidityAccess};
+    use dev::QiaraTokenVaultsV2::{Self as TokenVaults, Access as TokenVaultsAccess};
 
-
-    use dev::QiaraEventV1::{Self as Event};
+    use dev::QiaraEventV2::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -89,6 +89,7 @@ module dev::QiaraVaultsV1 {
 
     struct Permissions has key, store, drop {
         liquidity: LiquidityAccess,
+        token_vaults: TokenVaultsAccess,
         margin: MarginAccess,
         points: PointsAccess,
         tokens_rates: TokensRatesAccess,
@@ -163,7 +164,7 @@ module dev::QiaraVaultsV1 {
 // === FUNCTIONS === //
     fun init_module(admin: &signer){
         if (!exists<Permissions>(@dev)) {
-            move_to(admin, Permissions {liquidity: Liquidity::give_access(admin), margin: Margin::give_access(admin), points: Points::give_access(admin), tokens_rates:  TokensRates::give_access(admin), tokens_omnichain: TokensOmnichain::give_access(admin), tokens_core: TokensCore::give_access(admin),tokens_metadata: TokensMetadata::give_access(admin), storage:  storage::give_access(admin), capabilities:  capabilities::give_access(admin), auto:  auto::give_access(admin)});
+            move_to(admin, Permissions {token_vaults: TokenVaults::give_access(admin), liquidity: Liquidity::give_access(admin), margin: Margin::give_access(admin), points: Points::give_access(admin), tokens_rates:  TokensRates::give_access(admin), tokens_omnichain: TokensOmnichain::give_access(admin), tokens_core: TokensCore::give_access(admin),tokens_metadata: TokensMetadata::give_access(admin), storage:  storage::give_access(admin), capabilities:  capabilities::give_access(admin), auto:  auto::give_access(admin)});
         };
     //    init_all_vaults(admin);
 
@@ -518,11 +519,12 @@ module dev::QiaraVaultsV1 {
         let fa = TokensCore::withdraw(shared, obj, amount, chain);
 
         Liquidity::deposit_token(token, chain, provider, fa, Liquidity::give_permission(&borrow_global<Permissions>(@dev).liquidity));
-
         Margin::update_reward_index(shared, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, total_accumulated_rewards, Margin::give_permission(&borrow_global<Permissions>(@dev).margin)); 
         Margin::add_deposit(shared, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, amount_u256_taxed, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         Margin::add_locked_fee(shared, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, ((fee-1000000000000000000)*99)/100, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
-        Gas::add_deposit(token, amount_u256);
+        let gas_rate = Gas::add_deposit(token, amount_u256);
+        let gas_fee = Gas::calculate_gas_fee(timestamp::now_seconds() - last_update, gas_rate, amount_u256);
+        TokenVaults::fast_add_accumulated_rewards(token, gas_fee,TokenVaults::give_permission(&borrow_global<Permissions>(@dev).token_vaults));
         let (total_rewards, total_interest, user_borrow_interest, user_lend_rewards, staked_rewards, user_points) = new_accrue(shared, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider);
             
         let data = vector[
@@ -536,6 +538,7 @@ module dev::QiaraVaultsV1 {
             // Original items from the data vector
             Event::create_data_struct(utf8(b"amount"), utf8(b"u256"), bcs::to_bytes(&amount_u256_taxed)),
             Event::create_data_struct(utf8(b"fee"), utf8(b"u256"), bcs::to_bytes(&fee)),
+            Event::create_data_struct(utf8(b"gas_fee"), utf8(b"u256"), bcs::to_bytes(&gas_fee)),
             Event::create_data_struct(utf8(b"points"), utf8(b"u256"), bcs::to_bytes(&user_points)),
             Event::create_data_struct(utf8(b"lend_rewards"), utf8(b"u256"), bcs::to_bytes(&user_lend_rewards)),
 
