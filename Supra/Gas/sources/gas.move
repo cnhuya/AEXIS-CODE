@@ -8,7 +8,7 @@ module dev::QiaraGasV3{
     use supra_framework::event;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use aptos_std::math128 ::{Self as math128};
-    use dev::QiaraEventV1::{Self as Event};
+    use dev::QiaraEventV2::{Self as Event};
     use dev::QiaraOracleV1::{Self as Oracle};
 
 
