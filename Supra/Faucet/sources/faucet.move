@@ -71,7 +71,7 @@ module dev::QiaraFaucetV1{
         let usd_value_u256 = (usd_value_raw as u256);
         let metadat = TokensMetadata::get_coin_metadata_by_symbol(token);
         let oracleID = TokensMetadata::get_coin_metadata_oracleID(&metadat);
-        let amount = Oracle::convert_to_token_safe(token, (oracleID as u32) usd_value_u256);
+        let amount = Oracle::convert_to_token_safe(token, (oracleID as u32), usd_value_u256);
 
         TokensCore::mint_to(signer::address_of(signer), shared, token, chain, (amount as u64), TokensCore::give_permission(&borrow_global<Permissions>(@dev).tokens_core));
     }
