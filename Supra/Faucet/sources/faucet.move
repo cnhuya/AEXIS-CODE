@@ -1,4 +1,4 @@
-module dev::QiaraFaucetV4{
+module dev::QiaraFaucetV1{
     use std::signer;
     use std::table::{Self, Table};
     use std::vector;
@@ -7,14 +7,15 @@ module dev::QiaraFaucetV4{
     use aptos_std::from_bcs;
     use std::string::{Self as string, String, utf8};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
-    use dev::QiaraEventV15::{Self as Event};
-    use dev::QiaraSharedV6::{Self as Shared};
+    use dev::QiaraEventV2::{Self as Event};
+    use dev::QiaraSharedV1::{Self as Shared};
     use dev::QiaraStorageV1::{Self as storage, Access as StorageAccess};
 
-    use dev::QiaraChainTypesV11::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV11::{Self as TokensTypes};
-
-    use dev::QiaraTokensCoreV12::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
+    use dev::QiaraChainTypesV1::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV1::{Self as TokensTypes};
+    
+    use dev::QiaraTokensCoreV1::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
+    use dev::QiaraTokensMetadataV1::{Self as TokensMetadata, VMetadata, Access as TokensMetadataAccess};
     use dev::QiaraOracleV1::{Self as Oracle, Access as OracleAccess};
 // === ERRORS === //
     const ERROR_NOT_ADMIN:u64 = 0;
@@ -68,8 +69,9 @@ module dev::QiaraFaucetV4{
 
         let usd_value_raw = storage::expect_u64(storage::viewConstant(utf8(b"QiaraFaucet"), utf8(b"USD_VALUE")));
         let usd_value_u256 = (usd_value_raw as u256);
-
-        let amount = Oracle::convert_to_token(token, usd_value_u256);
+        let metadat = TokensMetadata::get_coin_metadata_by_symbol(token);
+        let oracleID = TokensMetadata::get_coin_metadata_oracleID(&metadat);
+        let amount = Oracle::convert_to_token_safe(token, (oracleID as u32) usd_value_u256);
 
         TokensCore::mint_to(signer::address_of(signer), shared, token, chain, (amount as u64), TokensCore::give_permission(&borrow_global<Permissions>(@dev).tokens_core));
     }
@@ -122,5 +124,6 @@ module dev::QiaraFaucetV4{
 
         table::upsert(&mut users_table.table, shared, timestamp::now_seconds());
     }
+
 
 }

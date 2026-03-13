@@ -137,6 +137,22 @@ module dev::QiaraOracleV1 {
         return (usd*1000000000000000000)/price
     }
 
+
+    #[view]
+    public fun convert_to_usd_safe(name: String, oracleID: u32, size: u256): u256 acquires Prices{
+        let price = viewPrice_safe(name, oracleID);
+
+        //1000000000000000000*1000000000000000000/1000000000000000000
+
+        return(price*size)/1000000000000000000
+    }
+
+    #[view]
+    public fun convert_to_token_safe(name: String, oracleID: u32, usd: u256): u256 acquires Prices{
+        let price = viewPrice_safe(name, oracleID);
+        return (usd*1000000000000000000)/price
+    }
+
     #[view]
     public fun viewAllPrices(name: String): Map<String, Integer> acquires Prices{
 
