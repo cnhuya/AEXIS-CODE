@@ -1,4 +1,4 @@
-module dev::QiaraPerpsV1{
+module dev::QiaraPerpsV2{
     use std::signer;
     use std::string::{Self as String, String, utf8};
     use std::vector;
@@ -20,7 +20,7 @@ module dev::QiaraPerpsV1{
     use dev::QiaraMathV1::{Self as QiaraMath};
     use dev::QiaraNonceV1::{Self as Nonce, Access as NonceAccess};
 
-    use dev::QiaraVaultsV1::{Self as Market, Access as MarketAccess};
+    use dev::QiaraVaultsV3::{Self as Market, Access as MarketAccess};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
