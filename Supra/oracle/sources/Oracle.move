@@ -116,6 +116,11 @@ module dev::QiaraOracleV1 {
         return map::borrow_mut(&mut prices.map, &name)
     }
 
+    public entry fun test_ensure_price(name: String, oracleID: u64) acquires Prices
+    {
+        ensure_price(borrow_global_mut<Prices>(@dev), name, oracleID);
+
+    }
 
     #[view]
     public fun convert_to_usd(name: String, size: u256): u256 acquires Prices{
@@ -138,30 +143,61 @@ module dev::QiaraOracleV1 {
         borrow_global_mut<Prices>(@dev).map
 
     }
-
     #[view]
-    public fun viewPrice(name: String): u256 acquires Prices{
+    public fun viewPrice_safe(name: String, oracleID: u32): u256 acquires Prices {
         if (name == utf8(b"Qiara")) { return 0 };
-
-            // Check if the Prices resource actually exists at @dev
-            assert!(exists<Prices>(@dev), 404); // Custom error code instead of Abort 1
-
+        assert!(exists<Prices>(@dev), 404);
 
         let prices = borrow_global<Prices>(@dev);
 
+        // If the token isn't in our "Impact Map" yet, return the raw Supra price
         if (!map::contains_key(&prices.map, &name)) {
-            abort(ERROR_TOKEN_PRICE_COULDNT_BE_FOUND)
+            // We need an oracleID to fetch the price. 
+            // If we don't have it in the map, we can't look up Supra.
+            // Therefore, we return a 0 or abort with a clearer message.
+            let (supra_oracle_price, _, _, _) = supra_oracle_storage::get_price(oracleID);
+            return supra_oracle_price
         };
 
         let qiara_impact = map::borrow(&prices.map, &name);
         let (supra_oracle_price, _, _, _) = supra_oracle_storage::get_price((qiara_impact.oracleID as u32));
 
-        if(qiara_impact.isPositive){
-            return (supra_oracle_price as u256)+qiara_impact.value
+        if (qiara_impact.isPositive) {
+            return (supra_oracle_price as u256) + qiara_impact.value
         } else {
-            return (supra_oracle_price as u256)-qiara_impact.value
+            // Prevent underflow if impact > price
+            let s_price = (supra_oracle_price as u256);
+            if (qiara_impact.value >= s_price) { return 1 }; // Return 1 cent/unit min price
+            return s_price - qiara_impact.value
         }
+    }
 
+    #[view]
+    public fun viewPrice(name: String): u256 acquires Prices {
+        if (name == utf8(b"Qiara")) { return 0 };
+        assert!(exists<Prices>(@dev), 404);
+
+        let prices = borrow_global<Prices>(@dev);
+
+        // If the token isn't in our "Impact Map" yet, return the raw Supra price
+        if (!map::contains_key(&prices.map, &name)) {
+            // We need an oracleID to fetch the price. 
+            // If we don't have it in the map, we can't look up Supra.
+            // Therefore, we return a 0 or abort with a clearer message.
+            return 0
+        };
+
+        let qiara_impact = map::borrow(&prices.map, &name);
+        let (supra_oracle_price, _, _, _) = supra_oracle_storage::get_price((qiara_impact.oracleID as u32));
+
+        if (qiara_impact.isPositive) {
+            return (supra_oracle_price as u256) + qiara_impact.value
+        } else {
+            // Prevent underflow if impact > price
+            let s_price = (supra_oracle_price as u256);
+            if (qiara_impact.value >= s_price) { return 1 }; // Return 1 cent/unit min price
+            return s_price - qiara_impact.value
+        }
     }
 
     #[view]
