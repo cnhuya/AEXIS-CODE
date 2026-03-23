@@ -64,7 +64,7 @@ fun x_init(signer: &signer) acquires Tokens {
     
     // USDT: 4 chains -> 4 placeholders
     register_token_with_chains(signer, utf8(b"Qiara78 USDT"), utf8(b"USDT"), 
-        vector[utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0") , utf8(b"0x0")], 
+        vector[utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0"), utf8(b"0x0")], 
         vector[utf8(b"Sui"), utf8(b"Base"), utf8(b"Aptos"), utf8(b"Ethereum")]
     );
 
