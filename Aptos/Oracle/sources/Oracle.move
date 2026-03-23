@@ -1,144 +1,255 @@
-module dev::QiaraOracleV4 {
-    use std::string::{Self as string, String, utf8};
+module dev::QiaraOracleV5 {
+    use std::string::{Self, String, utf8, bytes as b};
+    use std::vector;
     use std::bcs;
-    use pyth::pyth;
-    use pyth::price;
-    use pyth::price::Price;
-    use pyth::price_identifier;
-    use pyth::i64;
-    use aptos_framework::coin;
-    use aptos_framework::aptos_coin::AptosCoin;
+    use std::signer;
+    use std::timestamp;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
-
     use dev::QiaraEventV1::{Self as Event};
+    use dev::QiaraOracleStoreV5::{Self as oracle_store};
+// === ERRORS === //
+    const ERROR_NOT_ADMIN: u64 = 0;
+    const ERROR_TOKEN_PRICE_COULDNT_BE_FOUND: u64 = 1;
+    
+// === ACCESS === //
+    struct Access has store, key, drop {}
+    struct Permission has copy, key, drop {}
 
-    // ── Error codes ────────────────────────────────────────────────────────────
-    const E_NOT_INITIALIZED:  u64 = 1;
-    const E_ALREADY_INIT:     u64 = 2;
-    const E_NEGATIVE_PRICE:   u64 = 3;
-    const E_STALE_PRICE:      u64 = 4;
-    const E_FEED_ID_EMPTY:    u64 = 5;
-
-    // ── Max age for "fresh" price: 60 seconds ──────────────────────────────────
-    const MAX_AGE_SECS: u64 = 60;
-
-    struct PriceStore has key, store, drop, copy {
-        price:        i64::I64,
-        expo:         i64::I64,
-        publish_time: u64,
+    public fun give_access(s: &signer): Access {
+        assert!(signer::address_of(s) == @dev, ERROR_NOT_ADMIN);
+        Access {}
     }
 
-    struct Prices has key, store {
-        prices: Map<vector<u8>, PriceStore>,   // ← change key type here
+    public fun give_permission(access: &Access): Permission {
+        Permission {}
     }
 
-    // ── Init ───────────────────────────────────────────────────────────────────
+
+// === STRUCTS === //
+    struct Prices has copy, key{
+        map: Map<String, Integer>,
+    }
+
+    struct Integer has drop, key, store, copy {
+        oracleID: vector<u8>,
+        value: u256,
+        isPositive: bool,
+    }
+
+    fun tttta(x: u64){
+        abort(x);
+    }
+
+// === INIT === //
     fun init_module(admin: &signer) {
-        move_to(admin, Prices { prices: map::new<vector<u8>, PriceStore>() });
+        assert!(signer::address_of(admin) == @dev, 1);
+
+        if (!exists<Prices>(@dev)) {
+            move_to(admin, Prices { map: map::new<String, Integer>() });
+        };
     }
 
-    fun tttta(id: u64){
-        abort(id);
-    }
+    public fun impact_price(name: String, oracleID: vector<u8>, impact: u256, isPositive: bool, native_oracle_weight: u256, perm: Permission): u256 acquires Prices {
 
-    // ── Update + cache ─────────────────────────────────────────────────────────
-    public entry fun update_price(user: &signer,price_update_data: vector<vector<u8>>,feed_id_bytes: vector<u8>,) acquires Prices {
-        assert!(exists<Prices>(@dev), E_NOT_INITIALIZED);
-        assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
+        let prices_storage = borrow_global_mut<Prices>(@dev);
+        let price = ensure_price(prices_storage, name, oracleID);
+        
+        // Capture old state for the event
+        let old_price_state = *price;
 
-        let old_price_store = get_price(feed_id_bytes);  // ← update this call too
+        let (supra_oracle_price, _,) = oracle_store::get_raw_price(oracleID);
+        
+        // Scaling impact
+        let scaled_impact = (impact * 1_000_000) / native_oracle_weight;
+        if (scaled_impact == 0) { return 0 };
 
-        let fee = pyth::get_update_fee(&price_update_data);
-        let coins = coin::withdraw<AptosCoin>(user, fee);
-        pyth::update_price_feeds(price_update_data, coins);
-
-        let price_id = price_identifier::from_byte_vec(feed_id_bytes);
-        let p: Price = pyth::get_price_no_older_than(price_id, MAX_AGE_SECS);
-
-        let raw = price::get_price(&p);
-        assert!(!i64::get_is_negative(&raw), E_NEGATIVE_PRICE);
-
-        let prices = borrow_global_mut<Prices>(@dev);
-        let new_store = PriceStore {
-            price: raw,
-            expo: price::get_expo(&p),
-            publish_time: price::get_timestamp(&p),
+        if (isPositive) {
+            if (price.isPositive) {
+                price.value = price.value + scaled_impact;
+            } else {
+                if (scaled_impact >= price.value) {
+                    price.value = scaled_impact - price.value;
+                    price.isPositive = true;
+                } else {
+                    price.value = price.value - scaled_impact;
+                };
+            }
+        } else {
+            // Handle Negative Impact
+            if (price.isPositive) {
+                if (scaled_impact >= price.value) {
+                    price.value = scaled_impact - price.value;
+                    price.isPositive = false;
+                } else {
+                    price.value = price.value - scaled_impact;
+                };
+            } else {
+                price.value = price.value + scaled_impact;
+            }
         };
 
-        let old_price = i64::get_magnitude_if_positive(&old_price_store.price);
-        let new_price = i64::get_magnitude_if_positive(&new_store.price);
-
         let data = vector[
-            Event::create_data_struct(utf8(b"oracle id"), utf8(b"vector<u8>"), bcs::to_bytes(&feed_id_bytes)),
-            Event::create_data_struct(utf8(b"old_price"), utf8(b"u64"), bcs::to_bytes(&old_price)),
-            Event::create_data_struct(utf8(b"new_price"), utf8(b"u64"), bcs::to_bytes(&new_price)),
+            Event::create_data_struct(utf8(b"oracle id"), utf8(b"vector<u8>"), bcs::to_bytes(&oracleID)),
+            Event::create_data_struct(utf8(b"old_price_impact"), utf8(b"u64"), bcs::to_bytes(&old_price_state)),
+            Event::create_data_struct(utf8(b"new_price_impact"), utf8(b"u64"), bcs::to_bytes(price)),
         ];
-        Event::emit_oracle_event(utf8(b"Price Update"), data);
+        Event::emit_oracle_event(utf8(b"Qiara Oracle Impact Update"), data);
 
-        if (map::contains_key(&prices.prices, &feed_id_bytes)) {
-            *map::borrow_mut(&mut prices.prices, &feed_id_bytes) = new_store;
-        } else {
-            map::add(&mut prices.prices, feed_id_bytes, new_store);
-        }
+
+        // You need to decide if return value is % or the new absolute impact
+        let a =  calculate_impact_percentage((supra_oracle_price as u256), price.value, price.isPositive);
+        //tttta(9);
+
+        return a/1_000_000
     }
 
-    fun ensure_price(feed_id_str: vector<u8>, price_store: PriceStore) acquires Prices {
-        let prices = borrow_global_mut<Prices>(@dev);
-        map::upsert(&mut prices.prices, feed_id_str, price_store);
+    fun ensure_price(prices: &mut Prices, name: String, oracleID: vector<u8>): &mut Integer{
+        if (!map::contains_key(&prices.map, &name)) {
+            map::upsert(&mut prices.map, name, Integer {  oracleID: oracleID, value: 0, isPositive: true });
+        };
+        return map::borrow_mut(&mut prices.map, &name)
     }
 
-    // ── Read from cache ────────────────────────────────────────────────────────
+    public entry fun test_ensure_price(name: String, oracleID: vector<u8>) acquires Prices
+    {
+        ensure_price(borrow_global_mut<Prices>(@dev), name, oracleID);
+
+    }
+
     #[view]
-    public fun get_price(feed_id_bytes: vector<u8>): PriceStore acquires Prices {
-        assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
+    public fun convert_to_usd(name: String, size: u256): u256 acquires Prices{
+        let price = viewPrice(name);
 
-        let prices = borrow_global<Prices>(@dev);  // No mut needed for view
+        //1000000000000000000*1000000000000000000/1000000000000000000
 
-        if (!map::contains_key(&prices.prices, &feed_id_bytes)) {
-            PriceStore { price: i64::new(0, false), expo: i64::new(0, false), publish_time: 0 }
-        } else {
-            *map::borrow(&prices.prices, &feed_id_bytes)  // borrow (not borrow_mut) in view
-        }
+        return(price*size)/1000000000000000000
     }
-    // ── Read raw from cache ────────────────────────────────────────────────────────
+
     #[view]
-    public fun get_raw_price(feed_id_bytes: vector<u8>): (u64, u64) acquires Prices {
-        assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
+    public fun convert_to_token(name: String, usd: u256): u256 acquires Prices{
+        let price = viewPrice(name);
+        return (usd*1000000000000000000)/price
+    }
+
+
+    #[view]
+    public fun convert_to_usd_safe(name: String, oracleID: vector<u8>, size: u256): u256 acquires Prices{
+        let price = viewPrice_safe(name, oracleID);
+
+        //1000000000000000000*1000000000000000000/1000000000000000000
+
+        return(price*size)/1000000000000000000
+    }
+
+    #[view]
+    public fun convert_to_token_safe(name: String, oracleID: vector<u8>, usd: u256): u256 acquires Prices{
+        let price = viewPrice_safe(name, oracleID);
+        return (usd*1000000000000000000)/price
+    }
+
+    #[view]
+    public fun viewAllPrices(name: String): Map<String, Integer> acquires Prices{
+
+        borrow_global_mut<Prices>(@dev).map
+
+    }
+    #[view]
+    public fun viewPrice_safe(name: String, oracleID: vector<u8>): u256 acquires Prices {
+        if (name == utf8(b"Qiara")) { return 0 };
+        assert!(exists<Prices>(@dev), 404);
 
         let prices = borrow_global<Prices>(@dev);
 
-        if (!map::contains_key(&prices.prices, &feed_id_bytes)) {
-            return (0u64, 0u64)
+        // If the token isn't in our "Impact Map" yet, return the raw Supra price
+        if (!map::contains_key(&prices.map, &name)) {
+            // We need an oracleID to fetch the price. 
+            // If we don't have it in the map, we can't look up Supra.
+            // Therefore, we return a 0 or abort with a clearer message.
+            let (supra_oracle_price, _,) = oracle_store::get_raw_price(oracleID);
+            return (supra_oracle_price as u256)
         };
 
-        let cached_price = map::borrow(&prices.prices, &feed_id_bytes);  // fixed typo: catched → cached
+        let qiara_impact = map::borrow(&prices.map, &name);
+        let (supra_oracle_price, _,) = oracle_store::get_raw_price(qiara_impact.oracleID);
 
-        // Explicit type + handle expo sign
-        let expo_mag: u64 = if (i64::get_is_negative(&cached_price.expo)) {
-            i64::get_magnitude_if_negative(&cached_price.expo)
+        if (qiara_impact.isPositive) {
+            return (supra_oracle_price as u256) + qiara_impact.value
         } else {
-            i64::get_magnitude_if_positive(&cached_price.expo)
-        };
-
-        let price_mag: u64 = if (i64::get_is_negative(&cached_price.price)) {
-            i64::get_magnitude_if_negative(&cached_price.price)
-        } else {
-            i64::get_magnitude_if_positive(&cached_price.price)
-        };
-
-        (price_mag, expo_mag)
+            // Prevent underflow if impact > price
+            let s_price = (supra_oracle_price as u256);
+            if (qiara_impact.value >= s_price) { return 1 }; // Return 1 cent/unit min price
+            return s_price - qiara_impact.value
+        }
     }
-    // ── Direct read from Pyth (no cache) ───────────────────────────────────────
+
     #[view]
-    public fun get_price_direct(feed_id_bytes: vector<u8>): (i64::I64, i64::I64, u64) {
-        assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
+    public fun viewPrice(name: String): u256 acquires Prices {
+        if (name == utf8(b"Qiara")) { return 0 };
+        assert!(exists<Prices>(@dev), 404);
 
-        let price_id = price_identifier::from_byte_vec(feed_id_bytes);
-        let p: Price = pyth::get_price_no_older_than(price_id, MAX_AGE_SECS);
-        (
-            price::get_price(&p),
-            price::get_expo(&p),
-            price::get_timestamp(&p),
-        )
+        let prices = borrow_global<Prices>(@dev);
+
+        // If the token isn't in our "Impact Map" yet, return the raw Supra price
+        if (!map::contains_key(&prices.map, &name)) {
+            // We need an oracleID to fetch the price. 
+            // If we don't have it in the map, we can't look up Supra.
+            // Therefore, we return a 0 or abort with a clearer message.
+            return 0
+        };
+
+        let qiara_impact = map::borrow(&prices.map, &name);
+        let (supra_oracle_price, _, ) = oracle_store::get_raw_price(qiara_impact.oracleID);
+
+        if (qiara_impact.isPositive) {
+            return (supra_oracle_price as u256) + qiara_impact.value
+        } else {
+            // Prevent underflow if impact > price
+            let s_price = (supra_oracle_price as u256);
+            if (qiara_impact.value >= s_price) { return 1 }; // Return 1 cent/unit min price
+            return s_price - qiara_impact.value
+        }
     }
+
+    #[view]
+    public fun viewPriceMulti(name: vector<String>): Map<String, u256> acquires Prices{
+
+        let map = map::new<String, u256>();
+        let len = vector::length(&name);
+        while(len>0){
+            map::upsert(&mut map, *vector::borrow(&name, len-1), viewPrice(*vector::borrow(&name, len-1)));
+            len=len-1;
+        };
+        return map
+
+    }
+
+    #[view]
+    public fun existsPrice(name: String): bool acquires Prices{
+
+        let prices = borrow_global_mut<Prices>(@dev);
+
+        if (!map::contains_key(&prices.map, &name)) {
+            return false
+        };
+
+        return true
+
+    }
+
+    #[view]
+    public fun calculate_impact_percentage(supra_oracle_price: u256, impact: u256,  isPositive: bool): u256 {
+        // Avoid division by zero
+        if (supra_oracle_price == 0) { return 0 };
+        if (isPositive) {
+            // Returns the price multiplier (e.g., 1.05 * 1e18)
+            return ((supra_oracle_price + impact) * 1_000_000_000_000_000_000) / supra_oracle_price
+        } else {
+            // Prevent underflow if impact is greater than price
+            if (impact >= supra_oracle_price) {
+                return 0 // Price cannot be less than zero
+            };
+            return ((supra_oracle_price - impact) * 1_000_000_000_000_000_000) / supra_oracle_price
+        }
+    }
+
 }

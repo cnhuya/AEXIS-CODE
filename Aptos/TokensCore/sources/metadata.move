@@ -779,7 +779,7 @@ module dev::QiaraTokensMetadataV1{
                         price = 0;
                         denom = 0;
                     } else {
-                        let (_, price_decimals, _, _) = oracle::get_price(metadat.oracleID);
+                        let (_, price_decimals) = oracle::get_raw_price(metadat.oracleID);
                         price = (oracle::viewPrice(metadat.symbol) as u128);
                         denom = Math::pow10_u256((price_decimals as u8));
                     };
