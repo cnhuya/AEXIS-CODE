@@ -13,4 +13,9 @@
     rev = "testnet"
     subdir = "aptos-move/framework/aptos-stdlib"
 
+    [dependencies.AptosFramework]
+    git = "https://github.com/aptos-labs/aptos-core.git"
+    rev = "testnet"
+    subdir = "aptos-move/framework/aptos-framework"
+
     [dev-dependencies]

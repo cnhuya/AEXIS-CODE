@@ -1,7 +1,7 @@
 module dev::QiaraGenesisV1 {
     use std::vector;
     use std::signer;
-    use std::timestamp;
+    use aptos_framework::timestamp;
 
     struct Genesis has key {
         genesis: u256,
