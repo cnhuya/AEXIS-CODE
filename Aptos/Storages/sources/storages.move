@@ -8,8 +8,8 @@ module dev::QiaraStoragesV1 {
     use aptos_framework::primary_fungible_store;
     use aptos_framework::object::{Self, Object};
     
-    use dev::QiaraChainTypesV1::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV1::{Self as TokensType};
+    use dev::QiaraChainTypesV2::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV2::{Self as TokensType};
 
     // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;
