@@ -4,7 +4,6 @@ module dev::QiaraNonceV1{
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::bcs;
-    use supra_framework::event;
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN:u64 = 0;
