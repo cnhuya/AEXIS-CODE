@@ -1,0 +1,34 @@
+[package]
+name = "QiaraOracleV2"
+version = "1.0.0"
+authors = []
+
+[addresses]
+dev          = "0x806dc4c24130e8be9a09ec67ecc53b39074ba0666e4cb2173926b6284490522a"
+aptos_framework = "0x1"
+std          = "0x1"
+aptos_std    = "0x1"
+
+# ✅ Correct testnet addresses (NOT 0x1)
+pyth         = "0x7e783b349d3e89cf5931af376ebeadbfab855b3fa239b7ada8f5a92fbea6b387"
+deployer     = "0xb31e712b26fd295357355f6845e77c888298636609e93bc9b05f0f604049f434"
+wormhole     = "0x5bc11445584a763c1fa7ed39081f1b920954da14e04b32440cba863d03e19625"
+
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git    = "https://github.com/aptos-labs/aptos-core.git"
+rev    = "testnet"
+subdir = "aptos-move/framework/aptos-framework"
+
+[dependencies.AptosStdlib]
+git    = "https://github.com/aptos-labs/aptos-core.git"
+rev    = "testnet"
+subdir = "aptos-move/framework/aptos-stdlib"
+
+[dependencies.Pyth]
+git    = "https://github.com/pyth-network/pyth-crosschain.git"
+rev    = "main"
+subdir = "target_chains/aptos/contracts"
+
+[dev-dependencies]
