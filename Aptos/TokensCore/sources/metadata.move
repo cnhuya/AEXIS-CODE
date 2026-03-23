@@ -8,13 +8,15 @@ module dev::QiaraTokensMetadataV1{
     use aptos_framework::event;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 
+
     use dev::QiaraStorageV1::{Self as storage};
     use dev::QiaraMathV1::{Self as Math};
 
     use dev::QiaraTokensRatesV1::{Self as rates};
     use dev::QiaraTokensTiersV1::{Self as tier};
 
-    use dev::QiaraOracleV4::{Self as oracle, Access as OracleAccess};
+    use dev::QiaraOracleStoreV5::{Self as oracle_store};
+    use dev::QiaraOracleV5::{Self as oracle, Access as OracleAccess};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
@@ -56,7 +58,7 @@ module dev::QiaraTokensMetadataV1{
         symbol: String,
         tier:u8,
         decimals: u8,
-        oracleID: u32,
+        oracleID: vector<u8>,
         creation: u64,
         listed: u64,
         penalty_expiry: u64,
@@ -68,7 +70,7 @@ module dev::QiaraTokensMetadataV1{
         symbol: String,
         tier:u8,
         decimals: u8,
-        oracleID: u32,
+        oracleID: vector<u8>,
         creation: u64,
         listed: u64,
         penalty_expiry: u64,
@@ -98,8 +100,8 @@ module dev::QiaraTokensMetadataV1{
     }
 
     struct Price has key, copy,store, drop {
-        price: u128,
-        denom: u128,
+        price: u64,
+        denom: u64,
     }
 
 
@@ -131,7 +133,7 @@ module dev::QiaraTokensMetadataV1{
 
 // === ENTRY FUNCTIONS === //
 
-    public entry fun create_metadata(admin: &signer, symbol: String, creation: u64,oracleID: u32, max_supply: u128, circulating_supply: u128, total_supply: u128, stable:u8) acquires Tokens {
+    public entry fun create_metadata(admin: &signer, symbol: String, creation: u64,oracleID: vector<u8>, max_supply: u128, circulating_supply: u128, total_supply: u128, stable:u8) acquires Tokens {
        
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
@@ -212,7 +214,7 @@ module dev::QiaraTokensMetadataV1{
     }
 
 
-    public entry fun update_oracleID(admin: &signer, symbol: String, oracleID: u32) acquires Tokens {
+    public entry fun update_oracleID(admin: &signer, symbol: String, oracleID: vector<u8>) acquires Tokens {
        
         assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
 
@@ -235,15 +237,15 @@ module dev::QiaraTokensMetadataV1{
 // === HELPER FUNCTIONS === //
 
     fun calculate_market(info: &Metadata): Market {
-        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(info.oracleID);
+        let (price, price_decimals, ) = oracle_store::get_raw_price(info.oracleID);
         let denom = Math::pow10_u256((price_decimals as u8));
-        let mc = (info.tokenomics.circulating_supply as u128) * price / (denom as u128);
-        let fdv = (info.tokenomics.max_supply as u128) * price / (denom as u128);
+        let mc = (info.tokenomics.circulating_supply as u128) * (price as u128) / (denom as u128);
+        let fdv = (info.tokenomics.max_supply as u128) * (price as u128) / (denom as u128);
         let fdv_mc = if (mc > 0) { (fdv * 100) / mc } else { 0 };
         Market { mc: mc, fdv: fdv, fdv_mc: fdv_mc }
     }
 
-    fun calculate_asset_credit(tokenomics: &Tokenomics,creation: u64,oracleID: u32): (u256, u256, u256, u256, u256) {
+    fun calculate_asset_credit(tokenomics: &Tokenomics,creation: u64,oracleID:  vector<u8>): (u256, u256, u256, u256, u256) {
         let now = timestamp::now_seconds();
         let days: u64 = 0;
 
@@ -251,7 +253,7 @@ module dev::QiaraTokensMetadataV1{
             days = (now - creation) / 86400 ;
         };
 
-        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(oracleID);
+        let (price, price_decimals) = oracle_store::get_raw_price(oracleID);
         let denom_u256 = Math::pow10_u256((price_decimals as u8));
 
 
@@ -466,7 +468,7 @@ module dev::QiaraTokensMetadataV1{
         let percentage_impact = 0;
         // this needs to be done to assure that price exists in map (it sets the price to current price from oracle, which is enough for initialization)
         if(!oracle::existsPrice(token)){
-           percentage_impact = oracle::impact_price(token, (oracleID as u64), 0, isPositive, oracle_native_weight, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
+           percentage_impact = oracle::impact_price(token, oracleID, 0, isPositive, oracle_native_weight, oracle::give_permission(&borrow_global<Permissions>(@dev).oracle_access));            
         };
 
         let current_price = oracle::viewPrice(token);
@@ -502,7 +504,7 @@ module dev::QiaraTokensMetadataV1{
         // atomic call: impact_price already calls ensure_price internally
         let percentage_impact = oracle::impact_price(
             token, 
-            (oracleID as u64), 
+            oracleID, 
             impact_value, 
             isPositive, 
             oracle_native_weight, 
@@ -563,7 +565,7 @@ module dev::QiaraTokensMetadataV1{
             while (i < len) {
                 let metadat = vector::borrow(&vault_list.list, i);
                 if (metadat.symbol == symbol) {
-                    let (price, price_decimals, _, _) = supra_oracle_storage::get_price(metadat.oracleID);
+                    let (price, price_decimals,) = oracle_store::get_raw_price(metadat.oracleID);
                     let denom = Math::pow10_u256((price_decimals as u8));
 
                     let tier;
@@ -587,7 +589,7 @@ module dev::QiaraTokensMetadataV1{
                         listed: metadat.listed,
                         penalty_expiry: metadat.penalty_expiry,
                         credit: metadat.credit,
-                        price: Price { price: price, denom: (denom as u128) },
+                        price: Price { price: price, denom: denom },
                         market: calculate_market(metadat),
                         tokenomics: metadat.tokenomics,
                         full_tier: tier,
@@ -625,7 +627,7 @@ module dev::QiaraTokensMetadataV1{
             metadata.decimals
         }
 
-        public fun get_coin_metadata_oracleID(metadata: &VMetadata): u32 {
+        public fun get_coin_metadata_oracleID(metadata: &VMetadata): vector<u8> {
             metadata.oracleID
         }
 
@@ -711,7 +713,7 @@ module dev::QiaraTokensMetadataV1{
     #[view]
     public fun getValue(symbol: String, amount: u256): u256 acquires Tokens{
         let metadata = get_coin_metadata_by_symbol(symbol);
-        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(get_coin_metadata_oracleID(&metadata));
+        let (price, price_decimals) = oracle_store::get_raw_price(get_coin_metadata_oracleID(&metadata));
         return ((amount as u256) * (price as u256)) / get_coin_metadata_denom(&metadata)
     }
 
@@ -719,7 +721,7 @@ module dev::QiaraTokensMetadataV1{
     #[view]
     public fun getValueByCoin(symbol: String, amount: u256): u256 acquires Tokens{
         let metadata = get_coin_metadata_by_symbol(symbol);
-        let (price, price_decimals, _, _) = supra_oracle_storage::get_price(get_coin_metadata_oracleID(&metadata));
+        let (price, price_decimals) = oracle_store::get_raw_price(get_coin_metadata_oracleID(&metadata));
         return (((amount as u256)* get_coin_metadata_denom(&metadata)) / (price as u256))
     }
 
@@ -779,8 +781,8 @@ module dev::QiaraTokensMetadataV1{
                         price = 0;
                         denom = 0;
                     } else {
-                        let (_, price_decimals) = oracle::get_raw_price(metadat.oracleID);
-                        price = (oracle::viewPrice(metadat.symbol) as u128);
+                        let (_, price_decimals) = oracle_store::get_raw_price(metadat.oracleID);
+                        price = (oracle::viewPrice(metadat.symbol) as u64);
                         denom = Math::pow10_u256((price_decimals as u8));
                     };
                     let tier;
@@ -803,7 +805,7 @@ module dev::QiaraTokensMetadataV1{
                         listed: metadat.listed,
                         penalty_expiry: metadat.penalty_expiry,
                         credit: metadat.credit,
-                        price: Price { price: price, denom: (denom as u128) },
+                        price: Price { price: price, denom: denom },
                         market: calculate_market(metadat),
                         tokenomics: metadat.tokenomics,
                         full_tier: tier,

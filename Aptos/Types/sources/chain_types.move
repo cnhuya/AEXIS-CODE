@@ -1,4 +1,4 @@
-module dev::QiaraChainTypesV1 {
+module dev::QiaraChainTypesV2 {
     use std::string::{Self as string, String, utf8};
     use std::vector;
     use std::signer;
@@ -26,7 +26,7 @@ module dev::QiaraChainTypesV1 {
     }
 
     fun x_init(signer: &signer) acquires Chains{
-        register_chain(signer, utf8(b"Supra"), 6);
+        register_chain(signer, utf8(b"Aptos"), 2);
         register_chain(signer, utf8(b"Sui"), 103);
         register_chain(signer, utf8(b"Base"), 84532);
         register_chain(signer, utf8(b"Monad"), 10143);
