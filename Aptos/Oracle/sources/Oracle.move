@@ -1,5 +1,6 @@
-module dev::QiaraOracleV2 {
+module dev::QiaraOracleV3 {
     use std::string::{Self as string, String, utf8};
+    use std::bcs;
     use pyth::pyth;
     use pyth::price;
     use pyth::price::Price;
@@ -8,6 +9,8 @@ module dev::QiaraOracleV2 {
     use aptos_framework::coin;
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
+
+    use dev::QiaraEventV1::{Self as Event};
 
     // ── Error codes ────────────────────────────────────────────────────────────
     const E_NOT_INITIALIZED:  u64 = 1;
@@ -19,7 +22,7 @@ module dev::QiaraOracleV2 {
     // ── Max age for "fresh" price: 60 seconds ──────────────────────────────────
     const MAX_AGE_SECS: u64 = 60;
 
-    struct PriceStore has key, store, drop {
+    struct PriceStore has key, store, drop, copy {
         price:        i64::I64,
         expo:         i64::I64,
         publish_time: u64,
@@ -39,6 +42,9 @@ module dev::QiaraOracleV2 {
         assert!(exists<Prices>(@dev), E_NOT_INITIALIZED);
         assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
 
+        let feed_id_str = utf8(feed_id_bytes); 
+        let cached_price = get_price(feed_id_str);
+
         let fee = pyth::get_update_fee(&price_update_data);
         let coins = coin::withdraw<AptosCoin>(user, fee);
         pyth::update_price_feeds(price_update_data, coins);
@@ -49,8 +55,6 @@ module dev::QiaraOracleV2 {
         let raw = price::get_price(&p);
         assert!(!i64::get_is_negative(&raw), E_NEGATIVE_PRICE);
 
-        // Convert feed_id_bytes to string key (easiest for map key)
-        let feed_id_str = utf8(feed_id_bytes);  // or use hex encoding if preferred
 
         let prices = borrow_global_mut<Prices>(@dev);
         let new_store = PriceStore {
@@ -58,6 +62,16 @@ module dev::QiaraOracleV2 {
             expo: price::get_expo(&p),
             publish_time: price::get_timestamp(&p),
         };
+
+        let old_price =  i64::get_magnitude_if_positive(&cached_price.price);
+        let new_price = i64::get_magnitude_if_positive(&new_store.price);
+        // Emit Event
+        let data = vector[
+            Event::create_data_struct(utf8(b"oracle id"), utf8(b"string"), bcs::to_bytes(&feed_id_str)),
+            Event::create_data_struct(utf8(b"old_price"), utf8(b"u64"), bcs::to_bytes(&old_price)),
+            Event::create_data_struct(utf8(b"new_price"), utf8(b"u64"), bcs::to_bytes(&new_price)),
+        ];
+        Event::emit_oracle_event(utf8(b"Price Update"), data);
 
         if (map::contains_key(&prices.prices, &feed_id_str)) {
             *map::borrow_mut(&mut prices.prices, &feed_id_str) = new_store;
@@ -73,14 +87,14 @@ module dev::QiaraOracleV2 {
 
     // ── Read from cache ────────────────────────────────────────────────────────
     #[view]
-    public fun get_price(): (i64::I64, i64::I64, u64) acquires PriceStore {
-        assert!(exists<PriceStore>(@dev), E_NOT_INITIALIZED);
-        let store = borrow_global<PriceStore>(@dev);
+    public fun get_price(feed_id_str: String): PriceStore acquires Prices {
+        let prices = borrow_global_mut<Prices>(@dev);
 
-        // Guard: warn caller if cache has never been written
-        assert!(store.publish_time > 0, E_STALE_PRICE);
+        if (!map::contains_key(&prices.prices, &feed_id_str)) {
+            return PriceStore { price: i64::new(0, false), expo: i64::new(0, false), publish_time: 0 }
+        };
 
-        (store.price, store.expo, store.publish_time)
+        *map::borrow_mut(&mut prices.prices, &feed_id_str)
     }
 
     // ── Direct read from Pyth (no cache) ───────────────────────────────────────
@@ -95,44 +109,5 @@ module dev::QiaraOracleV2 {
             price::get_expo(&p),
             price::get_timestamp(&p),
         )
-    }
-
-    // ── Normalize to u64 (8 decimal places) ───────────────────────────────────
-    #[view]
-    public fun get_price_u64(feed_id_bytes: vector<u8>): u64 {
-        assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
-
-        let price_id = price_identifier::from_byte_vec(feed_id_bytes);
-        let p: Price = pyth::get_price_no_older_than(price_id, MAX_AGE_SECS);
-
-        let raw_i64  = price::get_price(&p);
-        let expo_i64 = price::get_expo(&p);
-
-        assert!(!i64::get_is_negative(&raw_i64), E_NEGATIVE_PRICE);
-        let raw: u64 = i64::get_magnitude_if_positive(&raw_i64);
-
-        let expo_neg = i64::get_is_negative(&expo_i64);
-        let expo_mag = if (expo_neg) {
-            i64::get_magnitude_if_negative(&expo_i64)
-        } else {
-            i64::get_magnitude_if_positive(&expo_i64)
-        };
-
-        let target: u64 = 8;
-
-        if (expo_neg) {
-            if (expo_mag == target)      { raw }
-            else if (expo_mag > target)  { raw / pow10(expo_mag - target) }
-            else                         { raw * pow10(target - expo_mag) }
-        } else {
-            raw * pow10(expo_mag + target)
-        }
-    }
-
-    fun pow10(n: u64): u64 {
-        let result = 1u64;
-        let i      = 0u64;
-        while (i < n) { result = result * 10; i = i + 1; };
-        result
     }
 }
