@@ -35,11 +35,7 @@ module dev::QiaraOracleV2 {
     }
 
     // ── Update + cache ─────────────────────────────────────────────────────────
-    public entry fun update_price(
-        user: &signer,
-        price_update_data: vector<vector<u8>>,
-        feed_id_bytes: vector<u8>,
-    ) acquires Prices {
+    public entry fun update_price(user: &signer,price_update_data: vector<vector<u8>>,feed_id_bytes: vector<u8>) acquires Prices {
         assert!(exists<Prices>(@dev), E_NOT_INITIALIZED);
         assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
 
