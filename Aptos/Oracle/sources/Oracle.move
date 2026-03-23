@@ -100,6 +100,34 @@ module dev::QiaraOracleV4 {
             *map::borrow(&prices.prices, &feed_id_bytes)  // borrow (not borrow_mut) in view
         }
     }
+    // ── Read raw from cache ────────────────────────────────────────────────────────
+    #[view]
+    public fun get_raw_price(feed_id_bytes: vector<u8>): (u64, u64) acquires Prices {
+        assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
+
+        let prices = borrow_global<Prices>(@dev);
+
+        if (!map::contains_key(&prices.prices, &feed_id_bytes)) {
+            return (0u64, 0u64)
+        };
+
+        let cached_price = map::borrow(&prices.prices, &feed_id_bytes);  // fixed typo: catched → cached
+
+        // Explicit type + handle expo sign
+        let expo_mag: u64 = if (i64::get_is_negative(&cached_price.expo)) {
+            i64::get_magnitude_if_negative(&cached_price.expo)
+        } else {
+            i64::get_magnitude_if_positive(&cached_price.expo)
+        };
+
+        let price_mag: u64 = if (i64::get_is_negative(&cached_price.price)) {
+            i64::get_magnitude_if_negative(&cached_price.price)
+        } else {
+            i64::get_magnitude_if_positive(&cached_price.price)
+        };
+
+        (price_mag, expo_mag)
+    }
     // ── Direct read from Pyth (no cache) ───────────────────────────────────────
     #[view]
     public fun get_price_direct(feed_id_bytes: vector<u8>): (i64::I64, i64::I64, u64) {

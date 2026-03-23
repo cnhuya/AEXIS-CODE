@@ -3,7 +3,6 @@ module dev::QiaraTokensTiersV1{
     use std::string::{Self as String, String, utf8};
     use std::vector;
     use std::type_info::{Self, TypeInfo};
-    use supra_oracle::supra_oracle_storage;
     use dev::QiaraStorageV1::{Self as storage};
 
 
