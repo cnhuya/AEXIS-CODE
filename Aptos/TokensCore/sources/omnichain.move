@@ -7,10 +7,10 @@ module dev::QiaraTokensOmnichainV1{
     use std::type_info::{Self, TypeInfo};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use std::table::{Self, Table};
-    use supra_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore};
-    use supra_framework::primary_fungible_store;
-    use supra_framework::object::{Self, Object};
-    use supra_framework::event;
+    use aptos_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore};
+    use aptos_framework::primary_fungible_store;
+    use aptos_framework::object::{Self, Object};
+    use aptos_framework::event;
 
     use dev::QiaraNonceV1::{Self as Nonce, Access as NonceAccess};
     use dev::QiaraSharedV1::{Self as Shared};

@@ -1,4 +1,4 @@
-module dev::QiaraOracleV3 {
+module dev::QiaraOracleV4 {
     use std::string::{Self as string, String, utf8};
     use std::bcs;
     use pyth::pyth;
@@ -29,21 +29,24 @@ module dev::QiaraOracleV3 {
     }
 
     struct Prices has key, store {
-        prices: Map<String, PriceStore>,
+        prices: Map<vector<u8>, PriceStore>,   // ← change key type here
     }
 
     // ── Init ───────────────────────────────────────────────────────────────────
     fun init_module(admin: &signer) {
-        move_to(admin, Prices { prices: map::new<String, PriceStore>() });
+        move_to(admin, Prices { prices: map::new<vector<u8>, PriceStore>() });
+    }
+
+    fun tttta(id: u64){
+        abort(id);
     }
 
     // ── Update + cache ─────────────────────────────────────────────────────────
-    public entry fun update_price(user: &signer,price_update_data: vector<vector<u8>>,feed_id_bytes: vector<u8>) acquires Prices {
+    public entry fun update_price(user: &signer,price_update_data: vector<vector<u8>>,feed_id_bytes: vector<u8>,) acquires Prices {
         assert!(exists<Prices>(@dev), E_NOT_INITIALIZED);
         assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
 
-        let feed_id_str = utf8(feed_id_bytes); 
-        let cached_price = get_price(feed_id_str);
+        let old_price_store = get_price(feed_id_bytes);  // ← update this call too
 
         let fee = pyth::get_update_fee(&price_update_data);
         let coins = coin::withdraw<AptosCoin>(user, fee);
@@ -55,7 +58,6 @@ module dev::QiaraOracleV3 {
         let raw = price::get_price(&p);
         assert!(!i64::get_is_negative(&raw), E_NEGATIVE_PRICE);
 
-
         let prices = borrow_global_mut<Prices>(@dev);
         let new_store = PriceStore {
             price: raw,
@@ -63,40 +65,41 @@ module dev::QiaraOracleV3 {
             publish_time: price::get_timestamp(&p),
         };
 
-        let old_price =  i64::get_magnitude_if_positive(&cached_price.price);
+        let old_price = i64::get_magnitude_if_positive(&old_price_store.price);
         let new_price = i64::get_magnitude_if_positive(&new_store.price);
-        // Emit Event
+
         let data = vector[
-            Event::create_data_struct(utf8(b"oracle id"), utf8(b"string"), bcs::to_bytes(&feed_id_str)),
+            Event::create_data_struct(utf8(b"oracle id"), utf8(b"vector<u8>"), bcs::to_bytes(&feed_id_bytes)),
             Event::create_data_struct(utf8(b"old_price"), utf8(b"u64"), bcs::to_bytes(&old_price)),
             Event::create_data_struct(utf8(b"new_price"), utf8(b"u64"), bcs::to_bytes(&new_price)),
         ];
         Event::emit_oracle_event(utf8(b"Price Update"), data);
 
-        if (map::contains_key(&prices.prices, &feed_id_str)) {
-            *map::borrow_mut(&mut prices.prices, &feed_id_str) = new_store;
+        if (map::contains_key(&prices.prices, &feed_id_bytes)) {
+            *map::borrow_mut(&mut prices.prices, &feed_id_bytes) = new_store;
         } else {
-            map::add(&mut prices.prices, feed_id_str, new_store);
+            map::add(&mut prices.prices, feed_id_bytes, new_store);
         }
     }
 
-    fun ensure_price(feed_id_str: String, price_store: PriceStore) acquires Prices {
+    fun ensure_price(feed_id_str: vector<u8>, price_store: PriceStore) acquires Prices {
         let prices = borrow_global_mut<Prices>(@dev);
         map::upsert(&mut prices.prices, feed_id_str, price_store);
     }
 
     // ── Read from cache ────────────────────────────────────────────────────────
     #[view]
-    public fun get_price(feed_id_str: String): PriceStore acquires Prices {
-        let prices = borrow_global_mut<Prices>(@dev);
+    public fun get_price(feed_id_bytes: vector<u8>): PriceStore acquires Prices {
+        assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
 
-        if (!map::contains_key(&prices.prices, &feed_id_str)) {
-            return PriceStore { price: i64::new(0, false), expo: i64::new(0, false), publish_time: 0 }
-        };
+        let prices = borrow_global<Prices>(@dev);  // No mut needed for view
 
-        *map::borrow_mut(&mut prices.prices, &feed_id_str)
+        if (!map::contains_key(&prices.prices, &feed_id_bytes)) {
+            PriceStore { price: i64::new(0, false), expo: i64::new(0, false), publish_time: 0 }
+        } else {
+            *map::borrow(&prices.prices, &feed_id_bytes)  // borrow (not borrow_mut) in view
+        }
     }
-
     // ── Direct read from Pyth (no cache) ───────────────────────────────────────
     #[view]
     public fun get_price_direct(feed_id_bytes: vector<u8>): (i64::I64, i64::I64, u64) {

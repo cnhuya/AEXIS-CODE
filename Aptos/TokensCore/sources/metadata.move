@@ -5,9 +5,9 @@ module dev::QiaraTokensMetadataV1{
     use std::type_info::{Self, TypeInfo};
     use std::table;
     use supra_oracle::supra_oracle_storage;
-    use supra_framework::supra_coin::{Self, SupraCoin};
+    use aptos_framework::supra_coin::{Self, SupraCoin};
     use std::timestamp;
-    use supra_framework::event;
+    use aptos_framework::event;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 
     use dev::QiaraStorageV1::{Self as storage};
@@ -16,7 +16,7 @@ module dev::QiaraTokensMetadataV1{
     use dev::QiaraTokensRatesV1::{Self as rates};
     use dev::QiaraTokensTiersV1::{Self as tier};
 
-    use dev::QiaraOracleV1::{Self as oracle, Access as OracleAccess};
+    use dev::QiaraOracleV4::{Self as oracle, Access as OracleAccess};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;

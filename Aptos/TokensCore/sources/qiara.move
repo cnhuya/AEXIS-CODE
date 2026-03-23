@@ -5,13 +5,13 @@ module dev::QiaraTokensQiaraV1 {
     use std::bcs;
     use std::timestamp;
     use std::type_info::{Self, TypeInfo};
-    use supra_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore};
-    use supra_framework::dispatchable_fungible_asset;
-    use supra_framework::primary_fungible_store;
-    use supra_framework::function_info;
-    use supra_framework::account;
-    use supra_framework::object::{Self, Object};
-    use supra_framework::event;
+    use aptos_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset, FungibleStore};
+    use aptos_framework::dispatchable_fungible_asset;
+    use aptos_framework::primary_fungible_store;
+    use aptos_framework::function_info;
+    use aptos_framework::account;
+    use aptos_framework::object::{Self, Object};
+    use aptos_framework::event;
     use std::string::{Self as string, String, utf8};
 
     use dev::QiaraTokensCoreV1::{Self as TokensCore};

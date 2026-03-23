@@ -4,7 +4,7 @@ module dev::QiaraTokensRatesV1 {
     use std::signer;
     use std::table::{Self as table, Table};
     use std::timestamp;
-    use supra_framework::supra_coin::{Self, SupraCoin};
+    use aptos_framework::supra_coin::{Self, SupraCoin};
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use dev::QiaraMathV1::{Self as Math};
 

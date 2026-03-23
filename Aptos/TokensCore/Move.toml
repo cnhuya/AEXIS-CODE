@@ -21,17 +21,12 @@
     rev = "testnet"
     subdir = "aptos-move/framework/aptos-framework"
 
-    [dependencies.core]
-    git = "https://github.com/Entropy-Foundation/dora-interface.git"
-    rev = "master"
-    subdir = "supra/testnet/core"
-
     [dependencies.QiaraTypesV1]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Aptos/Types'
 
-    [dependencies.QiaraOracleV1]
+    [dependencies.QiaraOracleV4]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
     subdir = 'Aptos/oracle'
@@ -39,7 +34,7 @@
     [dependencies.QiaraStorageV1]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
     rev = 'main'
-    subdir = 'Supra/Storage'
+    subdir = 'Aptos/Storage'
 
     [dependencies.QiaraEventV1]
     git = 'https://github.com/cnhuya/AEXIS-CODE.git'
