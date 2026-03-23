@@ -1,0 +1,16 @@
+    [package]
+    name = "QiaraUtilV1"
+    version = "1.0.0"
+    authors = []
+
+    [addresses]
+    dev = "0x414d4a03ce2efeb08044ab890862f2ade3d6d24700e2ae1c8dfe0684a23b97b6"
+    supra_framework = "0x1"
+    [dev-addresses]
+
+    [dependencies.AptosStdlib]
+    git = "https://github.com/aptos-labs/aptos-core.git"
+    rev = "testnet"
+    subdir = "aptos-move/framework/aptos-stdlib"
+
+    [dev-dependencies]

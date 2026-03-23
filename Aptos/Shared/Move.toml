@@ -1,0 +1,23 @@
+    [package]
+    name = "QiaraSharedV1"
+    version = "2.1.1"
+    authors = []
+
+    [addresses]
+    dev = "0xc4c7a21707e4da6f702fb7c8cb3b8695c35c06309ea9acbd7f089b215a0e3ff4"
+    std = "0x1"
+    aptos_std = "0x1"
+    Extensions = "0x1"
+    [dev-addresses]
+
+    [dependencies.AptosStdlib]
+    git = "https://github.com/aptos-labs/aptos-core.git"
+    rev = "testnet"
+    subdir = "aptos-move/framework/aptos-stdlib"
+
+    [dependencies.QiaraEventV1]
+    git = 'https://github.com/cnhuya/QIARA-CODE.git'
+    rev = 'main'
+    subdir = 'Aptos/Event'
+
+    [dev-dependencies]
