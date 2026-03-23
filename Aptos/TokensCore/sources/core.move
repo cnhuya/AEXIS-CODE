@@ -30,9 +30,9 @@ module dev::QiaraTokensCoreV1{
     use dev::QiaraEventV1::{Self as Event};
     use dev::QiaraStoragesV1::{Self as Storages};
 
-    use dev::QiaraChainTypesV1::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV1::{Self as TokensType};
-    use dev::QiaraProviderTypesV1::{Self as ProviderTypes};
+    use dev::QiaraChainTypesV2::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV2::{Self as TokensType};
+    use dev::QiaraProviderTypesV2::{Self as ProviderTypes};
 
     const ADMIN: address = @dev;
 
@@ -210,7 +210,7 @@ module dev::QiaraTokensCoreV1{
     //115792089237316195423570985008687907853269984665640564039457584007913129639935
 
 
-    fun init_token(admin: &signer, name: String, symbol: String, icon: String, creation: u64,oracleID: u32, max_supply: u128, circulating_supply: u128, total_supply: u128, stable:u8 ){
+    fun init_token(admin: &signer, name: String, symbol: String, icon: String, creation: u64,oracleID: vector<u8>, max_supply: u128, circulating_supply: u128, total_supply: u128, stable:u8 ){
         let constructor_ref = &object::create_named_object(admin, bcs::to_bytes(&TokensType::convert_token_nickName_to_name(name))); // Ethereum -> Qiara31 Ethereum
         primary_fungible_store::create_primary_store_enabled_fungible_asset(
             constructor_ref,
