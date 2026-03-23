@@ -1,4 +1,4 @@
-module dev::QiaraTokensCoreV1{
+module dev::QiaraTokensCoreV2{
     use std::signer;
     use std::option;
     use std::vector;
@@ -18,21 +18,21 @@ module dev::QiaraTokensCoreV1{
     use aptos_std::string_utils ::{Self as string_utils};
 
     use dev::QiaraMathV1::{Self as Math};
-    use dev::QiaraTokensMetadataV1::{Self as TokensMetadata};
-    use dev::QiaraTokensOmnichainV1::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
-    use dev::QiaraTokensTiersV1::{Self as TokensTiers};
-    use dev::QiaraTokensQiaraV1::{Self as TokensQiara,  Access as TokensQiaraAccess};
+    use dev::QiaraTokensMetadataV2::{Self as TokensMetadata};
+    use dev::QiaraTokensOmnichainV2::{Self as TokensOmnichain, Access as TokensOmnichainAccess};
+    use dev::QiaraTokensTiersV2::{Self as TokensTiers};
+    use dev::QiaraTokensQiaraV2::{Self as TokensQiara,  Access as TokensQiaraAccess};
 
     use dev::QiaraNonceV1::{Self as Nonce, Access as NonceAccess};
 
     use dev::QiaraSharedV1::{Self as Shared};
 
     use dev::QiaraEventV1::{Self as Event};
-    use dev::QiaraStoragesV2::{Self as Storages};
+    use dev::QiaraStoragesV3::{Self as Storages};
 
-    use dev::QiaraChainTypesV2::{Self as ChainTypes};
-    use dev::QiaraTokenTypesV2::{Self as TokensType};
-    use dev::QiaraProviderTypesV2::{Self as ProviderTypes};
+    use dev::QiaraChainTypesV3::{Self as ChainTypes};
+    use dev::QiaraTokenTypesV3::{Self as TokensType};
+    use dev::QiaraProviderTypesV3::{Self as ProviderTypes};
 
     const ADMIN: address = @dev;
 
@@ -139,23 +139,23 @@ module dev::QiaraTokensCoreV1{
 // === ENTRY FUNCTIONS === //
     public entry fun inits(admin: &signer){
         //         tttta(0);
-        init_token(admin, utf8(b"Ethereum"), utf8(b"QETH"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ethereum.webp"), 1_438_269_983, (b"0xca80ba6dc32e08d06f1aa886011eed1d77c77be9eb761cc10d72b7d0a2fd57a6"), 120_698_129, 120_698_129, 120_698_129, 1);
-        init_token(admin, utf8(b"Bitcoin"), utf8(b"QBTC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/bitcoin.webp"), 1_231_006_505, (b"0xf9c0172ba10dfa4d19088d94f5bf61d3b54d5bd7483a322a982e1373ee8ea31b"), 21_000_000, 19_941_253, 19_941_253, 1);
-         //         tttta(1);
-        init_token(admin, utf8(b"Monad"), utf8(b"QMON"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/monad.webp"), 1_584_316_800, (b"0xe786153cc54abd4b0e53b4c246d54d9f8eb3f3b5a34d4fc5a2e9a423b0ba5d6b"), 614_655_961, 559_139_255, 614_655_961, 1);
-        init_token(admin, utf8(b"Sui"), utf8(b"QSUI"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/sui.webp"), 1_683_062_400, (b"0x50c67b3fd225db8912a424dd4baed60ffdde625ed2feaaf283724f9608fea266"), 10_000_000_000, 3_680_742_933, 10_000_000_000, 1);
+        init_token(admin, utf8(b"Ethereum"), utf8(b"QETH"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ethereum.webp"), 1_438_269_983, (b"ca80ba6dc32e08d06f1aa886011eed1d77c77be9eb761cc10d72b7d0a2fd57a6"), 120_698_129, 120_698_129, 120_698_129, 1);
+        init_token(admin, utf8(b"Bitcoin"), utf8(b"QBTC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/bitcoin.webp"), 1_231_006_505, (b"f9c0172ba10dfa4d19088d94f5bf61d3b54d5bd7483a322a982e1373ee8ea31b"), 21_000_000, 19_941_253, 19_941_253, 1);
+                 tttta(1);
+        init_token(admin, utf8(b"Monad"), utf8(b"QMON"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/monad.webp"), 1_584_316_800, (b"e786153cc54abd4b0e53b4c246d54d9f8eb3f3b5a34d4fc5a2e9a423b0ba5d6b"), 614_655_961, 559_139_255, 614_655_961, 1);
+        init_token(admin, utf8(b"Sui"), utf8(b"QSUI"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/sui.webp"), 1_683_062_400, (b"50c67b3fd225db8912a424dd4baed60ffdde625ed2feaaf283724f9608fea266"), 10_000_000_000, 3_680_742_933, 10_000_000_000, 1);
    //     tttta(99);
-        init_token(admin, utf8(b"Deepbook"), utf8(b"QDEEP"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/deepbook.webp"),  1_683_072_000, (b""), 10_000_000_000, 4_368_147_611, 10_000_000_000, 1);
+     //   init_token(admin, utf8(b"Deepbook"), utf8(b"QDEEP"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/deepbook.webp"),  1_683_072_000, (b""), 10_000_000_000, 4_368_147_611, 10_000_000_000, 1);
         //     tttta(2);
-        init_token(admin, utf8(b"Virtuals"), utf8(b"QVIRTUALS"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/virtuals.webp"), 1_614_556_800, (b"0x0c6c5da309db3296d7e08c3e28b24fb259dca5aa46fb34be4b44ecccfeead6fe"), 1_000_000_000, 656_082_020, 1_000_000_000, 1);
-        init_token(admin, utf8(b"Aptos"), utf8(b"QAPT"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/aptos.webp"), 1_732_598_400, (b"0x44a93dddd8effa54ea51076c4e851b6cbbfd938e82eb90197de38fe8876bb66e"), 100_000_000_000, 21_000_700_000, 80_600_180_397, 1);
-        init_token(admin, utf8(b"USDT"), utf8(b"QUSDT"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt.webp"), 0, (b"0x1fc18861232290221461220bd4e2acd1dcdfbc89c84092c93c18bdc7756c1588"), 185_977_352_465, 185_977_352_465, 185_977_352_465, 255);
-        init_token(admin, utf8(b"USDC"), utf8(b"QUSDC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdc.webp"), 0, (b"0x41f3625971ca2ed2263e78573fe5ce23e13d2558ed3f2e47ab0f84fb9e7ae722"), 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);   
-        init_token(admin, utf8(b"Qiara"), utf8(b"QIARA"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/qiara.webp"), 0, (b""), 0, 0, 0, 1);   
+        init_token(admin, utf8(b"Virtuals"), utf8(b"QVIRTUALS"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/virtuals.webp"), 1_614_556_800, (b"0c6c5da309db3296d7e08c3e28b24fb259dca5aa46fb34be4b44ecccfeead6fe"), 1_000_000_000, 656_082_020, 1_000_000_000, 1);
+        init_token(admin, utf8(b"Aptos"), utf8(b"QAPT"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/aptos.webp"), 1_732_598_400, (b"44a93dddd8effa54ea51076c4e851b6cbbfd938e82eb90197de38fe8876bb66e"), 100_000_000_000, 21_000_700_000, 80_600_180_397, 1);
+        init_token(admin, utf8(b"USDT"), utf8(b"QUSDT"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt.webp"), 0, (b"1fc18861232290221461220bd4e2acd1dcdfbc89c84092c93c18bdc7756c1588"), 185_977_352_465, 185_977_352_465, 185_977_352_465, 255);
+        init_token(admin, utf8(b"USDC"), utf8(b"QUSDC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdc.webp"), 0, (b"41f3625971ca2ed2263e78573fe5ce23e13d2558ed3f2e47ab0f84fb9e7ae722"), 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);   
+       // init_token(admin, utf8(b"Qiara"), utf8(b"QIARA"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/qiara.webp"), 0, (b""), 0, 0, 0, 1);   
 
-        init_token(admin, utf8(b"AUSD"), utf8(b"QAUSD"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ausd.webp"), 0, (b"0xd9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386"), 175_036_043, 175_036_043, 175_036_043, 255);
-        init_token(admin, utf8(b"earnAUSD"), utf8(b"QearnAUSD"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/earnAUSD.webp"), 0, (b"0xd9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386"), 0, 0, 0, 254);
-        init_token(admin, utf8(b"USDT0"), utf8(b"QUSDT0"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt0.webp"), 0, (b"0xd9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386"), 0, 0, 0, 255);
+        init_token(admin, utf8(b"AUSD"), utf8(b"QAUSD"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ausd.webp"), 0, (b"d9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386"), 175_036_043, 175_036_043, 175_036_043, 255);
+        init_token(admin, utf8(b"earnAUSD"), utf8(b"QearnAUSD"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/earnAUSD.webp"), 0, (b"d9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386"), 0, 0, 0, 254);
+        init_token(admin, utf8(b"USDT0"), utf8(b"QUSDT0"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt0.webp"), 0, (b"d9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386"), 0, 0, 0, 255);
 
 
     }
@@ -244,12 +244,12 @@ module dev::QiaraTokensCoreV1{
         // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
         let deposit = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV1"),
+            string::utf8(b"QiaraTokensCoreV2"),
             string::utf8(b"c_deposit"),
         );
         let withdraw = function_info::new_function_info(
             admin,
-            string::utf8(b"QiaraTokensCoreV1"),
+            string::utf8(b"QiaraTokensCoreV2"),
             string::utf8(b"c_withdraw"),
         );
    
