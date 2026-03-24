@@ -138,24 +138,24 @@ module dev::QiaraTokensCoreV2{
 
 // === ENTRY FUNCTIONS === //
     public entry fun inits(admin: &signer){
-        //         tttta(0);
-        init_token(admin, utf8(b"Ethereum"), utf8(b"QETH"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ethereum.webp"), 1_438_269_983, (b"ca80ba6dc32e08d06f1aa886011eed1d77c77be9eb761cc10d72b7d0a2fd57a6"), 120_698_129, 120_698_129, 120_698_129, 1);
-        init_token(admin, utf8(b"Bitcoin"), utf8(b"QBTC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/bitcoin.webp"), 1_231_006_505, (b"f9c0172ba10dfa4d19088d94f5bf61d3b54d5bd7483a322a982e1373ee8ea31b"), 21_000_000, 19_941_253, 19_941_253, 1);
-                 tttta(1);
-        init_token(admin, utf8(b"Monad"), utf8(b"QMON"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/monad.webp"), 1_584_316_800, (b"e786153cc54abd4b0e53b4c246d54d9f8eb3f3b5a34d4fc5a2e9a423b0ba5d6b"), 614_655_961, 559_139_255, 614_655_961, 1);
-        init_token(admin, utf8(b"Sui"), utf8(b"QSUI"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/sui.webp"), 1_683_062_400, (b"50c67b3fd225db8912a424dd4baed60ffdde625ed2feaaf283724f9608fea266"), 10_000_000_000, 3_680_742_933, 10_000_000_000, 1);
+         //        tttta(0);
+        init_token(admin, utf8(b"Ethereum"), utf8(b"QETH"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ethereum.webp"), 1_438_269_983, x"ca80ba6dc32e08d06f1aa886011eed1d77c77be9eb761cc10d72b7d0a2fd57a6", 120_698_129, 120_698_129, 120_698_129, 1);
+        init_token(admin, utf8(b"Bitcoin"), utf8(b"QBTC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/bitcoin.webp"), 1_231_006_505, x"f9c0172ba10dfa4d19088d94f5bf61d3b54d5bd7483a322a982e1373ee8ea31b", 21_000_000, 19_941_253, 19_941_253, 1);
+           //      tttta(1);
+        init_token(admin, utf8(b"Monad"), utf8(b"QMON"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/monad.webp"), 1_584_316_800, x"e786153cc54abd4b0e53b4c246d54d9f8eb3f3b5a34d4fc5a2e9a423b0ba5d6b", 614_655_961, 559_139_255, 614_655_961, 1);
+        init_token(admin, utf8(b"Sui"), utf8(b"QSUI"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/sui.webp"), 1_683_062_400, x"50c67b3fd225db8912a424dd4baed60ffdde625ed2feaaf283724f9608fea266", 10_000_000_000, 3_680_742_933, 10_000_000_000, 1);
    //     tttta(99);
      //   init_token(admin, utf8(b"Deepbook"), utf8(b"QDEEP"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/deepbook.webp"),  1_683_072_000, (b""), 10_000_000_000, 4_368_147_611, 10_000_000_000, 1);
         //     tttta(2);
-        init_token(admin, utf8(b"Virtuals"), utf8(b"QVIRTUALS"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/virtuals.webp"), 1_614_556_800, (b"0c6c5da309db3296d7e08c3e28b24fb259dca5aa46fb34be4b44ecccfeead6fe"), 1_000_000_000, 656_082_020, 1_000_000_000, 1);
-        init_token(admin, utf8(b"Aptos"), utf8(b"QAPT"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/aptos.webp"), 1_732_598_400, (b"44a93dddd8effa54ea51076c4e851b6cbbfd938e82eb90197de38fe8876bb66e"), 100_000_000_000, 21_000_700_000, 80_600_180_397, 1);
-        init_token(admin, utf8(b"USDT"), utf8(b"QUSDT"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt.webp"), 0, (b"1fc18861232290221461220bd4e2acd1dcdfbc89c84092c93c18bdc7756c1588"), 185_977_352_465, 185_977_352_465, 185_977_352_465, 255);
-        init_token(admin, utf8(b"USDC"), utf8(b"QUSDC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdc.webp"), 0, (b"41f3625971ca2ed2263e78573fe5ce23e13d2558ed3f2e47ab0f84fb9e7ae722"), 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);   
+        init_token(admin, utf8(b"Virtuals"), utf8(b"QVIRTUALS"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/virtuals.webp"), 1_614_556_800, x"0c6c5da309db3296d7e08c3e28b24fb259dca5aa46fb34be4b44ecccfeead6fe", 1_000_000_000, 656_082_020, 1_000_000_000, 1);
+        init_token(admin, utf8(b"Aptos"), utf8(b"QAPT"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/aptos.webp"), 1_732_598_400, x"44a93dddd8effa54ea51076c4e851b6cbbfd938e82eb90197de38fe8876bb66e", 100_000_000_000, 21_000_700_000, 80_600_180_397, 1);
+        init_token(admin, utf8(b"USDT"), utf8(b"QUSDT"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt.webp"), 0, x"1fc18861232290221461220bd4e2acd1dcdfbc89c84092c93c18bdc7756c1588", 185_977_352_465, 185_977_352_465, 185_977_352_465, 255);
+        init_token(admin, utf8(b"USDC"), utf8(b"QUSDC"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdc.webp"), 0, x"41f3625971ca2ed2263e78573fe5ce23e13d2558ed3f2e47ab0f84fb9e7ae722", 76_235_696_160, 76_235_696_160, 76_235_696_160, 255);   
        // init_token(admin, utf8(b"Qiara"), utf8(b"QIARA"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/qiara.webp"), 0, (b""), 0, 0, 0, 1);   
 
-        init_token(admin, utf8(b"AUSD"), utf8(b"QAUSD"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ausd.webp"), 0, (b"d9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386"), 175_036_043, 175_036_043, 175_036_043, 255);
-        init_token(admin, utf8(b"earnAUSD"), utf8(b"QearnAUSD"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/earnAUSD.webp"), 0, (b"d9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386"), 0, 0, 0, 254);
-        init_token(admin, utf8(b"USDT0"), utf8(b"QUSDT0"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt0.webp"), 0, (b"d9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386"), 0, 0, 0, 255);
+        init_token(admin, utf8(b"AUSD"), utf8(b"QAUSD"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/ausd.webp"), 0, x"d9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386", 175_036_043, 175_036_043, 175_036_043, 255);
+        init_token(admin, utf8(b"earnAUSD"), utf8(b"QearnAUSD"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/earnAUSD.webp"), 0, x"d9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386", 0, 0, 0, 254);
+        init_token(admin, utf8(b"USDT0"), utf8(b"QUSDT0"), utf8(b"https://raw.githubusercontent.com/cnhuya/AEXIS-CDN/main/tokens/usdt0.webp"), 0, x"d9c3b63a33b3750e1a73fe8631aad0d62d84fc00cde29eac8781207e67e47386", 0, 0, 0, 255);
 
 
     }
@@ -170,9 +170,8 @@ module dev::QiaraTokensCoreV2{
         ma_drilla_lul(signer, shared, utf8(b"USDC"), utf8(b"Ethereum"));
         ma_drilla_lul(signer, shared, utf8(b"USDT"), utf8(b"Ethereum"));
         ma_drilla_lul(signer, shared, utf8(b"Virtuals"), utf8(b"Ethereum"));
-      //  tttta(10101);
-        ma_drilla_lul(signer, shared, utf8(b"Sui"), utf8(b"Sui"));
-        ma_drilla_lul(signer, shared, utf8(b"Deepbook"), utf8(b"Sui"));
+       // tttta(10101);
+       // ma_drilla_lul(signer, shared, utf8(b"Deepbook"), utf8(b"Sui"));
         ma_drilla_lul(signer, shared, utf8(b"Monad"), utf8(b"Monad"));
         ma_drilla_lul(signer, shared, utf8(b"USDC"), utf8(b"Monad"));
         ma_drilla_lul(signer, shared, utf8(b"USDT0"), utf8(b"Monad"));
@@ -183,13 +182,19 @@ module dev::QiaraTokensCoreV2{
         ma_drilla_lul(signer, shared, utf8(b"Bitcoin"), utf8(b"Monad"));
         ma_drilla_lul(signer, shared, utf8(b"Bitcoin"), utf8(b"Ethereum"));
         ma_drilla_lul(signer, shared, utf8(b"Bitcoin"), utf8(b"Sui"));
-      //  tttta(10101);
+        ma_drilla_lul(signer, shared, utf8(b"USDC"), utf8(b"Sui"));
+        ma_drilla_lul(signer, shared, utf8(b"Sui"), utf8(b"Sui"));
+     //  tttta(1);
         ma_drilla_lul(signer, shared, utf8(b"Virtuals"), utf8(b"Base"));
-        ma_drilla_lul(signer, shared, utf8(b"Supra"), utf8(b"Supra"));
         ma_drilla_lul(signer, shared, utf8(b"USDT"), utf8(b"Base"));
         ma_drilla_lul(signer, shared, utf8(b"USDC"), utf8(b"Base"));
-        ma_drilla_lul(signer, shared, utf8(b"Qiara"), utf8(b"Sui"));
-        ma_drilla_lul(signer, shared, utf8(b"Qiara"), utf8(b"Supra"));
+
+        ma_drilla_lul(signer, shared, utf8(b"USDC"), utf8(b"Aptos"));
+        ma_drilla_lul(signer, shared, utf8(b"USDT"), utf8(b"Aptos"));
+        ma_drilla_lul(signer, shared, utf8(b"Aptos"), utf8(b"Aptos"));
+
+       // ma_drilla_lul(signer, shared, utf8(b"Qiara"), utf8(b"Sui"));
+       // ma_drilla_lul(signer, shared, utf8(b"Qiara"), utf8(b"Aptos"));
         //        tttta(9);
     }
 
@@ -527,7 +532,7 @@ module dev::QiaraTokensCoreV2{
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"amount"), utf8(b"string"), bcs::to_bytes(&amount)),
         ];
-        Event::emit_bridge_event(utf8(b"Finalized Bridge from Supra"), data);    
+        Event::emit_bridge_event(utf8(b"Finalized Bridge from Aptos"), data);    
 
     }
 
@@ -555,7 +560,7 @@ module dev::QiaraTokensCoreV2{
             Event::create_data_struct(utf8(b"chain"), utf8(b"string"), bcs::to_bytes(&chain)),
             Event::create_data_struct(utf8(b"amount"), utf8(b"string"), bcs::to_bytes(&amount)),
         ];
-        Event::emit_bridge_event(utf8(b"Finalized Bridge to Supra"), data);    
+        Event::emit_bridge_event(utf8(b"Finalized Bridge to Aptos"), data);    
 
     }
 
@@ -590,19 +595,19 @@ module dev::QiaraTokensCoreV2{
     
     }
 
-    // Function that can be only called by Validator, used to redeem tokens to existing Supra wallet.
-    public fun redeem(validator: &signer, shared: String, supra_wallet: address, symbol:String, chain:String, perm: Permission) acquires ManagedFungibleAsset, Permissions {
-        Shared::assert_is_sub_owner(shared, bcs::to_bytes(&supra_wallet));
+    // Function that can be only called by Validator, used to redeem tokens to existing Aptos wallet.
+    public fun redeem(validator: &signer, shared: String, aptos_wallet: address, symbol:String, chain:String, perm: Permission) acquires ManagedFungibleAsset, Permissions {
+        Shared::assert_is_sub_owner(shared, bcs::to_bytes(&aptos_wallet));
         let asset = get_metadata(symbol);
         ensure_safety(symbol, chain);
         let managed = authorized_borrow_refs(symbol);
-        assert!(account::exists_at(supra_wallet), ERROR_ACCOUNT_DOES_NOT_EXISTS);
+        assert!(account::exists_at(aptos_wallet), ERROR_ACCOUNT_DOES_NOT_EXISTS);
 
         let amount = (TokensOmnichain::return_address_balance_by_chain_for_token(shared, chain, symbol) as u64);
         let fa = internal_mint(symbol, chain, amount, managed);
         TokensOmnichain::change_UserTokenSupply(symbol, chain, shared, amount, false, TokensOmnichain::give_permission(&borrow_global<Permissions>(@dev).tokens_omnichain_access)); 
       
-        let wallet = primary_fungible_store::primary_store(supra_wallet, asset);
+        let wallet = primary_fungible_store::primary_store(aptos_wallet, asset);
         internal_deposit(shared, wallet, fa, chain, managed);
     }
     
@@ -614,10 +619,10 @@ module dev::QiaraTokensCoreV2{
         let managed = authorized_borrow_refs(utf8(b"QIARA"));
         let delta_seconds = timestamp::now_seconds() - TokensQiara::get_last_claimed();
 
-        let fa = internal_mint(utf8(b"Qiara"),utf8(b"Supra"),(claimable_amount as u64), managed);
+        let fa = internal_mint(utf8(b"Qiara"),utf8(b"Aptos"),(claimable_amount as u64), managed);
 
         let to_wallet = primary_fungible_store::ensure_primary_store_exists(signer::address_of(claimer),asset);
-        internal_deposit(shared, to_wallet, fa,utf8(b"Supra"), managed);
+        internal_deposit(shared, to_wallet, fa,utf8(b"Aptos"), managed);
 
     }
 

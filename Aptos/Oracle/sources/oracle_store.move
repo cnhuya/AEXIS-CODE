@@ -92,7 +92,7 @@ module dev::QiaraOracleStoreV5 {
     // ── Read from cache ────────────────────────────────────────────────────────
     #[view]
     public fun get_price(feed_id_bytes: vector<u8>): PriceStore acquires Prices {
-        assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
+        assert!(std::vector::length(&feed_id_bytes) == 32, std::vector::length(&feed_id_bytes));
 
         let prices = borrow_global<Prices>(@dev);  // No mut needed for view
 
@@ -105,7 +105,7 @@ module dev::QiaraOracleStoreV5 {
     // ── Read raw from cache ────────────────────────────────────────────────────────
     #[view]
     public fun get_raw_price(feed_id_bytes: vector<u8>): (u64, u64) acquires Prices {
-        assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
+        assert!(std::vector::length(&feed_id_bytes) == 32, std::vector::length(&feed_id_bytes));
 
         let prices = borrow_global<Prices>(@dev);
 
@@ -133,7 +133,7 @@ module dev::QiaraOracleStoreV5 {
     // ── Direct read from Pyth (no cache) ───────────────────────────────────────
     #[view]
     public fun get_price_direct(feed_id_bytes: vector<u8>): (i64::I64, i64::I64, u64) {
-        assert!(std::vector::length(&feed_id_bytes) == 32, E_FEED_ID_EMPTY);
+        assert!(std::vector::length(&feed_id_bytes) == 32, std::vector::length(&feed_id_bytes));
 
         let price_id = price_identifier::from_byte_vec(feed_id_bytes);
         let p: Price = pyth::get_price_no_older_than(price_id, MAX_AGE_SECS);
