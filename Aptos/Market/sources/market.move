@@ -35,7 +35,7 @@ module dev::QiaraVaultsV1 {
 
     use dev::QiaraSharedV1::{Self as Shared};
 
-    use dev::QiaraGasV3::{Self as Gas};
+    use dev::QiaraGasV1::{Self as Gas};
 
     use dev::QiaraLiquidityV1::{Self as Liquidity, Access as LiquidityAccess};
     use dev::QiaraTokenVaultsV1::{Self as TokenVaults, Access as TokenVaultsAccess};
