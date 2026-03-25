@@ -928,7 +928,7 @@ module dev::QiaraVaultsV1 {
         let deposit_points_reward = calculate_deposit_points(user_deposited, user_last_interacted);
         abort((deposit_points_reward as u64));
         Points::add_experience(shared,points_reward, Points::give_permission(&borrow_global<Permissions>(@dev).points));
-        Margin::update_time(shared, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
+        Margin::update_time(shared, user, token, chain, provider, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         return (total_accumulated_rewards, total_accumulated_interest, user_interest, user_interest_reward, staked_reward, points_reward)
     }
     fun track_daily_withdraw_limit(token: String, provider_vault: &mut Vault, amount: u256){
