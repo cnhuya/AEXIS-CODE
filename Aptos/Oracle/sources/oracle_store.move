@@ -1,5 +1,6 @@
 module dev::QiaraOracleStoreV5 {
     use std::string::{Self as string, String, utf8};
+    use std::vector;
     use std::bcs;
     use pyth::pyth;
     use pyth::price;
@@ -82,6 +83,14 @@ module dev::QiaraOracleStoreV5 {
         } else {
             map::add(&mut prices.prices, feed_id_bytes, new_store);
         }
+    }
+
+    public entry fun batch_update_price(user: &signer,price_update_data: vector<vector<vector<u8>>>,feed_id_bytes: vector<vector<u8>>,) acquires Prices {
+        let len = vector::length(&price_update_data);
+        while(len > 0){
+            update_price(user,price_update_data[len-1],feed_id_bytes[len-1]);
+            len = len - 1;
+        };
     }
 
     fun ensure_price(feed_id_str: vector<u8>, price_store: PriceStore) acquires Prices {

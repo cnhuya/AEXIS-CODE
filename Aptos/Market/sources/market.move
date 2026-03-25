@@ -925,8 +925,6 @@ module dev::QiaraVaultsV1 {
         Margin::add_rewards(shared, user, token, chain, provider, user_interest_reward+staked_reward, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         // user points reward
         let points_reward = calculate_points(start, end, per_second, total_deposited, user_deposited, user_last_interacted);
-        let deposit_points_reward = calculate_deposit_points(user_deposited, user_last_interacted);
-        abort((deposit_points_reward as u64));
         Points::add_experience(shared,points_reward, Points::give_permission(&borrow_global<Permissions>(@dev).points));
         Margin::update_time(shared, user, token, chain, provider, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         return (total_accumulated_rewards, total_accumulated_interest, user_interest, user_interest_reward, staked_reward, points_reward)

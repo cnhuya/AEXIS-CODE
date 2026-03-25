@@ -167,7 +167,7 @@ module dev::QiaraRanksV1{
 
     #[view]
     public fun return_base_xp_increase(): u256{
-        (storage::expect_u64(storage::viewConstant(utf8(b"QiaraRanks"), utf8(b"BASE_XP"))) as u256)
+        (storage::expect_u64(storage::viewConstant(utf8(b"QiaraRanks"), utf8(b"BASE_XP"))) as u256)*1000000000000000000
     }
     #[view]
     public fun return_fee_points_conversion(): u256{ // 1$ fee = 1 xp
@@ -220,25 +220,26 @@ module dev::QiaraRanksV1{
         let deduction_percentage = (power as u256) * return_withdrawal_over_limit_per_power(); // each rank power gives 5% fee deduction
         return deduction_percentage
     }
-fun convert_level_to_rank(level: u256): String {
-    if (level < 10) {
-        return utf8(b"Iron")
-    } else if (level < 20) {
-        return utf8(b"Bronze")
-    } else if (level < 30) {
-        return utf8(b"Silver")
-    } else if (level < 40) {
-        return utf8(b"Gold")
-    } else if (level < 50) {
-        return utf8(b"Platinum")
-    } else if (level < 60) {
-        return utf8(b"Emerald")
-    } else if (level < 70) {
-        return utf8(b"Diamond")
-    } else {
-        return utf8(b"Obsidian")
+
+    fun convert_level_to_rank(level: u256): String {
+        if (level < 10) {
+            return utf8(b"Iron")
+        } else if (level < 20) {
+            return utf8(b"Bronze")
+        } else if (level < 30) {
+            return utf8(b"Silver")
+        } else if (level < 40) {
+            return utf8(b"Gold")
+        } else if (level < 50) {
+            return utf8(b"Platinum")
+        } else if (level < 60) {
+            return utf8(b"Emerald")
+        } else if (level < 70) {
+            return utf8(b"Diamond")
+        } else {
+            return utf8(b"Obsidian")
+        }
     }
-}
     fun convert_rank_to_power(rank: String): u8{
         if(rank == utf8(b"Iron")){
             return 0

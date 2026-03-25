@@ -234,6 +234,15 @@ module dev::QiaraTokensMetadataV2{
 
     }
 
+    public entry fun update_all_tokenomics(admin: &signer) acquires Tokens {
+        update_tokenomics(admin, utf8(b"Ethereum"), 120_698_129, 120_698_129, 120_698_129);
+        update_tokenomics(admin, utf8(b"Bitcoin"), 21_000_000, 19_941_253, 19_941_253);
+        update_tokenomics(admin, utf8(b"Monad"), 100_000_000_000, 10_830_583_396, 10_830_583_396 );
+        update_tokenomics(admin, utf8(b"Sui"), 10_000_000_000, 3_680_742_933, 10_000_000_000);
+        update_tokenomics(admin, utf8(b"Virtuals"), 1_000_000_000, 656_082_020, 1_000_000_000);
+        update_tokenomics(admin, utf8(b"Aptos"), 2_100_000_000, 793_843_124, 1_200_137_348);
+    }
+
 // === HELPER FUNCTIONS === //
 
     fun calculate_market(info: &Metadata): Market {
