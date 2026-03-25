@@ -151,13 +151,19 @@ module dev::QiaraMarginV1{
         Shared::assert_is_sub_owner(shared, user);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared, token, chain, provider);
         balance.interest_index_snapshot = index;
-        balance.last_update = timestamp::now_seconds();
+       // balance.last_update = timestamp::now_seconds();
     }
 
     public fun update_reward_index(shared: String, user: vector<u8>, token: String, chain: String,provider: String, index: u256, cap: Permission) acquires TokenHoldings{
         Shared::assert_is_sub_owner(shared, user);
         let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared, token, chain, provider);
         balance.reward_index_snapshot = index;
+  //      balance.last_update = timestamp::now_seconds();
+    }
+
+    public fun update_time(shared: String, user: vector<u8>, token: String, chain: String,provider: String, cap: Permission) acquires TokenHoldings{
+        Shared::assert_is_sub_owner(shared, user);
+        let balance = find_balance(borrow_global_mut<TokenHoldings>(@dev),shared, token, chain, provider);
         balance.last_update = timestamp::now_seconds();
     }
 

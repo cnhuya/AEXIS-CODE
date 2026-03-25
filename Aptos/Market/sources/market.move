@@ -888,7 +888,7 @@ module dev::QiaraVaultsV1 {
 
 // === HELPERS === //
     public fun new_accrue(shared: String, user: vector<u8>,token: String, chain: String, provider: String): (u256,u256,u256, u256,u256, u256) acquires Permissions {
-        let (_,_,user_deposited, user_borrowed, user_staked, _, user_accumulated_rewards_index, _, user_accumulated_interest_index, _, user_last_interacted) = Margin::get_user_raw_balance(shared, token, chain, provider);
+        let (user_deposited, user_borrowed, _,_, user_staked, _, user_accumulated_rewards_index, _, user_accumulated_interest_index, _, user_last_interacted) = Margin::get_user_raw_balance(shared, token, chain, provider);
         let (total_borrowed, total_deposited, total_staked, total_accumulated_rewards, total_accumulated_interest, virtual_borrowed, virtual_deposited, last_update) = Liquidity::return_raw_vault(token, chain, provider);
         let (start, end, per_second) = Liquidity::return_raw_vault_incentive(token, chain, provider);
 
@@ -925,8 +925,10 @@ module dev::QiaraVaultsV1 {
         Margin::add_rewards(shared, user, token, chain, provider, user_interest_reward+staked_reward, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         // user points reward
         let points_reward = calculate_points(start, end, per_second, total_deposited, user_deposited, user_last_interacted);
+        let deposit_points_reward = calculate_deposit_points(user_deposited, user_last_interacted);
+        abort((deposit_points_reward as u64));
         Points::add_experience(shared,points_reward, Points::give_permission(&borrow_global<Permissions>(@dev).points));
-    
+        Margin::update_time(shared, bcs::to_bytes(&signer::address_of(signer)), token, chain, provider, Margin::give_permission(&borrow_global<Permissions>(@dev).margin));
         return (total_accumulated_rewards, total_accumulated_interest, user_interest, user_interest_reward, staked_reward, points_reward)
     }
     fun track_daily_withdraw_limit(token: String, provider_vault: &mut Vault, amount: u256){
@@ -962,7 +964,7 @@ module dev::QiaraVaultsV1 {
     #[view] 
     public fun calculate_points(start: u64, end: u64, per_second: u256, total_deposited: u256, user_deposited: u256, last_update:u64): u256{
 
-        let base_points = Points::return_market_liquidity_provision_points_conversion();
+        let base_points = calculate_deposit_points(user_deposited, last_update);
 
         let active_time;
 
@@ -981,8 +983,28 @@ module dev::QiaraVaultsV1 {
         };
         let incentive_points_reward = (per_second * (active_time as u256) * user_deposited) / total_deposited;
 
+        return incentive_points_reward + base_points
+    }
+
+    #[view] 
+    public fun calculate_deposit_points(user_deposited: u256, last_update: u64): u256 {
+        let base_points = Points::return_market_liquidity_provision_points_conversion();
+
+        let precision_factor: u256 = 1000000; 
+
+        let now = (timestamp::now_seconds() as u256);
+        let last = (last_update as u256);
+        
+       // if (now <= last) return 0;
+        let time = now - last;
+
+        // Calculation: (Amount * Time * Rate) / Precision
+        // This ensures: ($1.00) * (1 sec) * (1.0 rate) = 1 point
+        let incentive_points_reward = (user_deposited * time * base_points) / precision_factor;
+
         return incentive_points_reward 
     }
+
     #[view]
     public fun calculate_rewards(total_deposited: u256, total_apr: u256, time_diff: u256): u256 {
         return (total_deposited * total_apr * time_diff) / 31_556_926 / 100000 // (/100 - convert from percentage + /1000 - apr scale)

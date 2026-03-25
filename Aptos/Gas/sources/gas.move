@@ -129,7 +129,8 @@ module dev::QiaraGasV2{
         let new_deposits = deposit + previous_deposit_impact;
         let new_withdrawals = withdrawal + previous_withdrawal_impact;
 
-        let ratio = (new_withdrawals * withdrawal_weight) / new_deposits;
+            // Corrected logic: Ensure the denominator is at least 1
+        let ratio = (new_withdrawals * withdrawal_weight) / (new_deposits + 1);
 
         let total_fee = (base * ((ratio * ratio) / e6) / e6) + (gas_ref.avg_leverage as u256) + base;
         

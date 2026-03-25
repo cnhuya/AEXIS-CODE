@@ -371,6 +371,10 @@ module dev::QiaraTokensMetadataV2{
         let valueUSD = getValue(token, value*1000000000000000000);
         let liquidityUSD = getValue(token, liquidity*1000000000000000000);
 
+        if(liquidityUSD == 0){
+            liquidityUSD = 1;
+        };
+
         let penalty = 0;
         if((hours)*(hours)*(penalty_deductor) < base_penalty){
             penalty = base_penalty-((hours)*(hours)*(penalty_deductor));
