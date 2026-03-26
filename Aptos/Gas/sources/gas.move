@@ -8,7 +8,7 @@ module dev::QiaraGasV2{
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
     use aptos_std::math128 ::{Self as math128};
 
-    use dev::QiaraEventV1::{Self as Event};
+    use event::QiaraEventV1::{Self as Event};
     use dev::QiaraOracleV5::{Self as Oracle};
 
 
