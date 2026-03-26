@@ -54,6 +54,14 @@ module dev::QiaraRanksV1{
         withdraval_over_limit: u256,
     }
 
+    struct ViewRank has copy, drop, store{
+        level_treshold: u256,
+        rank: String,
+        fee_deduction: u256,
+        ltv_increase: u256,
+        withdraval_over_limit: u256,
+    }
+
 // === INIT === //
     fun init_module(admin: &signer){
         if (!exists<UsersProfile>(@dev)) {
@@ -129,6 +137,29 @@ module dev::QiaraRanksV1{
             withdraval_over_limit: calculate_withdrawal_over_limit(convert_rank_to_power(rank)),
         }
     }
+
+    #[view]
+    public fun view_ranks(rank: vector<String>): vector<ViewRank>{
+        let len = vector::length(&rank);
+        let vect = vector::empty<ViewRank>();
+
+        while(len>0){
+            let rank = *vector::borrow(&rank, len-1);
+            let rank_ =  ViewRank {
+                level_treshold: ((convert_rank_to_power(rank)*10) as u256),
+                rank: rank,
+                fee_deduction: calculate_fee_deduction(convert_rank_to_power(rank)),
+                ltv_increase: calculate_ltv_increase(convert_rank_to_power(rank)),
+                withdraval_over_limit: calculate_withdrawal_over_limit(convert_rank_to_power(rank)),
+            };
+            len = len-1;
+            vector::push_back(&mut vect, rank_);
+        }
+
+        return vect
+    }
+
+    
 
     #[view]
     public fun return_multiple_shared_rank(shared: vector<String>): Map<String, ViewUser> acquires UsersProfile{

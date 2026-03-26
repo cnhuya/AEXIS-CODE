@@ -130,9 +130,6 @@ module dev::QiaraSharedV1{
 
     }
 
-
-    
-
     public entry fun allow_sub_owner(signer: &signer, name: String, sub_owner: vector<u8>) acquires SharedStorage {
         let shared = borrow_global_mut<SharedStorage>(@dev);
 
