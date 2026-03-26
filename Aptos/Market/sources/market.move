@@ -40,7 +40,7 @@ module dev::QiaraVaultsV1 {
     use dev::QiaraLiquidityV1::{Self as Liquidity, Access as LiquidityAccess};
     use dev::QiaraTokenVaultsV1::{Self as TokenVaults, Access as TokenVaultsAccess};
 
-    use dev::QiaraEventV1::{Self as Event};
+    use event::QiaraEventV1::{Self as Event};
 
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 1;
