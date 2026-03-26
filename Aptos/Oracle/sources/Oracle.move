@@ -5,7 +5,7 @@ module dev::QiaraOracleV5 {
     use std::signer;
     use std::timestamp;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
-    use dev::QiaraEventV1::{Self as Event};
+    use event::QiaraEventV1::{Self as Event};
     use dev::QiaraOracleStoreV5::{Self as oracle_store};
 // === ERRORS === //
     const ERROR_NOT_ADMIN: u64 = 0;

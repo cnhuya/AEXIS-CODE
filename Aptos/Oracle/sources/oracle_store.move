@@ -11,7 +11,7 @@ module dev::QiaraOracleStoreV5 {
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_std::simple_map::{Self as map, SimpleMap as Map};
 
-    use dev::QiaraEventV1::{Self as Event};
+    use event::QiaraEventV1::{Self as Event};
 
 
 // ── Error codes ────────────────────────────────────────────────────────────
