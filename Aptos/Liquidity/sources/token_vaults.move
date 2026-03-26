@@ -12,7 +12,7 @@ module dev::QiaraTokenVaultsV1{
     use aptos_framework::primary_fungible_store;
     use aptos_framework::object::{Self, Object};
     use aptos_framework::account;
-    use dev::QiaraEventV1::{Self as Event};
+    use event::QiaraEventV1::{Self as Event};
 
     use dev::QiaraTokensMetadataV2::{Self as TokensMetadata};
     use dev::QiaraTokensCoreV2::{Self as TokensCore, CoinMetadata, Access as TokensCoreAccess};
