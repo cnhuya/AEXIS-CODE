@@ -8,7 +8,7 @@ module dev::QiaraGovernanceV1 {
     use std::table;
     use aptos_std::from_bcs;
 
-    use dev::QiaraEventV1::{Self as Event};
+    use event::QiaraEventV1::{Self as Event};
     use dev::QiaraMarginV1::{Self as Margin};
 
     use dev::QiaraStorageV1::{Self as storage, Access as StorageAccess};
