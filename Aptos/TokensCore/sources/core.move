@@ -27,7 +27,7 @@ module dev::QiaraTokensCoreV2{
 
     use dev::QiaraSharedV1::{Self as Shared};
 
-    use dev::QiaraEventV1::{Self as Event};
+    use event::QiaraEventV1::{Self as Event};
     use dev::QiaraStoragesV3::{Self as Storages};
 
     use dev::QiaraChainTypesV3::{Self as ChainTypes};
