@@ -123,9 +123,19 @@ module dev::QiaraGasV2{
         let last_update_sec = ((timestamp::now_seconds() - gas_ref.last_update) as u256);
 
         // Standard decay logic
-        let previous_deposit_impact = gas_ref.usd_deposits-((gas_ref.usd_deposits*skewer*last_update_sec)/1_000_000);
-        let previous_withdrawal_impact = gas_ref.usd_withdrawals-((gas_ref.usd_withdrawals*skewer*last_update_sec)/1_000_000);
+        let deposit_decay = (gas_ref.usd_deposits * skewer * last_update_sec) / 1_000_000;
+        let previous_deposit_impact = if (deposit_decay >= gas_ref.usd_deposits) {
+            0
+        } else {
+            gas_ref.usd_deposits - deposit_decay
+        };
 
+        let withdrawal_decay = (gas_ref.usd_withdrawals * skewer * last_update_sec) / 1_000_000;
+        let previous_withdrawal_impact = if (withdrawal_decay >= gas_ref.usd_withdrawals) {
+            0
+        } else {
+            gas_ref.usd_withdrawals - withdrawal_decay
+        };
         let new_deposits = deposit + previous_deposit_impact;
         let new_withdrawals = withdrawal + previous_withdrawal_impact;
 
