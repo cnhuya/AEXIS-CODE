@@ -132,35 +132,69 @@ module dev::QiaraTokensMetadataV2{
     }
 
 // === ENTRY FUNCTIONS === //
+public entry fun create_metadata(
+    admin: &signer, 
+    symbol: String, 
+    creation: u64, 
+    oracleID: vector<u8>, 
+    max_supply: u128, 
+    circulating_supply: u128, 
+    total_supply: u128, 
+    stable: u8
+) acquires Tokens {
+    let admin_addr = signer::address_of(admin);
+    assert!(admin_addr == @dev, ERROR_NOT_ADMIN);
 
-    public entry fun create_metadata(admin: &signer, symbol: String, creation: u64,oracleID: vector<u8>, max_supply: u128, circulating_supply: u128, total_supply: u128, stable:u8) acquires Tokens {
-       
-        assert!(signer::address_of(admin) == @dev, ERROR_NOT_ADMIN);
+    let vault_list = borrow_global_mut<Tokens>(admin_addr);
 
-//        let tokens_registry = borrow_global_mut<Registry>(@dev);
+    // 1. IMPROVED DUPLICATE CHECK
+    // Don't compare the whole struct; check if the symbol is already in the list.
+    let i = 0;
+    let len = vector::length(&vault_list.list);
+    while (i < len) {
+        let existing = vector::borrow(&vault_list.list, i);
+        assert!(existing.symbol != symbol, ERROR_COIN_ALREADY_ALLOWED);
+        i = i + 1;
+    };
 
-//        if (!map::contains_key(&tokens_registry.registry, &symbol)) {
-//            map::upsert(&mut tokens_registry.registry, symbol, vector::empty<String>());
-//        };
+    // 2. PREPARE COMMON DATA
+    let tokenomics = Tokenomics { 
+        max_supply, 
+        circulating_supply, 
+        total_supply 
+    };
+    
+    let now = timestamp::now_seconds();
+    let penalty_duration = storage::expect_u64(
+        storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_PENALTY_TIME"))
+    );
 
-//        let c = map::borrow_mut(&mut tokens_registry.registry, &symbol);
-//        if (!vector::contains(c, &chain_type)) {
-//            vector::push_back(c, chain_type);
- //       };
+    // 3. CALCULATE TIER AND CREDIT
+    let (credit, tier);
+    if (symbol == utf8(b"QIARA")) {
+        credit = 0;
+        tier = 7;
+    } else {
+        let (calc_credit, _, _, _, _) = calculate_asset_credit(&tokenomics, creation, oracleID);
+        credit = calc_credit;
+        tier = associate_tier(calc_credit, stable);
+    };
 
-        let vault_list = borrow_global_mut<Tokens>(signer::address_of(admin));
+    // 4. SINGLE POINT OF CREATION
+    let metadata = Metadata {
+        symbol,
+        tier,
+        decimals: 8,
+        oracleID,
+        creation,
+        listed: now,
+        penalty_expiry: now + penalty_duration,
+        credit,
+        tokenomics
+    };
 
-        let tokenomics = Tokenomics { max_supply: max_supply, circulating_supply: circulating_supply, total_supply: total_supply };
-
-        let (calculated_credit, _, _, _, _) = calculate_asset_credit(&tokenomics, creation, oracleID);
-
-        let tier_id = associate_tier(calculated_credit, stable);
-
-        let metadata = Metadata {symbol:symbol, tier: tier_id,  decimals: 8, oracleID: oracleID, creation: creation, listed:timestamp::now_seconds(), penalty_expiry: timestamp::now_seconds() + storage::expect_u64(storage::viewConstant(utf8(b"QiaraMarket"), utf8(b"NEW_PENALTY_TIME"))), credit: calculated_credit, tokenomics: tokenomics };
-
-        assert!(!vector::contains(&vault_list.list,&metadata), ERROR_COIN_ALREADY_ALLOWED);
-        vector::push_back(&mut vault_list.list, metadata);
-    }
+    vector::push_back(&mut vault_list.list, metadata);
+}
 
     public entry fun update_tokenomics(admin: &signer, symbol: String, max_supply: u128, circulating_supply: u128, total_supply: u128) acquires Tokens {
 

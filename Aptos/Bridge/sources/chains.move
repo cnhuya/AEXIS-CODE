@@ -210,6 +210,7 @@ module dev::QiaraBridgeV1{
         let identifier = Payload::create_identifier(type_names, payload);
         //let (_, identifier) = Payload::find_payload_value(utf8(b"identifier"), type_names, payload);
         let (_, type) = Payload::find_payload_value(utf8(b"consensus_type"), type_names, payload);
+        //        tttta(0);
         let (_, event_type) = Payload::find_payload_value(utf8(b"event_type"), type_names, payload);
         let (pub_key_x, pub_key_y, pubkey, _, _) = Validators::return_validator_raw(validator);
 
@@ -217,7 +218,7 @@ module dev::QiaraBridgeV1{
         let pending = borrow_global_mut<Pending>(STORAGE);
         let validated = borrow_global_mut<Validated>(STORAGE);
         Validators::take_snapshot(signer, validator);
-
+        
         // Store event in both pending and chain storage
         if(from_bcs::to_string(type) == utf8(b"native")){
             let (_, message) = Payload::find_payload_value(utf8(b"message"), type_names, payload);
@@ -239,6 +240,7 @@ module dev::QiaraBridgeV1{
                 from_bcs::to_string(event_type)
             );
         } else if (from_bcs::to_string(type) == utf8(b"zk")){
+
             handle_zk_event(
                 signer,
                 validator,
@@ -536,7 +538,6 @@ module dev::QiaraBridgeV1{
         if (table::contains(validated_table, identifier)) {
             abort(ERROR_DUPLICATE_EVENT);
         };
-
         // Calculate voting power (Weight)
         let (_, _, _, _, _, _, _, _, vote_weight_u256, _, _) = Margin::get_user_total_usd(validator);
         let vote_weight = (vote_weight_u256 as u128);

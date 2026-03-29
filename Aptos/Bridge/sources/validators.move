@@ -91,7 +91,7 @@ module dev::QiaraValidatorsV1 {
         let active_validators = borrow_global_mut<ActiveValidators>(@dev); 
         let pending_validators = borrow_global_mut<PendingValidators>(@dev); 
         let validators = borrow_global_mut<Validators>(@dev);
-
+         //       tttta(98000);
         reg_validator(&mut pending_validators.list, active_validators, &mut validators.map, shared, pub_key_x, pub_key_y, pub_key);
 
 
@@ -216,6 +216,10 @@ module dev::QiaraValidatorsV1 {
         active_validators.root = new_root;
     }
 
+    fun tttta(error: u64){
+        abort error
+    }
+
 // === INTERNAL FUNCTIONS === //
     fun reg_validator(pending_validators: &mut vector<PendingValidator>, active_validators: &mut ActiveValidators, validators: &mut Map<String, Validator>, validator: String, pub_key_x: String, pub_key_y: String, pub_key: vector<u8>) {
         if(map::contains_key(validators, &validator)) {
@@ -224,7 +228,6 @@ module dev::QiaraValidatorsV1 {
 
         let validator_struct = Validator { pub_key: pub_key, pub_key_x: pub_key_x, pub_key_y: pub_key_y, isActive: true, last_active: 0, sub_validators: map::new<String, u256>() };
         map::upsert(validators, validator, validator_struct);
-
         take_validator_snapshot(validator, validators, pending_validators, active_validators);
     }
 

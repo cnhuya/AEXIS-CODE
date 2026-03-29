@@ -30,24 +30,28 @@ module dev::QiaraPayloadV1{
         abort error
     }
 
-    public fun ensure_valid_payload(type_names: vector<String>, payload: vector<vector<u8>>){
-        let len = vector::length(&type_names);
-        let payload_len = vector::length(&payload);
-        assert!(len == payload_len, ERROR_PAYLOAD_LENGTH_MISMATCH_WITH_TYPES);
+public fun ensure_valid_payload(type_names: vector<String>, payload: vector<vector<u8>>) {
+    let len = vector::length(&type_names);
+    let payload_len = vector::length(&payload);
+    assert!(len == payload_len, ERROR_PAYLOAD_LENGTH_MISMATCH_WITH_TYPES);
 
-       // assert!(vector::contains(&type_names, &utf8(b"hash")), ERROR_PAYLOAD_MISS_HASH);
-        assert!(vector::contains(&type_names, &utf8(b"time")), ERROR_PAYLOAD_MISS_TIME);
-        assert!(vector::contains(&type_names, &utf8(b"consensus_type")), ERROR_PAYLOAD_MISS_CONSENSUS_TYPE);
+    assert!(vector::contains(&type_names, &string::utf8(b"time")), ERROR_PAYLOAD_MISS_TIME);
+    assert!(vector::contains(&type_names, &string::utf8(b"consensus_type")), ERROR_PAYLOAD_MISS_CONSENSUS_TYPE);
 
-        let (_, chain) = find_payload_value(utf8(b"chain"), type_names, payload);
-        ChainTypes::ensure_valid_chain_name(from_bcs::to_string(chain));
-    //    tttta(100);
-        if(vector::contains(&type_names, &utf8(b"token"))){
-            let (_, token) = find_payload_value(utf8(b"token"), type_names, payload);
-            TokenTypes::ensure_valid_token_nick_name(from_bcs::to_string(token));
-        }
+    let (_, chain_bytes) = find_payload_value(string::utf8(b"chain"), type_names, payload);
+    
+    // FIX: Use string::utf8() instead of from_bcs::to_string()
+    let chain_name = string::utf8(chain_bytes);
+    ChainTypes::ensure_valid_chain_name(chain_name);
 
+    if (vector::contains(&type_names, &string::utf8(b"token"))) {
+        let (_, token_bytes) = find_payload_value(string::utf8(b"token"), type_names, payload);
+        
+        // FIX: Use string::utf8() here too
+        let token_name = string::utf8(token_bytes);
+        TokenTypes::ensure_valid_token_nick_name(token_name);
     }
+}
 
 
 /*    public fun create_identifier(addr: vector<u8>, nonce: vector<u8>, consensus_type: vector<u8>): vector<u8> {
